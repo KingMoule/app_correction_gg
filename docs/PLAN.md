@@ -47,7 +47,7 @@ Objectif : une seule app pour corriger les rapports de lab (français, annotatio
 - **Stockage** : annotations enregistrées à part du PDF, modifiables en tout temps; le PDF annoté n'est créé qu'à l'export pour LÉA.
 - **Navigation** : défilement continu de toutes les pages, zoom à deux doigts.
 - **Entrées** : le doigt défile et zoome, seul le crayon dessine (le poignet ne laisse pas de traces). Double tape du Pencil pour passer crayon/gomme, si Safari le permet (sinon bouton dans la barre d'outils).
-  - **Test du prototype (2026-10-19)** : le double tape n'est pas transmis par Safari, il est abandonné. Bascule crayon/gomme par un bouton dans la barre d'outils. Fluidité et pression jugées bonnes sur l'iPad.
+  - **Test du prototype (2026-10-19)** : le double tape n'est pas transmis par Safari, il est abandonné. Bascule crayon/gomme par un bouton dans la barre d'outils. **Décision : on reste en PWA** (app native Swift écartée : Mac + programme développeur ≈ 99 $ US/an à revérifier, réécriture de l'annotateur, gain limité au double tape). Fluidité et pression jugées bonnes sur l'iPad.
 
 ## À préciser au début de chaque étape
 
