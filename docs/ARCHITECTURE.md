@@ -16,8 +16,9 @@ moteur/        API et logique (un module par fonction)
   languagetool.py client du serveur LanguageTool local
   bareme.py    pénalité (points par faute, plafond)
   francais.py  API /api/francais (analyser, bareme)
+  plagiat.py   comparaison locale de tous les rapports + analyse Claude des paires confirmées
   __main__.py  commande de lancement
-pwa/           app iPad (index.html, app.js, manifest, icône)
+pwa/           app iPad (index.html, app.js, manifest, icône; plagiat.html/js/css)
 scripts/       outils à lancer à la main (ex. test de consommation)
 prototypes/    essais autonomes (ex. crayon), hors moteur
 tests/         tests pytest
@@ -52,3 +53,11 @@ Les fichiers des étudiants vont seulement sous `donnees/`.
 ## Bibliothèque (étape 1)
 Rangement : `donnees/bibliotheque/<cours>/<groupe>/classe.json` et `.../<lab>/<étudiant>/rapport.pdf`; les PDF à trancher sont dans `_attente/`.
 Association : le nom de famille (sans accents ni casse) doit figurer dans le nom du fichier; le nom le plus long l'emporte; le prénom départage les homonymes; sinon le fichier va « en attente » (ambigu, aucune correspondance ou rapport déjà importé, jamais écrasé sans choix de Guillaume). Les PDF sans texte sont refusés.
+
+## Plagiat (étape 3)
+- **Comparaison locale** (`POST /api/plagiat/comparer`, sans Claude) : chaque rapport de la bibliothèque (tous cours, groupes, labs) est comparé à tous les autres. Mots mis en minuscules, sans accents ni ponctuation; un passage commun = au moins 8 mots consécutifs identiques (`MOTS_MIN`). Score d'une paire = plus grande part d'un des deux rapports couverte par des passages communs. Un même étudiant n'est pas comparé à lui-même d'un lab à l'autre. Une suite de mots présente dans plus de 40 rapports est considérée comme du texte courant et ignorée.
+- **Énoncé** : `POST /api/plagiat/enonces/{cours}/{lab}` (PDF), rangé sous `bibliotheque/<cours>/_enonces/<lab>.pdf`. Les mots qu'il couvre sont retirés des rapports (ni comparés ni comptés).
+- **Seuil** : `GET/PUT /api/plagiat/reglages` (fraction, 0,2 par défaut). Les paires plus basses restent consultables.
+- **Confirmation avant Claude** : `POST /api/plagiat/paires/{cle}/confirmer` est le seul chemin vers Claude. Une paire par appel; seuls les passages communs partent (sous les noms « rapport A/B », sans nom d'étudiant), au plus 12 000 caractères. Verdict : copie, paraphrase ou coïncidence + confiance + explication, présenté comme un indice. `…/ecarter` écarte une paire.
+- **Données** sous `donnees/plagiat/` : `paires.json` (dernière comparaison), `decisions.json`, `reglages.json`, `textes/` (cache par empreinte du PDF; une décision suit le contenu des PDF, pas le nom). Un rapport remplacé donne une nouvelle paire, donc une nouvelle décision.
+- Limite connue : des partenaires de lab qui partagent légitimement leurs données ressortent comme paires; c'est à Claude (consigne) et à Guillaume de trancher.
