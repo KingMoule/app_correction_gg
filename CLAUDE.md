@@ -18,5 +18,14 @@ Workflow détaillé (modèles, découpage, tokens) : @docs/WORKFLOW.md
 - Communication : un message seulement pour un résultat, une question ou un blocage.
 - Langue : français partout (échanges, commentaires, commits, documentation) ; noms de variables en anglais ou français selon le cas.
 
+## Préférences de Guillaume
+- Questions une à une, avec choix et ta recommandation marquée.
+- Notifier dans le chat du projet chaque PR à relire et chaque décision à prendre.
+- Découper en fils, une PR chacun, en parallèle quand c'est possible.
+- Ne fusionne jamais une PR : Guillaume le fait.
+
+## Reprise du projet
+Dépôt : https://github.com/KingMoule/app_correction_gg (privé). État et reste à faire : @docs/PLAN.md. Structure, API et lancement : @docs/ARCHITECTURE.md. Appel de Claude (`claude -p`) : @docs/CLAUDE_CLI.md. Tests : `pip install -e ".[test]"` puis `pytest`.
+
 ## Compaction
 Lors d'un /compact, conserve : la liste des fichiers modifiés, les commandes de test et les décisions prises.

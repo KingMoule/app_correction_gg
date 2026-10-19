@@ -28,7 +28,7 @@ scripts/       outils à lancer à la main (ex. test de consommation)
 prototypes/    essais autonomes (ex. crayon), hors moteur
 tests/         tests pytest
 donnees/       données locales, exclu du dépôt (.gitignore)
-docs/          plan, workflow, architecture
+docs/          plan (état et reste à faire), workflow, architecture, liaison Claude
 ```
 
 ## Lancer
