@@ -9,6 +9,7 @@ const ref = ["cours", "groupe", "lab", "etudiant"].map((k) => params.get(k));
 const base = ref.map(encodeURIComponent).join("/");
 const URL_PDF = `/api/bibliotheque/rapport/${base}`;
 const URL_ANNOTATIONS = `/api/annotations/${base}`;
+const URL_EXPORT = `/api/export/${base}`;
 
 const COULEURS = ["#d32f2f", "#1565c0", "#2e7d32", "#111111", "#ef6c00"];
 const SURLIGNEURS = ["#ff5252", "#40c4ff", "#69f0ae", "#ffee58", "#ffab40"];
@@ -295,6 +296,17 @@ function appliquer(a, sens) { // sens : +1 refaire, -1 défaire
   redessiner(pg); majBoutons(); marquerModifie();
   pg.el.scrollIntoView({ block: "nearest" });
 }
+// Export : attendre que les dernières modifications soient enregistrées avant de télécharger.
+$("exporter").onclick = async (e) => {
+  e.preventDefault();
+  for (let i = 0; i < 3 && (modifie || envoi); i++) {
+    clearTimeout(minuterie);
+    await enregistrer();
+    while (envoi) await new Promise((r) => setTimeout(r, 100));
+  }
+  if (window.viderDecisions) await window.viderDecisions();
+  location.href = URL_EXPORT;
+};
 $("annuler").onclick = () => { const a = histoire.annuler.pop(); if (a) { appliquer(a, -1); histoire.retablir.push(a); majBoutons(); } };
 $("retablir").onclick = () => { const a = histoire.retablir.pop(); if (a) { appliquer(a, +1); histoire.annuler.push(a); majBoutons(); } };
 

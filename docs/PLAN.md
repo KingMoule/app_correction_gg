@@ -15,7 +15,7 @@ Objectif : une seule app pour corriger les rapports de lab (français, annotatio
 
 ## Étapes
 
-1. [~] **Moteur et app iPad** (bibliothèque, import, lecteur et annotation faits; reste export du PDF annoté) : bibliothèque (cours, lab, étudiant), import PDF (avec texte), lecteur PDF avec annotation au crayon rouge (Apple Pencil), export du PDF annoté prêt pour LÉA.
+1. [~] **Moteur et app iPad** (bibliothèque, import, lecteur, annotation et export du PDF annoté faits; reste à essayer sur l'iPad) : bibliothèque (cours, lab, étudiant), import PDF (avec texte), lecteur PDF avec annotation au crayon rouge (Apple Pencil), export du PDF annoté prêt pour LÉA.
 2. [~] **Correction du français** (moteur fait : extraction PDF avec positions, LanguageTool local, barème; rendu surligné sur le PDF, accepter/refuser et barème par cours faits; reste : passe Claude) : LanguageTool sur le texte du Word, acceptation/refus de chaque correction, option de passage par Claude pour les erreurs subtiles.
 3. [ ] **Plagiat** : comparaison automatique de chaque nouveau rapport avec tous ceux déjà dans la bibliothèque (passages communs, côte à côte, score), puis analyse par Claude des paires suspectes seulement.
 4. [ ] **Indices d'IA** : analyse de style par Claude, lien vers Pangram (API payante possible plus tard), résultat présenté comme un indice.
@@ -65,5 +65,5 @@ Objectif : une seule app pour corriger les rapports de lab (français, annotatio
 
 1. **Lecteur + annotations** : ouvrir un rapport depuis la bibliothèque, annoter (crayon, surligneur, gomme, annuler/rétablir), enregistrement automatique dans le moteur. [fait]
 2. **Fautes de français sur le PDF** : analyse du rapport rangé, surlignage rouge + correction manuscrite effaçable, accepter/refuser chaque faute, barème (points par faute, plafond par cours). [fait]
-3. **Export du PDF annoté** pour LÉA : traits, surlignages et fautes acceptées dessinés dans le PDF.
+3. **Export du PDF annoté** pour LÉA : traits, surlignages et fautes acceptées dessinés dans le PDF. [fait]
 Chaque PR est relue puis fusionnée par Guillaume avant de commencer la suivante.

@@ -17,6 +17,8 @@ moteur/        API et logique (un module par fonction)
   bareme.py    pénalité (points par faute, plafond)
   francais.py  API /api/francais (analyser, bareme)
   annotations.py API /api/annotations (traits du crayon, enregistrés à part du PDF)
+  export.py    API /api/export (PDF annoté pour LÉA, créé à la demande)
+  polices/     Caveat Bold (OFL), écriture manuscrite des corrections dans le PDF exporté
   __main__.py  commande de lancement
 pwa/           app iPad (index.html + app.js : bibliothèque; lecteur.html/js/css : lecteur et annotation;
                vendor/ : pdf.js, copié dans le dépôt car l'iPad n'a pas forcément Internet)
@@ -66,3 +68,9 @@ Association : le nom de famille (sans accents ni casse) doit figurer dans le nom
 - `GET` / `PUT` sur le même chemin sans `/analyser` : état (`fautes` avec `zones`, `decisions` {id: acceptee|refusee, absent = à trancher}, `choix` {id: correction écrite, défaut = 1re suggestion}, `masquees` [id] = correction manuscrite effacée, `nb_acceptees`, `penalite`, `bareme`). Le PUT renvoie l'état avec la pénalité recalculée : la formule n'existe que dans le moteur.
 - `GET` / `PUT /api/francais/bareme/<cours>` : points par faute et plafond du cours (`<cours>/bareme.json`, vide = aucun plafond).
 - Lecteur : bouton « Français » (analyse, résumé, barème, liste des fautes avec ✓/✗); tap sur une faute (double clic à la souris) pour sa fiche : suggestions, accepter/refuser, effacer la correction écrite. Fautes refusées : plus affichées. Correction manuscrite : police Caveat (OFL, `pwa/vendor/`).
+
+## Export du PDF annoté (étape 1)
+- `GET /api/export/<cours>/<groupe>/<lab>/<étudiant>` : renvoie `<étudiant>_<lab>_annote.pdf`. Rien n'est écrit sur le disque : le rapport reste intact, le PDF annoté est recalculé à chaque demande (reportlab dessine une couche par page, pypdf la fusionne).
+- Contenu : surlignages et traits du crayon (même largeur selon la pression qu'à l'écran), et les fautes de français **acceptées** seulement (surlignage rouge, correction manuscrite sauf si effacée). Les fautes refusées ou à trancher n'y sont pas. Le surligneur est en mode « produit » (multiply) : le texte reste lisible dessous.
+- Lecteur : bouton « Exporter le PDF » (enregistre d'abord les modifications en attente, puis télécharge).
+- Limite : les pages pivotées (`/Rotate`) ne sont pas gérées; les PDF exportés de Word n'en ont pas.
