@@ -15,8 +15,8 @@ Objectif : une seule app pour corriger les rapports de lab (français, annotatio
 
 ## Étapes
 
-1. [ ] **Moteur et app iPad** : bibliothèque (cours, lab, étudiant), import PDF (avec texte), lecteur PDF avec annotation au crayon rouge (Apple Pencil), export du PDF annoté prêt pour LÉA.
-2. [ ] **Correction du français** : LanguageTool sur le texte du Word, acceptation/refus de chaque correction, option de passage par Claude pour les erreurs subtiles.
+1. [~] **Moteur et app iPad** (bibliothèque et import faits; reste lecteur/annotation/export) : bibliothèque (cours, lab, étudiant), import PDF (avec texte), lecteur PDF avec annotation au crayon rouge (Apple Pencil), export du PDF annoté prêt pour LÉA.
+2. [~] **Correction du français** (moteur fait : extraction PDF avec positions, LanguageTool local, barème; reste : rendu surligné, accepter/refuser, passe Claude, écran PWA) : LanguageTool sur le texte du Word, acceptation/refus de chaque correction, option de passage par Claude pour les erreurs subtiles.
 3. [ ] **Plagiat** : comparaison automatique de chaque nouveau rapport avec tous ceux déjà dans la bibliothèque (passages communs, côte à côte, score), puis analyse par Claude des paires suspectes seulement.
 4. [ ] **Indices d'IA** : analyse de style par Claude, lien vers Pangram (API payante possible plus tard), résultat présenté comme un indice.
 
@@ -52,6 +52,7 @@ Objectif : une seule app pour corriger les rapports de lab (français, annotatio
 - **Stockage** : annotations enregistrées à part du PDF, modifiables en tout temps; le PDF annoté n'est créé qu'à l'export pour LÉA.
 - **Navigation** : défilement continu de toutes les pages, zoom à deux doigts.
 - **Entrées** : le doigt défile et zoome, seul le crayon dessine (le poignet ne laisse pas de traces). Double tape du Pencil pour passer crayon/gomme, si Safari le permet (sinon bouton dans la barre d'outils).
+  - **Test du prototype (2026-10-19)** : le double tape n'est pas transmis par Safari, il est abandonné. Bascule crayon/gomme par un bouton dans la barre d'outils. **Décision : on reste en PWA** (app native Swift écartée : Mac + programme développeur ≈ 99 $ US/an à revérifier, réécriture de l'annotateur, gain limité au double tape). Fluidité et pression jugées bonnes sur l'iPad.
 
 ## À préciser au début de chaque étape
 

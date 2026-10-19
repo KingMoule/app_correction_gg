@@ -4,7 +4,7 @@ Usage (sur ton ordi, Claude Code installé et connecté) :
     python scripts/mesurer_consommation.py chemin/du/rapport.pdf
     python scripts/mesurer_consommation.py rapport.txt --modele sonnet
 
-Le rapport peut être un PDF avec texte (nécessite `pip install pypdf`) ou un .txt.
+Le rapport peut être un PDF avec texte (installé avec `pip install -e .`) ou un .txt.
 Rien n'est écrit dans le dépôt ; le résumé chiffré va dans donnees/consommation/
 (dossier exclu de git). Voir docs/CLAUDE_CLI.md pour lire l'usage dans Claude.
 """
@@ -49,7 +49,7 @@ def lire_texte(chemin: Path) -> str:
         try:
             from pypdf import PdfReader
         except ImportError:
-            sys.exit("Pour un PDF : pip install pypdf (ou donne un fichier .txt).")
+            sys.exit("Pour un PDF : pip install -e . (ou donne un fichier .txt).")
         texte = "\n".join(p.extract_text() or "" for p in PdfReader(str(chemin)).pages)
     else:
         texte = chemin.read_text(encoding="utf-8")

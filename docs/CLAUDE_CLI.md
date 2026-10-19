@@ -32,7 +32,7 @@ Erreurs (toutes des `ClaudeErreur`) : `ClaudeIntrouvable` (non installé), `Clau
 
 ## Test de consommation (à lancer par Guillaume)
 
-Prérequis : Claude Code installé et connecté (`claude`, puis `/login` si besoin) ; `pip install pypdf` si le rapport est un PDF.
+Prérequis : Claude Code installé et connecté (`claude`, puis `/login` si besoin) ; `pip install -e .` fait une seule fois (installe aussi la lecture des PDF).
 
 1. Dans Claude Code, tape `/usage` et note le pourcentage de la limite de session (5 h) et de la limite de la semaine **avant**. Ne rien faire d'autre avec Claude pendant le test.
 2. Depuis le dossier du projet :
