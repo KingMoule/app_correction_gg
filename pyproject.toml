@@ -11,13 +11,17 @@ dependencies = [
     "python-multipart>=0.0.9",
     "openpyxl>=3.1",
     "pypdf>=4",
+    "reportlab>=4",
 ]
 
 [project.optional-dependencies]
-test = ["pytest>=8", "reportlab>=4"]
+test = ["pytest>=8"]
 
 [tool.setuptools]
 packages = ["moteur"]
+
+[tool.setuptools.package-data]
+moteur = ["polices/*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
