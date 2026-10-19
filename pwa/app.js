@@ -43,8 +43,8 @@ async function charger() {
       const ligne = texte("div", `${e.nom}, ${e.prenom} `, "etudiant");
       for (const lab of e.labs) {
         const a = texte("a", lab);
-        a.href = `${API}/rapport/${c.cours}/${c.groupe}/${lab}/${e.id}`;
-        a.target = "_blank";
+        const q = new URLSearchParams({ cours: c.cours, groupe: c.groupe, lab, etudiant: e.id, nom: `${e.prenom} ${e.nom}` });
+        a.href = `lecteur.html?${q}`;
         ligne.append(a);
         const ia = texte("button", "IA", "bouton-ia");
         ia.title = "Indices d'IA";

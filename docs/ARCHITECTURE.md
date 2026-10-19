@@ -17,8 +17,10 @@ moteur/        API et logique (un module par fonction)
   bareme.py    pénalité (points par faute, plafond)
   francais.py  API /api/francais (analyser, bareme)
   indices_ia.py API /api/indices-ia (analyse de style par Claude, texte pour Pangram)
+  annotations.py API /api/annotations (traits du crayon, enregistrés à part du PDF)
   __main__.py  commande de lancement
-pwa/           app iPad (index.html, app.js, manifest, icône)
+pwa/           app iPad (index.html + app.js : bibliothèque; lecteur.html/js/css : lecteur et annotation;
+               vendor/ : pdf.js, copié dans le dépôt car l'iPad n'a pas forcément Internet)
 scripts/       outils à lancer à la main (ex. test de consommation)
 prototypes/    essais autonomes (ex. crayon), hors moteur
 tests/         tests pytest
@@ -54,6 +56,11 @@ Les fichiers des étudiants vont seulement sous `donnees/`.
 Rangement : `donnees/bibliotheque/<cours>/<groupe>/classe.json` et `.../<lab>/<étudiant>/rapport.pdf`; les PDF à trancher sont dans `_attente/`.
 Association : le nom de famille (sans accents ni casse) doit figurer dans le nom du fichier; le nom le plus long l'emporte; le prénom départage les homonymes; sinon le fichier va « en attente » (ambigu, aucune correspondance ou rapport déjà importé, jamais écrasé sans choix de Guillaume). Les PDF sans texte sont refusés.
 
+## Annotations (étape 1)
+- Fichier `.../<lab>/<étudiant>/annotations.json` à côté de `rapport.pdf`; le PDF n'est jamais modifié.
+- `GET` / `PUT /api/annotations/<cours>/<groupe>/<lab>/<étudiant>` : `{version: 1, pages: {"1": [trait, …]}}`. Un trait : `outil` (crayon ou surligneur), `couleur` (#rrggbb), `largeur_min`, `largeur_max`, `courbe`, `points` [x, y, pression]. Coordonnées en points PDF, origine en haut à gauche (même repère que les zones des fautes).
+- Lecteur (`lecteur.html?cours=…&groupe=…&lab=…&etudiant=…`) : pages en défilement continu, canvas créés seulement pour les pages proches de l'écran (mémoire de l'iPad), enregistrement automatique 0,8 s après chaque modification, nouvel essai si le moteur est injoignable.
+- Largeurs de trait en points PDF (réglages par défaut 0,6 à 3,8 pt, gomme 6 pt) : le prototype était à 816 px de large, la page est maintenant à l'échelle réelle du PDF. À ajuster dans « Réglages » sur l'iPad.
 ## Indices d'IA (étape 4)
 - `POST /api/indices-ia/analyser/{cours}/{groupe}/{lab}/{etudiant}` : Claude (`claude -p`, file partagée, schéma JSON) analyse le style du rapport rangé; résultat gardé dans `indices_ia.json` à côté du PDF. `GET .../resultat/...` le relit, `GET .../texte/...` donne le texte brut.
 - Sortie : `force` (faible / moderee / marquee), `resume`, `signaux` (observation + extrait cité, `verifie` = l'extrait est vraiment dans le rapport), `contre_indices`, `avertissement`. Toujours un indice à revérifier, jamais un verdict.
