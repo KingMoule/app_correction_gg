@@ -67,7 +67,8 @@ def obtenir_file() -> FileClaude:
 
 def _motif(extrait: str) -> re.Pattern:
     mots = extrait.split()
-    return re.compile(r"\s+".join(re.escape(m) for m in mots))
+    # Mots entiers : « mesure » ne doit pas être trouvé dans « mesurer ».
+    return re.compile(r"(?<!\w)" + r"\s+".join(re.escape(m) for m in mots) + r"(?!\w)")
 
 
 def _chevauche(d: int, f: int, plages: list[tuple[int, int]]) -> bool:

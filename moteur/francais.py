@@ -145,8 +145,17 @@ def obtenir(cours: str, groupe: str, lab: str, etudiant: str) -> dict:
 def analyser_rapport(cours: str, groupe: str, lab: str, etudiant: str) -> dict:
     """Analyse le rapport rangé. Une nouvelle analyse garde les décisions des fautes inchangées."""
     rapport, f = fichiers_rapport(cours, groupe, lab, etudiant)
-    _, fautes, erreur = analyser_fichier(rapport, avec_claude=True)
+    extrait, fautes, erreur = analyser_fichier(rapport, avec_claude=True)
     ancien = json.loads(f.read_text(encoding="utf-8")) if f.is_file() else None
+    if erreur and ancien:
+        # Claude indisponible : on garde les fautes de Claude déjà trouvées (et leurs décisions).
+        deja = [(x["debut"], x["fin"]) for x in fautes]
+        reprises = [x for x in ancien["fautes"] if x.get("source") == "claude"
+                    and not any(x["debut"] < b and a < x["fin"] for a, b in deja)]
+        if reprises:
+            fautes = sorted(fautes + [{k: v for k, v in x.items() if k != "id"} for x in reprises],
+                            key=lambda x: (x["debut"], x["fin"]))
+            fautes = [{**x, "id": i} for i, x in enumerate(fautes)]
     nouveau = {"version": 1, "fautes": fautes, "decisions": {}, "choix": {}, "masquees": [],
                "claude": {"ok": erreur is None, "erreur": erreur,
                           "ajoutees": sum(1 for x in fautes if x.get("source") == "claude")}}

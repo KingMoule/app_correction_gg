@@ -213,3 +213,20 @@ def test_decision_sur_faute_inconnue(rapport_range):
 
 def test_bareme_cours_inconnu(client):
     assert client.get("/api/francais/bareme/999XXXXX").status_code == 404
+
+
+def test_claude_en_panne_garde_les_fautes_claude_precedentes(rapport_range, monkeypatch):
+    monkeypatch.setattr(francais_claude, "obtenir_file", lambda: FileFausse([FAUTE_CLAUDE]))
+    rapport_range.post(URL_RAPPORT + "/analyser")
+    rapport_range.put(URL_RAPPORT, json={"decisions": {"1": "acceptee"}})
+    monkeypatch.setattr(francais_claude, "obtenir_file", lambda: FileFausse(erreur=ClaudeLimite("limit")))
+    j = rapport_range.post(URL_RAPPORT + "/analyser").json()
+    assert [f["texte"] for f in j["fautes"]] == ["mesure", "a manger"]
+    assert j["decisions"] == {"1": "acceptee"} and j["claude"]["ok"] is False
+
+
+def test_extrait_de_claude_mots_entiers(rapport_range, monkeypatch):
+    # « mesur » est dans « mesure » mais n'est pas un mot entier du rapport
+    monkeypatch.setattr(francais_claude, "obtenir_file",
+                        lambda: FileFausse([{"extrait": "tensio", "correction": "x", "message": "m"}]))
+    assert [f["texte"] for f in rapport_range.post(URL_RAPPORT + "/analyser").json()["fautes"]] == ["mesure"]
