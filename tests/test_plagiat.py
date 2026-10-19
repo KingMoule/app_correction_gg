@@ -6,13 +6,25 @@ from concurrent.futures import Future
 
 import pytest
 from fastapi.testclient import TestClient
+from openpyxl import Workbook
 from reportlab.pdfgen import canvas
 
 from moteur import plagiat
 from moteur.app import creer_app
 from moteur.claude import ClaudeLimite, Resultat
 
-from test_bibliotheque import NOM_LISTE, xlsx
+
+NOM_LISTE = "ListeEtudiants_cours202SNURE_gr00002.xlsx"
+
+
+def xlsx(lignes) -> bytes:
+    wb = Workbook()
+    for ligne in lignes:
+        wb.active.append(ligne)
+    tampon = io.BytesIO()
+    wb.save(tampon)
+    return tampon.getvalue()
+
 
 ENONCE = ("Objectif du laboratoire : mesurer la resistance equivalente d'un circuit en serie "
           "puis en parallele avec un multimetre numerique et comparer aux valeurs theoriques calculees.")
