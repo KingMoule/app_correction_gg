@@ -1,6 +1,7 @@
 """Tests de moteur/claude.py avec un faux exécutable `claude` (aucun appel réel)."""
 
 import json
+import os
 import sys
 import time
 
@@ -54,11 +55,23 @@ elif mode == "ordre":
 
 @pytest.fixture
 def faux(tmp_path, monkeypatch):
-    chemin = tmp_path / "claude_faux"
-    chemin.write_text(FAUX.format(python=sys.executable))
-    chemin.chmod(0o755)
+    """Client dont « claude » est un script Python, lancé par l'interpréteur courant.
+
+    Portable (Windows ne sait pas exécuter un script à shebang) : on remplace seulement
+    le premier élément de la commande; les arguments, l'entrée standard et l'environnement
+    sont ceux d'un vrai appel.
+    """
+    script = tmp_path / "claude_faux.py"
+    script.write_text(FAUX.format(python=sys.executable), encoding="utf-8")
+    original = ClientClaude.commande
+
+    def commande(self, schema=None, systeme=None):
+        return [sys.executable, str(script)] + original(self, schema, systeme)[1:]
+
+    monkeypatch.setattr(ClientClaude, "_resoudre_executable", lambda self: "claude")
+    monkeypatch.setattr(ClientClaude, "commande", commande)
     monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-test")
-    return ClientClaude(executable=str(chemin), delai=3)
+    return ClientClaude(delai=3)
 
 
 def test_succes_json(faux):
@@ -88,6 +101,38 @@ def test_erreurs(faux, monkeypatch, mode, exc):
 def test_introuvable():
     with pytest.raises(ClaudeIntrouvable):
         ClientClaude(executable="/nexiste/pas/claude").executer("x")
+
+
+def test_introuvable_message_renvoie_aux_docs():
+    with pytest.raises(ClaudeIntrouvable, match="CLAUDE_CLI.md"):
+        ClientClaude(executable="claude_qui_n_existe_pas").executer("x")
+
+
+@pytest.mark.skipif(os.name == "nt", reason="script à shebang : Linux/macOS seulement")
+def test_executable_reel_via_path(tmp_path, monkeypatch):
+    chemin = tmp_path / "claude"
+    chemin.write_text(FAUX.format(python=sys.executable))
+    chemin.chmod(0o755)
+    monkeypatch.setenv("PATH", str(tmp_path) + os.pathsep + os.environ["PATH"])
+    assert ClientClaude(delai=3).executer("salut").texte == "recu:salut"
+
+
+@pytest.mark.skipif(os.name != "nt", reason="spécifique à Windows (.cmd npm)")
+def test_cmd_sans_binaire_natif_erreur_claire(tmp_path, monkeypatch):
+    (tmp_path / "claude.cmd").write_text("@echo off\r\n")
+    monkeypatch.setenv("PATH", str(tmp_path) + os.pathsep + os.environ["PATH"])
+    with pytest.raises(ClaudeIntrouvable, match="Installer le Claude Code natif"):
+        ClientClaude().executer("x")
+
+
+@pytest.mark.skipif(os.name != "nt", reason="spécifique à Windows (.cmd npm)")
+def test_cmd_npm_utilise_le_binaire_natif(tmp_path, monkeypatch):
+    natif = tmp_path / "node_modules" / "@anthropic-ai" / "claude-code" / "bin" / "claude.exe"
+    natif.parent.mkdir(parents=True)
+    natif.write_bytes(b"")
+    (tmp_path / "claude.cmd").write_text("@echo off\r\n")
+    monkeypatch.setenv("PATH", str(tmp_path) + os.pathsep + os.environ["PATH"])
+    assert ClientClaude()._resoudre_executable() == str(natif)
 
 
 def test_delai(faux, monkeypatch):
