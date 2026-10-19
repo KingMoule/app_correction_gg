@@ -9,7 +9,7 @@ Tout est fusionné dans `main` jusqu'à la PR #17 (bibliothèque, lecteur et ann
 - [x] **Passe Claude sur le français** (étape 2) : faite et fusionnée (PR #17). Après LanguageTool, `claude -p` repère les erreurs subtiles; mêmes zones et décisions que LanguageTool. Reste : mesurer sa consommation réelle (test ci-dessous).
 - [ ] **Essais de Guillaume sur l'iPad** : crayon dans l'app (le prototype seul est validé), tap sur une faute pour sa fiche, export du PDF depuis l'app installée sur l'écran d'accueil.
 - [ ] **Installer le CLI sous Windows** (absent du PATH sur l'ordi de Guillaume; seule l'app de bureau est installée) : suivre « Installer et connecter le CLI sous Windows » dans `docs/CLAUDE_CLI.md`. Le moteur et ses tests fonctionnent maintenant sous Windows (résolution de `claude.exe`).
-- [~] **Mesure faite (2026-10-19)** : 1 rapport (français + indices d'IA) = **3 % de la limite de session (5 h)**. À compléter : % de la semaine, modèle, nombre de pages. Estimation : avec une marge de 20 % de la session, environ 6 rapports par lot.
+- [~] **Mesure faite (2026-10-19)** : 1 rapport (français + indices d'IA) = **3 % de la limite de session (5 h)**, limite de la semaine inchangée (pas de hausse visible). Conditions : modèle **Opus 5.5**, rapport de 3 pages. Estimation : avec une marge de 20 % de la session, environ 6 rapports par lot **avec Opus**. [ ] Refaire la mesure avec `--modele sonnet` (et `haiku`) : devrait coûter moins cher, donc des lots plus grands.
 - [ ] **Test de consommation `claude -p`** sur l'ordi de Guillaume (`docs/CLAUDE_CLI.md`) : noter ici le % de session et de semaine, puis fixer la taille des lots (plagiat, français, indices d'IA).
 - [ ] Rendu surligné du plagiat sur le PDF (étape 3, optionnel).
 
