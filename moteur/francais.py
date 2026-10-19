@@ -16,7 +16,8 @@ from typing import Literal
 from fastapi import APIRouter, File, Form, HTTPException, UploadFile
 from pydantic import BaseModel
 
-from . import languagetool, pdf_texte
+from . import francais_claude, languagetool, pdf_texte
+from .anonymat import Anonymiseur
 from .bareme import Bareme, penalite
 from .bibliotheque import chemin_rapport, racine, segment_sur
 
@@ -33,8 +34,11 @@ def calculer_bareme(d: DemandeBareme) -> dict:
     return {"nb_fautes": d.nb_fautes, "penalite": penalite(d.nb_fautes, d.bareme)}
 
 
-def analyser_fichier(chemin: Path) -> tuple[pdf_texte.TexteExtrait, list[dict]]:
-    """Texte extrait et fautes (avec `zones` à surligner), ou HTTPException."""
+def analyser_fichier(chemin: Path, avec_claude: bool = False, anonymiseur=None) -> tuple[pdf_texte.TexteExtrait, list[dict], dict | None]:
+    """Texte extrait, fautes (avec `zones` à surligner) et erreur de la passe Claude, ou HTTPException.
+
+    Avec `avec_claude`, la passe Claude s'ajoute à LanguageTool; si elle échoue, les fautes
+    LanguageTool restent et l'erreur ({code, message}) est rendue à part."""
     try:
         extrait = pdf_texte.extraire(chemin)
     except pdf_texte.PdfSansTexte as e:
@@ -45,7 +49,12 @@ def analyser_fichier(chemin: Path) -> tuple[pdf_texte.TexteExtrait, list[dict]]:
         fautes = languagetool.verifier(extrait.texte)
     except languagetool.LanguageToolIndisponible as e:
         raise HTTPException(503, str(e))
-    return extrait, [{"id": i, **asdict(f), "zones": extrait.zones(f.debut, f.fin)} for i, f in enumerate(fautes)]
+    liste = [{**asdict(f), "source": "languagetool"} for f in fautes]
+    erreur = None
+    if avec_claude:
+        ajoutees, erreur = francais_claude.passe(extrait.texte, liste, anonymiseur)
+        liste = sorted(liste + ajoutees, key=lambda f: (f["debut"], f["fin"]))
+    return extrait, [{"id": i, **f, "zones": extrait.zones(f["debut"], f["fin"])} for i, f in enumerate(liste)], erreur
 
 
 @router.post("/analyser")
@@ -59,7 +68,7 @@ async def analyser(
     with tempfile.TemporaryDirectory() as d:
         chemin = Path(d) / "rapport.pdf"
         chemin.write_bytes(contenu)
-        extrait, fautes = analyser_fichier(chemin)
+        extrait, fautes, _ = analyser_fichier(chemin)
     bareme = Bareme(points_par_faute=points_par_faute, plafond=plafond)
     return {
         "texte": extrait.texte,
@@ -137,9 +146,21 @@ def obtenir(cours: str, groupe: str, lab: str, etudiant: str) -> dict:
 def analyser_rapport(cours: str, groupe: str, lab: str, etudiant: str) -> dict:
     """Analyse le rapport rangé. Une nouvelle analyse garde les décisions des fautes inchangées."""
     rapport, f = fichiers_rapport(cours, groupe, lab, etudiant)
-    _, fautes = analyser_fichier(rapport)
+    extrait, fautes, erreur = analyser_fichier(rapport, avec_claude=True,
+                                              anonymiseur=Anonymiseur.pour(cours, groupe, etudiant))
     ancien = json.loads(f.read_text(encoding="utf-8")) if f.is_file() else None
-    nouveau = {"version": 1, "fautes": fautes, "decisions": {}, "choix": {}, "masquees": []}
+    if erreur and ancien:
+        # Claude indisponible : on garde les fautes de Claude déjà trouvées (et leurs décisions).
+        deja = [(x["debut"], x["fin"]) for x in fautes]
+        reprises = [x for x in ancien["fautes"] if x.get("source") == "claude"
+                    and not any(x["debut"] < b and a < x["fin"] for a, b in deja)]
+        if reprises:
+            fautes = sorted(fautes + [{k: v for k, v in x.items() if k != "id"} for x in reprises],
+                            key=lambda x: (x["debut"], x["fin"]))
+            fautes = [{**x, "id": i} for i, x in enumerate(fautes)]
+    nouveau = {"version": 1, "fautes": fautes, "decisions": {}, "choix": {}, "masquees": [],
+               "claude": {"ok": erreur is None, "erreur": erreur,
+                          "ajoutees": sum(1 for x in fautes if x.get("source") == "claude")}}
     if ancien:
         position = {(a["debut"], a["fin"], a["texte"]): str(a["id"]) for a in ancien["fautes"]}
         for fa in fautes:
