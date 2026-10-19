@@ -15,6 +15,31 @@
   <main>
     <h1>Correction de labs</h1>
     <p id="etat">Connexion au moteur…</p>
+
+    <section id="bibliotheque">
+      <h2>Bibliothèque</h2>
+      <div id="arbre"><p>Aucune classe importée.</p></div>
+    </section>
+
+    <section>
+      <h2>Liste de classe</h2>
+      <p class="aide">Fichier Excel ou CSV nommé <code>ListeEtudiants_cours…_gr…</code>.</p>
+      <input type="file" id="fichier-classe" accept=".xlsx,.xlsm,.csv">
+    </section>
+
+    <section>
+      <h2>Importer des rapports (PDF)</h2>
+      <select id="choix-classe"></select>
+      <input type="text" id="lab" placeholder="Lab (ex. Lab 3)">
+      <input type="file" id="fichiers-pdf" accept="application/pdf" multiple>
+      <button id="importer">Importer</button>
+      <p id="resultat-import" aria-live="polite"></p>
+    </section>
+
+    <section id="section-attente" hidden>
+      <h2>À trancher</h2>
+      <div id="attente"></div>
+    </section>
   </main>
   <script src="app.js"></script>
 </body>
