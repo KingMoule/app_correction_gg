@@ -1,0 +1,5 @@
+# Rapports d'étudiants (données personnelles)
+rapports/
+copies/
+*.docx
+*.pdf
