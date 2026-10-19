@@ -15,7 +15,7 @@ Objectif : une seule app pour corriger les rapports de lab (français, annotatio
 
 ## Étapes
 
-1. [ ] **Moteur et app iPad** : bibliothèque (cours, lab, étudiant), import PDF (avec texte), lecteur PDF avec annotation au crayon rouge (Apple Pencil), export du PDF annoté prêt pour LÉA.
+1. [~] **Moteur et app iPad** (bibliothèque et import faits; reste lecteur/annotation/export) : bibliothèque (cours, lab, étudiant), import PDF (avec texte), lecteur PDF avec annotation au crayon rouge (Apple Pencil), export du PDF annoté prêt pour LÉA.
 2. [ ] **Correction du français** : LanguageTool sur le texte du Word, acceptation/refus de chaque correction, option de passage par Claude pour les erreurs subtiles.
 3. [ ] **Plagiat** : comparaison automatique de chaque nouveau rapport avec tous ceux déjà dans la bibliothèque (passages communs, côte à côte, score), puis analyse par Claude des paires suspectes seulement.
 4. [ ] **Indices d'IA** : analyse de style par Claude, lien vers Pangram (API payante possible plus tard), résultat présenté comme un indice.

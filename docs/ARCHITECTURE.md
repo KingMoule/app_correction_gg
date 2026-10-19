@@ -10,6 +10,7 @@
 moteur/        API et logique (un module par fonction)
   app.py       assemble l'application, route /api/etat
   config.py    chemins, dossier de données
+  bibliotheque.py  liste de classe, import des PDF, rangement cours/groupe/lab/étudiant
   __main__.py  commande de lancement
 pwa/           app iPad (index.html, app.js, manifest, icône)
 prototypes/    essais autonomes (ex. crayon), hors moteur
@@ -35,3 +36,7 @@ Les fichiers des étudiants vont seulement sous `donnees/`.
 ## Limites connues
 - Connexion en HTTP sur le réseau local : pas de service worker (réservé au HTTPS), donc pas de mode hors ligne. Le moteur doit être allumé pour corriger, ce qui est déjà le cas (voir PLAN.md).
 - Pas d'authentification : à n'utiliser que sur le Wi-Fi maison.
+
+## Bibliothèque (étape 1)
+Rangement : `donnees/bibliotheque/<cours>/<groupe>/classe.json` et `.../<lab>/<étudiant>/rapport.pdf`; les PDF à trancher sont dans `_attente/`.
+Association : le nom de famille (sans accents ni casse) doit figurer dans le nom du fichier; le nom le plus long l'emporte; le prénom départage les homonymes; sinon le fichier va « en attente » (ambigu, aucune correspondance ou rapport déjà importé, jamais écrasé sans choix de Guillaume). Les PDF sans texte sont refusés.

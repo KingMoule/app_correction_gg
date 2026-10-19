@@ -7,7 +7,7 @@ Pour ajouter une fonction (import, français, plagiat, IA) : créer un module
 from fastapi import APIRouter, FastAPI
 from fastapi.staticfiles import StaticFiles
 
-from . import __version__
+from . import __version__, bibliotheque
 from .config import DOSSIER_PWA, dossier_donnees
 
 api = APIRouter(prefix="/api")
@@ -26,6 +26,7 @@ def etat() -> dict:
 def creer_app() -> FastAPI:
     app = FastAPI(title="Correction de labs", version=__version__)
     app.include_router(api)
+    app.include_router(bibliotheque.router)
     # Doit rester en dernier : sert la PWA pour toute route non-API.
     app.mount("/", StaticFiles(directory=DOSSIER_PWA, html=True), name="pwa")
     return app
