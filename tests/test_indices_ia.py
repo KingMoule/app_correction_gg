@@ -81,3 +81,15 @@ def test_force_inconnue_ramenee_a_faible(client, monkeypatch):
 def test_rapport_introuvable(client):
     assert client.get("/api/indices-ia/texte/202SNURE/00002/lab3/inconnu").status_code == 404
     assert client.get("/api/indices-ia/texte/202SNURE/00002/..%2Fx/inconnu").status_code in (400, 404, 422)
+
+
+def test_noms_masques_avant_envoi(client, monkeypatch):
+    c = client
+    c.post("/api/bibliotheque/import", data={"cours": "202SNURE", "groupe": "00002", "lab": "lab4"},
+           files=[("fichiers", ("Roy_lab4.pdf",
+                                pdf("Rapport de Léa Roy sur la tension."), "application/pdf"))])
+    fausse = FileFausse({"force": "faible", "resume": "x", "signaux": [], "contre_indices": []})
+    monkeypatch.setattr(indices_ia, "obtenir_file", lambda: fausse)
+    r = c.post("/api/indices-ia/analyser/202SNURE/00002/lab4/roy-lea")
+    assert r.status_code == 200, r.text
+    assert "Roy" not in fausse.appels[0][0] and "[NOM]" in fausse.appels[0][0]

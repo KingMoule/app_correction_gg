@@ -16,6 +16,7 @@ moteur/        API et logique (un module par fonction)
   languagetool.py client du serveur LanguageTool local
   bareme.py    pénalité (points par faute, plafond)
   francais.py  API /api/francais (analyser, bareme)
+  anonymat.py  masque les noms d'étudiants avant tout envoi à Claude
   francais_claude.py passe Claude sur le français (erreurs subtiles après LanguageTool)
   plagiat.py   comparaison locale de tous les rapports + analyse Claude des paires confirmées
   indices_ia.py API /api/indices-ia (analyse de style par Claude, texte pour Pangram)
@@ -78,7 +79,7 @@ Association : le nom de famille (sans accents ni casse) doit figurer dans le nom
 - `GET` / `PUT /api/francais/bareme/<cours>` : points par faute et plafond du cours (`<cours>/bareme.json`, vide = aucun plafond).
 - Lecteur : bouton « Français » (analyse, résumé, barème, liste des fautes avec ✓/✗); tap sur une faute (double clic à la souris) pour sa fiche : suggestions, accepter/refuser, effacer la correction écrite. Fautes refusées : plus affichées. Correction manuscrite : police Caveat (OFL, `pwa/vendor/`).
 
-- **Passe Claude** (seulement sur le rapport rangé, `/analyser/` sans état reste LanguageTool seul) : après LanguageTool, un appel `claude -p` (file partagée, schéma JSON) reçoit le texte et les extraits déjà signalés, sans nom d'étudiant. Une faute de Claude n'est gardée que si son extrait est dans le texte et ne chevauche aucune autre faute. Elle a le même format (`zones`, décisions, `choix`, `masquees`, barème, export) avec `source: "claude"` (LanguageTool : `"languagetool"`), `regle: "claude"` et sa correction comme unique suggestion.
+- **Passe Claude** (seulement sur le rapport rangé, `/analyser/` sans état reste LanguageTool seul) : après LanguageTool, un appel `claude -p` (file partagée, schéma JSON) reçoit le texte et les extraits déjà signalés, avec les noms d'étudiants masqués (`moteur/anonymat.py` : nom et prénom de l'étudiant du rapport, noms de famille des autres étudiants du groupe d'au moins 4 lettres, remplacés par `[NOM]`; la liste de classe reste locale). La même protection s'applique à l'analyse d'indices d'IA; le plagiat envoie seulement des passages communs sous « rapport A/B » (noms non masqués dans ces passages). Une faute de Claude n'est gardée que si son extrait est dans le texte et ne chevauche aucune autre faute. Elle a le même format (`zones`, décisions, `choix`, `masquees`, barème, export) avec `source: "claude"` (LanguageTool : `"languagetool"`), `regle: "claude"` et sa correction comme unique suggestion.
 - Si Claude échoue, le résultat LanguageTool est quand même enregistré; `claude: {ok, erreur: {code, message}, ajoutees}` dans l'état (codes 503 non connecté, 429 limite, 504 délai, 502 autre) et le panneau l'affiche. « Relancer l'analyse » refait la passe.
 
 ## Export du PDF annoté (étape 1)

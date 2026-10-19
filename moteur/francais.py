@@ -17,6 +17,7 @@ from fastapi import APIRouter, File, Form, HTTPException, UploadFile
 from pydantic import BaseModel
 
 from . import francais_claude, languagetool, pdf_texte
+from .anonymat import Anonymiseur
 from .bareme import Bareme, penalite
 from .bibliotheque import chemin_rapport, racine, segment_sur
 
@@ -33,7 +34,7 @@ def calculer_bareme(d: DemandeBareme) -> dict:
     return {"nb_fautes": d.nb_fautes, "penalite": penalite(d.nb_fautes, d.bareme)}
 
 
-def analyser_fichier(chemin: Path, avec_claude: bool = False) -> tuple[pdf_texte.TexteExtrait, list[dict], dict | None]:
+def analyser_fichier(chemin: Path, avec_claude: bool = False, anonymiseur=None) -> tuple[pdf_texte.TexteExtrait, list[dict], dict | None]:
     """Texte extrait, fautes (avec `zones` à surligner) et erreur de la passe Claude, ou HTTPException.
 
     Avec `avec_claude`, la passe Claude s'ajoute à LanguageTool; si elle échoue, les fautes
@@ -51,7 +52,7 @@ def analyser_fichier(chemin: Path, avec_claude: bool = False) -> tuple[pdf_texte
     liste = [{**asdict(f), "source": "languagetool"} for f in fautes]
     erreur = None
     if avec_claude:
-        ajoutees, erreur = francais_claude.passe(extrait.texte, liste)
+        ajoutees, erreur = francais_claude.passe(extrait.texte, liste, anonymiseur)
         liste = sorted(liste + ajoutees, key=lambda f: (f["debut"], f["fin"]))
     return extrait, [{"id": i, **f, "zones": extrait.zones(f["debut"], f["fin"])} for i, f in enumerate(liste)], erreur
 
@@ -145,7 +146,8 @@ def obtenir(cours: str, groupe: str, lab: str, etudiant: str) -> dict:
 def analyser_rapport(cours: str, groupe: str, lab: str, etudiant: str) -> dict:
     """Analyse le rapport rangé. Une nouvelle analyse garde les décisions des fautes inchangées."""
     rapport, f = fichiers_rapport(cours, groupe, lab, etudiant)
-    extrait, fautes, erreur = analyser_fichier(rapport, avec_claude=True)
+    extrait, fautes, erreur = analyser_fichier(rapport, avec_claude=True,
+                                              anonymiseur=Anonymiseur.pour(cours, groupe, etudiant))
     ancien = json.loads(f.read_text(encoding="utf-8")) if f.is_file() else None
     if erreur and ancien:
         # Claude indisponible : on garde les fautes de Claude déjà trouvées (et leurs décisions).

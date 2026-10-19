@@ -230,3 +230,15 @@ def test_extrait_de_claude_mots_entiers(rapport_range, monkeypatch):
     monkeypatch.setattr(francais_claude, "obtenir_file",
                         lambda: FileFausse([{"extrait": "tensio", "correction": "x", "message": "m"}]))
     assert [f["texte"] for f in rapport_range.post(URL_RAPPORT + "/analyser").json()["fautes"]] == ["mesure"]
+
+
+def test_noms_d_etudiants_pas_envoyes_a_claude(client, monkeypatch):
+    charger_classe(client)
+    importer(client, [("Rapport_DUBE.pdf", pdf("Alice Dubé et Marc Gagnon ont mesure la tension."))])
+    client_lt = lt_factice("mesure", monkeypatch)
+    monkeypatch.setattr(languagetool, "verifier", lambda t, langue="fr": _orig(t, client=client_lt))
+    fausse = FileFausse()
+    monkeypatch.setattr(francais_claude, "obtenir_file", lambda: fausse)
+    assert client.post(URL_RAPPORT + "/analyser").status_code == 200
+    envoye = fausse.appels[0]
+    assert "Dub" not in envoye and "Alice" not in envoye and "Gagnon" not in envoye and "[NOM]" in envoye
