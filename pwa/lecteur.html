@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="theme-color" content="#222222">
+  <link rel="stylesheet" href="lecteur.css">
+  <title>Lecteur — Correction de labs</title>
+</head>
+<body>
+  <div id="barre">
+    <div class="grp">
+      <a id="retour" class="bouton" href="/">‹ Bibliothèque</a>
+      <span id="titre"></span>
+    </div>
+    <div class="grp">
+      <button id="o-crayon" class="on">✎ Crayon</button>
+      <button id="o-surligneur">🖍 Surligneur</button>
+      <button id="o-gomme">⌫ Gomme</button>
+      <button id="bascule" title="Bascule crayon / gomme">⇄</button>
+    </div>
+    <div class="grp" id="couleurs"></div>
+    <div class="grp">
+      <button id="annuler" title="Annuler">↶</button>
+      <button id="retablir" title="Rétablir">↷</button>
+    </div>
+    <div class="grp">
+      <button id="ajuster">Ajuster</button>
+      <button id="reglages-bouton">Réglages</button>
+    </div>
+    <span id="page-info"></span>
+    <span id="sauvegarde" aria-live="polite"></span>
+    <div id="reglages" hidden>
+      <label>Trait min <input id="r-wmin" type="range" min="0.2" max="4" step="0.1"> <b></b></label>
+      <label>Trait max <input id="r-wmax" type="range" min="1" max="15" step="0.2"> <b></b></label>
+      <label>Courbe de pression <input id="r-courbe" type="range" min="0.4" max="2" step="0.1"> <b></b></label>
+      <label>Gomme <input id="r-gomme" type="range" min="2" max="25" step="1"> <b></b></label>
+      <label><input id="r-doigt" type="checkbox"> Le doigt dessine aussi</label>
+    </div>
+  </div>
+  <div id="fenetre"><div id="taille"><div id="pile"></div></div></div>
+  <p id="message" hidden></p>
+  <script src="vendor/pdf.min.js"></script>
+  <script src="lecteur.js"></script>
+</body>
+</html>
