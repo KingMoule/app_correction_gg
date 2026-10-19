@@ -149,7 +149,7 @@ async function activer(pg) {
 function desactiver(pg) {
   if (!pg.actif) return;
   pg.actif = false; pg.jeton = null; pg.R = 0;
-  pg.el.replaceChildren();
+  for (const c of [pg.bg, pg.hl, pg.ink]) c.remove(); // la couche des fautes (DOM léger) reste en place
   pg.bg = pg.hl = pg.ink = pg.hlx = pg.inkx = null;
 }
 
@@ -212,6 +212,17 @@ function brancherSaisie(pg) {
     }
   };
   ink.addEventListener("pointerup", fin); ink.addEventListener("pointercancel", fin);
+
+  // Un tap du doigt (ou un double clic à la souris) sélectionne la faute de français sous le doigt.
+  let appui = null;
+  ink.addEventListener("pointerdown", (e) => { appui = e.pointerType === "touch" ? { x: e.clientX, y: e.clientY, t: performance.now() } : null; });
+  ink.addEventListener("pointerup", (e) => {
+    if (!appui || reglages.doigt) return;
+    const tap = Math.hypot(e.clientX - appui.x, e.clientY - appui.y) < 10 && performance.now() - appui.t < 500;
+    appui = null;
+    if (tap && window.surToucher) window.surToucher(pg, position(e, pg));
+  });
+  ink.addEventListener("dblclick", (e) => { if (window.surToucher) window.surToucher(pg, position(e, pg)); });
   ink.addEventListener("contextmenu", (e) => e.preventDefault());
 }
 

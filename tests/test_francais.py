@@ -101,3 +101,55 @@ def test_api_languagetool_absent(pdf_fictif, monkeypatch):
         r = TestClient(creer_app()).post("/api/francais/analyser", files={"pdf": ("r.pdf", f)})
     assert r.status_code == 503
 
+
+
+# --- Rapport rangé dans la bibliothèque ---------------------------------------
+
+from tests.test_bibliotheque import charger_classe, client, importer, pdf  # noqa: E402,F401
+
+URL_RAPPORT = "/api/francais/rapport/202SNURE/00002/lab-3/dube-alice"
+
+
+@pytest.fixture
+def rapport_range(client, monkeypatch):
+    charger_classe(client)
+    importer(client, [("Rapport_DUBE.pdf", pdf("Les etudiants mesure la tension."))])
+    client_lt = lt_factice("mesure", monkeypatch)
+    monkeypatch.setattr(languagetool, "verifier", lambda t, langue="fr": _orig(t, client=client_lt))
+    return client
+
+
+def test_rapport_pas_analyse(rapport_range):
+    j = rapport_range.get(URL_RAPPORT).json()
+    assert j["analyse"] is False and j["penalite"] == 0
+    assert rapport_range.put(URL_RAPPORT, json={}).status_code == 409
+
+
+def test_analyse_decisions_et_bareme_par_cours(rapport_range, tmp_path):
+    j = rapport_range.post(URL_RAPPORT + "/analyser").json()
+    assert j["analyse"] and j["fautes"][0]["texte"] == "mesure" and j["nb_acceptees"] == 0
+    assert (tmp_path / "bibliotheque/202SNURE/00002/lab-3/dube-alice/francais.json").is_file()
+    # barème du cours : 2 points par faute, plafond 1
+    r = rapport_range.put("/api/francais/bareme/202SNURE", json={"points_par_faute": 2, "plafond": 1})
+    assert r.status_code == 200
+    j = rapport_range.put(URL_RAPPORT, json={
+        "decisions": {"0": "acceptee"}, "choix": {"0": "mesurent"}, "masquees": [0]}).json()
+    assert j["nb_acceptees"] == 1 and j["penalite"] == 1 and j["masquees"] == [0]
+    assert rapport_range.get(URL_RAPPORT).json()["choix"] == {"0": "mesurent"}
+
+
+def test_nouvelle_analyse_garde_les_decisions(rapport_range):
+    rapport_range.post(URL_RAPPORT + "/analyser")
+    rapport_range.put(URL_RAPPORT, json={"decisions": {"0": "refusee"}})
+    j = rapport_range.post(URL_RAPPORT + "/analyser").json()
+    assert j["decisions"] == {"0": "refusee"}
+
+
+def test_decision_sur_faute_inconnue(rapport_range):
+    rapport_range.post(URL_RAPPORT + "/analyser")
+    assert rapport_range.put(URL_RAPPORT, json={"decisions": {"9": "acceptee"}}).status_code == 422
+    assert rapport_range.put(URL_RAPPORT, json={"decisions": {"0": "peut-etre"}}).status_code == 422
+
+
+def test_bareme_cours_inconnu(client):
+    assert client.get("/api/francais/bareme/999XXXXX").status_code == 404
