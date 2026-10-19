@@ -40,6 +40,14 @@ Objectif : une seule app pour corriger les rapports de lab (français, annotatio
 - **Revue terminée** : les 4 étapes ont toutes leurs infos. Prochain fil : implémenter l'étape 1 (avec le test de consommation Claude sur 1 rapport).
 - **Étape 1, lab** : indiqué par Guillaume à l'import des PDF (un champ par lot, ex. « Lab 3 »).
 
+## Fonctions de l'annotateur PDF (étape 1, Guillaume, 2026-10-19)
+
+- **Outils** : crayon et surligneur, 5 couleurs (rester simple), gomme à effacer, annuler et rétablir. Pas de note, de commentaire ni de texte tapé : la note finale reste dans LÉA.
+- **Crayon** : trait sensible à la pression de l'Apple Pencil (largeur variable entre un minimum et un maximum réglables), comme OneNote. Faisable en app web (Pointer Events + perfect-freehand); léger retard possible par rapport à une app native. **Prototype du crayon à tester sur l'iPad en premier.**
+- **Stockage** : annotations enregistrées à part du PDF, modifiables en tout temps; le PDF annoté n'est créé qu'à l'export pour LÉA.
+- **Navigation** : défilement continu de toutes les pages, zoom à deux doigts.
+- **Entrées** : le doigt défile et zoome, seul le crayon dessine (le poignet ne laisse pas de traces). Double tape du Pencil pour passer crayon/gomme, si Safari le permet (sinon bouton dans la barre d'outils).
+
 ## À préciser au début de chaque étape
 
 - Étape 1 : emplacement du dossier de la bibliothèque, nom des cours/labs, taille type d'un rapport.
