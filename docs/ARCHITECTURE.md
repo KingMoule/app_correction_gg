@@ -17,8 +17,10 @@ moteur/        API et logique (un module par fonction)
   bareme.py    pénalité (points par faute, plafond)
   francais.py  API /api/francais (analyser, bareme)
   plagiat.py   comparaison locale de tous les rapports + analyse Claude des paires confirmées
+  annotations.py API /api/annotations (traits du crayon, enregistrés à part du PDF)
   __main__.py  commande de lancement
-pwa/           app iPad (index.html, app.js, manifest, icône; plagiat.html/js/css)
+pwa/           app iPad (index.html + app.js : bibliothèque; lecteur.html/js/css : lecteur et annotation; plagiat.html/js/css : plagiat;
+               vendor/ : pdf.js, copié dans le dépôt car l'iPad n'a pas forcément Internet)
 scripts/       outils à lancer à la main (ex. test de consommation)
 prototypes/    essais autonomes (ex. crayon), hors moteur
 tests/         tests pytest
@@ -44,7 +46,7 @@ Les fichiers des étudiants vont seulement sous `donnees/`.
 - `POST /api/francais/analyser` (PDF en multipart, `points_par_faute`, `plafond`) : texte, fautes avec `zones` (rectangles en points PDF, origine en haut à gauche, par page) et pénalité si toutes acceptées.
 - `POST /api/francais/bareme` : pénalité pour un nombre de fautes acceptées.
 - LanguageTool : serveur local requis (Java), `java -cp languagetool-server.jar org.languagetool.server.HTTPServer --port 8081`; adresse via `LANGUAGETOOL_URL`. Sans serveur, l'API répond 503.
-- Sans état : rien n'est conservé; décisions accepter/refuser, rendu sur le PDF et passe Claude viendront dans d'autres fils.
+- `/analyser` est sans état : rien n'est conservé. Pour un rapport rangé : voir « Français sur un rapport rangé » plus bas. La passe Claude viendra dans un autre fil.
 
 ## Limites connues
 - Connexion en HTTP sur le réseau local : pas de service worker (réservé au HTTPS), donc pas de mode hors ligne. Le moteur doit être allumé pour corriger, ce qui est déjà le cas (voir PLAN.md).
@@ -53,6 +55,18 @@ Les fichiers des étudiants vont seulement sous `donnees/`.
 ## Bibliothèque (étape 1)
 Rangement : `donnees/bibliotheque/<cours>/<groupe>/classe.json` et `.../<lab>/<étudiant>/rapport.pdf`; les PDF à trancher sont dans `_attente/`.
 Association : le nom de famille (sans accents ni casse) doit figurer dans le nom du fichier; le nom le plus long l'emporte; le prénom départage les homonymes; sinon le fichier va « en attente » (ambigu, aucune correspondance ou rapport déjà importé, jamais écrasé sans choix de Guillaume). Les PDF sans texte sont refusés.
+
+## Annotations (étape 1)
+- Fichier `.../<lab>/<étudiant>/annotations.json` à côté de `rapport.pdf`; le PDF n'est jamais modifié.
+- `GET` / `PUT /api/annotations/<cours>/<groupe>/<lab>/<étudiant>` : `{version: 1, pages: {"1": [trait, …]}}`. Un trait : `outil` (crayon ou surligneur), `couleur` (#rrggbb), `largeur_min`, `largeur_max`, `courbe`, `points` [x, y, pression]. Coordonnées en points PDF, origine en haut à gauche (même repère que les zones des fautes).
+- Lecteur (`lecteur.html?cours=…&groupe=…&lab=…&etudiant=…`) : pages en défilement continu, canvas créés seulement pour les pages proches de l'écran (mémoire de l'iPad), enregistrement automatique 0,8 s après chaque modification, nouvel essai si le moteur est injoignable.
+- Largeurs de trait en points PDF (réglages par défaut 0,6 à 3,8 pt, gomme 6 pt) : le prototype était à 816 px de large, la page est maintenant à l'échelle réelle du PDF. À ajuster dans « Réglages » sur l'iPad.
+
+## Français sur un rapport rangé (étape 2)
+- `POST /api/francais/rapport/<cours>/<groupe>/<lab>/<étudiant>/analyser` : analyse `rapport.pdf` et enregistre `francais.json` à côté. Une nouvelle analyse garde les décisions des fautes inchangées (même position et même texte).
+- `GET` / `PUT` sur le même chemin sans `/analyser` : état (`fautes` avec `zones`, `decisions` {id: acceptee|refusee, absent = à trancher}, `choix` {id: correction écrite, défaut = 1re suggestion}, `masquees` [id] = correction manuscrite effacée, `nb_acceptees`, `penalite`, `bareme`). Le PUT renvoie l'état avec la pénalité recalculée : la formule n'existe que dans le moteur.
+- `GET` / `PUT /api/francais/bareme/<cours>` : points par faute et plafond du cours (`<cours>/bareme.json`, vide = aucun plafond).
+- Lecteur : bouton « Français » (analyse, résumé, barème, liste des fautes avec ✓/✗); tap sur une faute (double clic à la souris) pour sa fiche : suggestions, accepter/refuser, effacer la correction écrite. Fautes refusées : plus affichées. Correction manuscrite : police Caveat (OFL, `pwa/vendor/`).
 
 ## Plagiat (étape 3)
 - **Comparaison locale** (`POST /api/plagiat/comparer`, sans Claude) : chaque rapport de la bibliothèque (tous cours, groupes, labs) est comparé à tous les autres. Mots mis en minuscules, sans accents ni ponctuation; un passage commun = au moins 8 mots consécutifs identiques (`MOTS_MIN`). Score d'une paire = plus grande part d'un des deux rapports couverte par des passages communs. Un même étudiant n'est pas comparé à lui-même d'un lab à l'autre. Une suite de mots présente dans plus de 40 rapports est considérée comme du texte courant et ignorée.
