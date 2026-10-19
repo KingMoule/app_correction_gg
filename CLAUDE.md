@@ -11,9 +11,12 @@ Workflow détaillé (modèles, découpage, tokens) : @docs/WORKFLOW.md
 - Réponses courtes : résultat d'abord, pas de récit de l'investigation.
 - Les rapports d'étudiants sont des données personnelles : ne les commite jamais dans le dépôt (voir .gitignore).
 
-## Dépôt
-- Branche de travail : celle du fil ; PR brouillon vers `main`.
-- Commits petits, message clair en français ou en anglais (rester cohérent).
+## Façon de travailler (décisions de Guillaume)
+- Fusion : je fusionne moi-même les PR, en squash, une branche par fil. Fil résolu dès la fusion.
+- Suivi : liste de ce qui reste à faire dans `docs/PLAN.md`. Pas de mémoire entre les fils : toute décision importante s'écrit dans ce fichier ou dans `docs/`.
+- Accord préalable : seulement pour l'irréversible (suppression de fichiers, envoi hors du projet). Le reste, j'agis seul.
+- Communication : un message seulement pour un résultat, une question ou un blocage.
+- Langue : français partout (échanges, commentaires, commits, documentation) ; noms de variables en anglais ou français selon le cas.
 
 ## Compaction
 Lors d'un /compact, conserve : la liste des fichiers modifiés, les commandes de test et les décisions prises.
