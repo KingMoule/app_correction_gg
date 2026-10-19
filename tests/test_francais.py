@@ -1,9 +1,12 @@
+from concurrent.futures import Future
+
 import httpx
 import pytest
 from fastapi.testclient import TestClient
 from reportlab.pdfgen import canvas
 
-from moteur import languagetool, pdf_texte
+from moteur import francais_claude, languagetool, pdf_texte
+from moteur.claude import ClaudeDelai, ClaudeEchec, ClaudeLimite, ClaudeNonConnecte, Resultat
 from moteur.app import creer_app
 from moteur.bareme import Bareme, penalite
 
@@ -110,13 +113,70 @@ from tests.test_bibliotheque import charger_classe, client, importer, pdf  # noq
 URL_RAPPORT = "/api/francais/rapport/202SNURE/00002/lab-3/dube-alice"
 
 
+class FileFausse:
+    """Claude simulé : aucun appel réel."""
+
+    def __init__(self, fautes=None, erreur=None):
+        self.fautes, self.erreur, self.appels = fautes or [], erreur, []
+
+    def soumettre(self, prompt, schema=None, systeme=None):
+        self.appels.append(prompt)
+        f = Future()
+        if self.erreur:
+            f.set_exception(self.erreur)
+        else:
+            f.set_result(Resultat(texte="", structure={"fautes": self.fautes}, usage={}, cout_usd=0.0))
+        return f
+
+
 @pytest.fixture
 def rapport_range(client, monkeypatch):
     charger_classe(client)
-    importer(client, [("Rapport_DUBE.pdf", pdf("Les etudiants mesure la tension."))])
+    importer(client, [("Rapport_DUBE.pdf", pdf("Les etudiants mesure la tension. Il a manger hier."))])
     client_lt = lt_factice("mesure", monkeypatch)
     monkeypatch.setattr(languagetool, "verifier", lambda t, langue="fr": _orig(t, client=client_lt))
+    monkeypatch.setattr(francais_claude, "obtenir_file", lambda: FileFausse())
     return client
+
+
+FAUTE_CLAUDE = {"extrait": "a manger", "correction": "a mangé", "message": "Participe passé"}
+
+
+def test_passe_claude_ajoute_les_fautes_valides(rapport_range, monkeypatch):
+    fausse = FileFausse([
+        FAUTE_CLAUDE,
+        {"extrait": "phrase absente", "correction": "x", "message": "inventée"},   # pas dans le texte
+        {"extrait": "mesure", "correction": "mesurent", "message": "doublon LT"},   # chevauche LanguageTool
+    ])
+    monkeypatch.setattr(francais_claude, "obtenir_file", lambda: fausse)
+    j = rapport_range.post(URL_RAPPORT + "/analyser").json()
+    assert [f["texte"] for f in j["fautes"]] == ["mesure", "a manger"]
+    c = j["fautes"][1]
+    assert c["source"] == "claude" and c["suggestions"] == ["a mangé"] and c["zones"] and c["id"] == 1
+    assert j["fautes"][0]["source"] == "languagetool"
+    assert j["claude"] == {"ok": True, "erreur": None, "ajoutees": 1}
+    assert "<rapport>" in fausse.appels[0] and "Dubé" not in fausse.appels[0]
+    # mêmes décisions, barème et export que LanguageTool
+    j = rapport_range.put(URL_RAPPORT, json={"decisions": {"1": "acceptee"}, "choix": {"1": "a mangé"}}).json()
+    assert j["nb_acceptees"] == 1 and j["penalite"] == 0.5
+
+
+@pytest.mark.parametrize("erreur,code", [(ClaudeNonConnecte("non connecté"), 503), (ClaudeLimite("limit"), 429),
+                                         (ClaudeDelai("trop long"), 504), (ClaudeEchec("autre"), 502)])
+def test_erreur_claude_garde_languagetool(rapport_range, monkeypatch, erreur, code):
+    monkeypatch.setattr(francais_claude, "obtenir_file", lambda: FileFausse(erreur=erreur))
+    r = rapport_range.post(URL_RAPPORT + "/analyser")
+    assert r.status_code == 200
+    j = r.json()
+    assert [f["texte"] for f in j["fautes"]] == ["mesure"]
+    assert j["claude"]["ok"] is False and j["claude"]["erreur"]["code"] == code
+
+
+def test_nouvelle_analyse_garde_decision_faute_claude(rapport_range, monkeypatch):
+    monkeypatch.setattr(francais_claude, "obtenir_file", lambda: FileFausse([FAUTE_CLAUDE]))
+    rapport_range.post(URL_RAPPORT + "/analyser")
+    rapport_range.put(URL_RAPPORT, json={"decisions": {"1": "refusee"}})
+    assert rapport_range.post(URL_RAPPORT + "/analyser").json()["decisions"] == {"1": "refusee"}
 
 
 def test_rapport_pas_analyse(rapport_range):

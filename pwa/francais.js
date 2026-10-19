@@ -92,7 +92,7 @@ function afficherFiche() {
   const f = fr?.fautes.find((x) => x.id === selection);
   if (!f) { $("detail").hidden = true; return; }
   const d = $("detail"), courante = correctionDe(f);
-  d.replaceChildren(el("div", `« ${f.texte} » : ${f.message}`));
+  d.replaceChildren(el("div", `« ${f.texte} » : ${f.message}${f.source === "claude" ? " (repérée par Claude)" : ""}`));
   const sugg = el("div", undefined, "rangee");
   for (const s of f.suggestions) {
     const b = el("button", s, s === courante ? "on" : "");
@@ -136,7 +136,7 @@ function afficherListe() {
     const refusee = decisionDe(f) === "refusee";
     const ligne = el("div", undefined, "fr-ligne" + (refusee ? " refusee" : ""));
     const texte = el("div", undefined, "texte");
-    texte.append(el("span", `p. ${f.zones[0]?.page ?? "?"} · « ${f.texte} »${correctionDe(f) ? " → " + correctionDe(f) : ""}`), el("small", f.message));
+    texte.append(el("span", `p. ${f.zones[0]?.page ?? "?"} · ${f.source === "claude" ? "[Claude] " : ""}« ${f.texte} »${correctionDe(f) ? " → " + correctionDe(f) : ""}`), el("small", f.message));
     texte.onclick = () => {
       ouvrirFiche(f.id);
       const z = f.zones[0];
@@ -155,7 +155,8 @@ function afficherTout() {
   $("fr-tout-accepter").hidden = !fr?.analyse;
   $("fr-points").value = fr?.bareme.points_par_faute ?? "";
   $("fr-plafond").value = fr?.bareme.plafond ?? "";
-  if (fr?.analyse) etatFr(fr.fautes.length ? "" : "Aucune faute détectée.");
+  if (fr?.analyse && fr.claude && !fr.claude.ok) etatFr(`Passe Claude non faite (LanguageTool seulement) : ${fr.claude.erreur?.message ?? "erreur"} Relancer l'analyse plus tard.`, true);
+  else if (fr?.analyse) etatFr(fr.claude ? `Claude : ${fr.claude.ajoutees} faute(s) ajoutée(s).` : (fr.fautes.length ? "" : "Aucune faute détectée."));
   else etatFr("Rapport pas encore analysé.");
   resume(); afficherListe(); afficherCouches();
   if (selection !== null) afficherFiche();

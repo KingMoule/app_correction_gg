@@ -4,9 +4,9 @@ Objectif : une seule app pour corriger les rapports de lab (français, annotatio
 
 ## État au 2026-10-19 (à lire en premier)
 
-Tout est fusionné dans `main` jusqu'à la PR #15 (bibliothèque, lecteur et annotation, fautes de français, export du PDF annoté, plagiat, indices d'IA). Reste à faire :
+Tout est fusionné dans `main` jusqu'à la PR #16 (bibliothèque, lecteur et annotation, fautes de français, export du PDF annoté, plagiat, indices d'IA). Reste à faire :
 
-- [ ] **Passe Claude sur le français** (étape 2) : non commencée. Après LanguageTool, `claude -p` (via `moteur/claude.py`) repère les erreurs subtiles; mêmes zones, mêmes décisions accepter/refuser que les fautes LanguageTool.
+- [x] **Passe Claude sur le français** (étape 2) : faite (PR à fusionner). Après LanguageTool, `claude -p` repère les erreurs subtiles; mêmes zones et décisions que LanguageTool. Reste : mesurer sa consommation réelle (test ci-dessous).
 - [ ] **Essais de Guillaume sur l'iPad** : crayon dans l'app (le prototype seul est validé), tap sur une faute pour sa fiche, export du PDF depuis l'app installée sur l'écran d'accueil.
 - [ ] **Test de consommation `claude -p`** sur l'ordi de Guillaume (`docs/CLAUDE_CLI.md`) : noter ici le % de session et de semaine, puis fixer la taille des lots (plagiat, français, indices d'IA).
 - [ ] Rendu surligné du plagiat sur le PDF (étape 3, optionnel).
@@ -27,7 +27,7 @@ Reprise dans un nouveau compte Claude : le dépôt contient tout le contexte; il
 ## Étapes
 
 1. [~] **Moteur et app iPad** (bibliothèque, import, lecteur, annotation et export du PDF annoté faits; reste à essayer sur l'iPad) : bibliothèque (cours, lab, étudiant), import PDF (avec texte), lecteur PDF avec annotation au crayon rouge (Apple Pencil), export du PDF annoté prêt pour LÉA.
-2. [~] **Correction du français** (moteur fait : extraction PDF avec positions, LanguageTool local, barème; rendu surligné sur le PDF, accepter/refuser et barème par cours faits; reste : passe Claude) : LanguageTool sur le texte du Word, acceptation/refus de chaque correction, option de passage par Claude pour les erreurs subtiles.
+2. [~] **Correction du français** (moteur fait : extraction PDF avec positions, LanguageTool local, barème; rendu surligné sur le PDF, accepter/refuser et barème par cours faits; passe Claude faite) : LanguageTool sur le texte du Word, acceptation/refus de chaque correction, option de passage par Claude pour les erreurs subtiles.
 3. [~] **Plagiat** (fait : comparaison locale, énoncé, seuil, confirmation, verdict de Claude, écran `plagiat.html`; reste : test de consommation pour la taille des lots, rendu surligné sur le PDF) : comparaison automatique de chaque nouveau rapport avec tous ceux déjà dans la bibliothèque (passages communs, côte à côte, score), puis analyse par Claude des paires suspectes seulement.
 4. [~] **Indices d'IA** (moteur et écran faits : analyse de style, bouton Pangram; reste : mesure de consommation réelle) : analyse de style par Claude, lien vers Pangram (API payante possible plus tard), résultat présenté comme un indice.
 

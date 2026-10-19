@@ -16,6 +16,7 @@ moteur/        API et logique (un module par fonction)
   languagetool.py client du serveur LanguageTool local
   bareme.py    pénalité (points par faute, plafond)
   francais.py  API /api/francais (analyser, bareme)
+  francais_claude.py passe Claude sur le français (erreurs subtiles après LanguageTool)
   plagiat.py   comparaison locale de tous les rapports + analyse Claude des paires confirmées
   indices_ia.py API /api/indices-ia (analyse de style par Claude, texte pour Pangram)
   annotations.py API /api/annotations (traits du crayon, enregistrés à part du PDF)
@@ -49,7 +50,7 @@ Les fichiers des étudiants vont seulement sous `donnees/`.
 - `POST /api/francais/analyser` (PDF en multipart, `points_par_faute`, `plafond`) : texte, fautes avec `zones` (rectangles en points PDF, origine en haut à gauche, par page) et pénalité si toutes acceptées.
 - `POST /api/francais/bareme` : pénalité pour un nombre de fautes acceptées.
 - LanguageTool : serveur local requis (Java), `java -cp languagetool-server.jar org.languagetool.server.HTTPServer --port 8081`; adresse via `LANGUAGETOOL_URL`. Sans serveur, l'API répond 503.
-- `/analyser` est sans état : rien n'est conservé. Pour un rapport rangé : voir « Français sur un rapport rangé » plus bas. La passe Claude viendra dans un autre fil.
+- `/analyser` est sans état : rien n'est conservé. Pour un rapport rangé : voir « Français sur un rapport rangé » plus bas.
 
 ## Limites connues
 - Connexion en HTTP sur le réseau local : pas de service worker (réservé au HTTPS), donc pas de mode hors ligne. Le moteur doit être allumé pour corriger, ce qui est déjà le cas (voir PLAN.md).
@@ -76,6 +77,9 @@ Association : le nom de famille (sans accents ni casse) doit figurer dans le nom
 - `GET` / `PUT` sur le même chemin sans `/analyser` : état (`fautes` avec `zones`, `decisions` {id: acceptee|refusee, absent = à trancher}, `choix` {id: correction écrite, défaut = 1re suggestion}, `masquees` [id] = correction manuscrite effacée, `nb_acceptees`, `penalite`, `bareme`). Le PUT renvoie l'état avec la pénalité recalculée : la formule n'existe que dans le moteur.
 - `GET` / `PUT /api/francais/bareme/<cours>` : points par faute et plafond du cours (`<cours>/bareme.json`, vide = aucun plafond).
 - Lecteur : bouton « Français » (analyse, résumé, barème, liste des fautes avec ✓/✗); tap sur une faute (double clic à la souris) pour sa fiche : suggestions, accepter/refuser, effacer la correction écrite. Fautes refusées : plus affichées. Correction manuscrite : police Caveat (OFL, `pwa/vendor/`).
+
+- **Passe Claude** (seulement sur le rapport rangé, `/analyser/` sans état reste LanguageTool seul) : après LanguageTool, un appel `claude -p` (file partagée, schéma JSON) reçoit le texte et les extraits déjà signalés, sans nom d'étudiant. Une faute de Claude n'est gardée que si son extrait est dans le texte et ne chevauche aucune autre faute. Elle a le même format (`zones`, décisions, `choix`, `masquees`, barème, export) avec `source: "claude"` (LanguageTool : `"languagetool"`), `regle: "claude"` et sa correction comme unique suggestion.
+- Si Claude échoue, le résultat LanguageTool est quand même enregistré; `claude: {ok, erreur: {code, message}, ajoutees}` dans l'état (codes 503 non connecté, 429 limite, 504 délai, 502 autre) et le panneau l'affiche. « Relancer l'analyse » refait la passe.
 
 ## Export du PDF annoté (étape 1)
 - `GET /api/export/<cours>/<groupe>/<lab>/<étudiant>` : renvoie `<étudiant>_<lab>_annote.pdf`. Rien n'est écrit sur le disque : le rapport reste intact, le PDF annoté est recalculé à chaque demande (reportlab dessine une couche par page, pypdf la fusionne).
