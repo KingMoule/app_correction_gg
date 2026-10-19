@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#b3261e">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="plagiat.css">
+  <title>Plagiat · Correction de labs</title>
+</head>
+<body>
+  <main>
+    <p><a href="/">← Bibliothèque</a></p>
+    <h1>Plagiat</h1>
+    <p class="aide">Chaque rapport est comparé à toute la bibliothèque, sur l'ordi, sans Claude. Rien n'est envoyé à Claude sans ta confirmation, paire par paire.</p>
+
+    <section>
+      <h2>Énoncé du lab</h2>
+      <p class="aide">Les passages de l'énoncé sont ignorés dans la comparaison.</p>
+      <select id="enonce-cours"></select>
+      <input type="text" id="enonce-lab" placeholder="Lab (ex. Lab 3)">
+      <input type="file" id="enonce-fichier" accept="application/pdf">
+      <button id="enonce-envoyer">Téléverser l'énoncé</button>
+      <p id="enonce-etat" aria-live="polite"></p>
+    </section>
+
+    <section>
+      <h2>Comparaison</h2>
+      <label>Seuil : <input type="number" id="seuil" min="0" max="100" step="1" value="20"> % du rapport en passages communs</label>
+      <button id="comparer">Comparer toute la bibliothèque</button>
+      <p id="etat-comparaison" aria-live="polite"></p>
+    </section>
+
+    <section>
+      <h2>Paires à vérifier</h2>
+      <div id="paires"><p>Aucune comparaison pour l'instant.</p></div>
+      <details id="sous-seuil" hidden><summary>Sous le seuil</summary><div id="paires-basses"></div></details>
+    </section>
+
+    <section id="detail" hidden>
+      <h2 id="detail-titre"></h2>
+      <p id="detail-resume"></p>
+      <div id="detail-actions"></div>
+      <div id="detail-verdict"></div>
+      <div id="detail-passages"></div>
+    </section>
+  </main>
+  <script src="plagiat.js"></script>
+</body>
+</html>

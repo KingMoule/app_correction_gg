@@ -16,10 +16,11 @@ moteur/        API et logique (un module par fonction)
   languagetool.py client du serveur LanguageTool local
   bareme.py    pénalité (points par faute, plafond)
   francais.py  API /api/francais (analyser, bareme)
+  plagiat.py   comparaison locale de tous les rapports + analyse Claude des paires confirmées
   indices_ia.py API /api/indices-ia (analyse de style par Claude, texte pour Pangram)
   annotations.py API /api/annotations (traits du crayon, enregistrés à part du PDF)
   __main__.py  commande de lancement
-pwa/           app iPad (index.html + app.js : bibliothèque; lecteur.html/js/css : lecteur et annotation;
+pwa/           app iPad (index.html + app.js : bibliothèque; lecteur.html/js/css : lecteur et annotation; plagiat.html/js/css : plagiat;
                vendor/ : pdf.js, copié dans le dépôt car l'iPad n'a pas forcément Internet)
 scripts/       outils à lancer à la main (ex. test de consommation)
 prototypes/    essais autonomes (ex. crayon), hors moteur
@@ -73,3 +74,11 @@ Association : le nom de famille (sans accents ni casse) doit figurer dans le nom
 - `GET` / `PUT` sur le même chemin sans `/analyser` : état (`fautes` avec `zones`, `decisions` {id: acceptee|refusee, absent = à trancher}, `choix` {id: correction écrite, défaut = 1re suggestion}, `masquees` [id] = correction manuscrite effacée, `nb_acceptees`, `penalite`, `bareme`). Le PUT renvoie l'état avec la pénalité recalculée : la formule n'existe que dans le moteur.
 - `GET` / `PUT /api/francais/bareme/<cours>` : points par faute et plafond du cours (`<cours>/bareme.json`, vide = aucun plafond).
 - Lecteur : bouton « Français » (analyse, résumé, barème, liste des fautes avec ✓/✗); tap sur une faute (double clic à la souris) pour sa fiche : suggestions, accepter/refuser, effacer la correction écrite. Fautes refusées : plus affichées. Correction manuscrite : police Caveat (OFL, `pwa/vendor/`).
+
+## Plagiat (étape 3)
+- **Comparaison locale** (`POST /api/plagiat/comparer`, sans Claude) : chaque rapport de la bibliothèque (tous cours, groupes, labs) est comparé à tous les autres. Mots mis en minuscules, sans accents ni ponctuation; un passage commun = au moins 8 mots consécutifs identiques (`MOTS_MIN`). Score d'une paire = plus grande part d'un des deux rapports couverte par des passages communs. Un même étudiant n'est pas comparé à lui-même d'un lab à l'autre. Une suite de mots présente dans plus de 40 rapports est considérée comme du texte courant et ignorée.
+- **Énoncé** : `POST /api/plagiat/enonces/{cours}/{lab}` (PDF), rangé sous `bibliotheque/<cours>/_enonces/<lab>.pdf`. Les mots qu'il couvre sont retirés des rapports (ni comparés ni comptés).
+- **Seuil** : `GET/PUT /api/plagiat/reglages` (fraction, 0,2 par défaut). Les paires plus basses restent consultables.
+- **Confirmation avant Claude** : `POST /api/plagiat/paires/{cle}/confirmer` est le seul chemin vers Claude. Une paire par appel; seuls les passages communs partent (sous les noms « rapport A/B », sans nom d'étudiant), au plus 12 000 caractères. Verdict : copie, paraphrase ou coïncidence + confiance + explication, présenté comme un indice. `…/ecarter` écarte une paire.
+- **Données** sous `donnees/plagiat/` : `paires.json` (dernière comparaison), `decisions.json`, `reglages.json`, `textes/` (cache par empreinte du PDF; une décision suit le contenu des PDF, pas le nom). Un rapport remplacé donne une nouvelle paire, donc une nouvelle décision.
+- Limite connue : des partenaires de lab qui partagent légitimement leurs données ressortent comme paires; c'est à Claude (consigne) et à Guillaume de trancher.
