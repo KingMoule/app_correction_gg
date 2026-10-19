@@ -2,6 +2,17 @@
 
 Objectif : une seule app pour corriger les rapports de lab (français, annotation, plagiat, indices d'IA), au lieu de passer par Word, Dropbox, OneNote et l'iPad.
 
+## État au 2026-10-19 (à lire en premier)
+
+Tout est fusionné dans `main` jusqu'à la PR #15 (bibliothèque, lecteur et annotation, fautes de français, export du PDF annoté, plagiat, indices d'IA). Reste à faire :
+
+- [ ] **Passe Claude sur le français** (étape 2) : non commencée. Après LanguageTool, `claude -p` (via `moteur/claude.py`) repère les erreurs subtiles; mêmes zones, mêmes décisions accepter/refuser que les fautes LanguageTool.
+- [ ] **Essais de Guillaume sur l'iPad** : crayon dans l'app (le prototype seul est validé), tap sur une faute pour sa fiche, export du PDF depuis l'app installée sur l'écran d'accueil.
+- [ ] **Test de consommation `claude -p`** sur l'ordi de Guillaume (`docs/CLAUDE_CLI.md`) : noter ici le % de session et de semaine, puis fixer la taille des lots (plagiat, français, indices d'IA).
+- [ ] Rendu surligné du plagiat sur le PDF (étape 3, optionnel).
+
+Reprise dans un nouveau compte Claude : le dépôt contient tout le contexte; il n'y a pas d'historique de fils. Lire `CLAUDE.md`, ce fichier, puis `docs/ARCHITECTURE.md`.
+
 ## Décisions (Guillaume, 2026-10-19)
 
 - **Architecture** : un moteur qui tourne sur l'ordi + une app web installable (PWA) sur l'iPad. L'iPad lit les rapports directement sur le moteur, sur le même Wi-Fi (Guillaume corrige toujours chez lui, ordi allumé).
