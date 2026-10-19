@@ -15,8 +15,10 @@ moteur/        API et logique (un module par fonction)
   languagetool.py client du serveur LanguageTool local
   bareme.py    pénalité (points par faute, plafond)
   francais.py  API /api/francais (analyser, bareme)
+  annotations.py API /api/annotations (traits du crayon, enregistrés à part du PDF)
   __main__.py  commande de lancement
-pwa/           app iPad (index.html, app.js, manifest, icône)
+pwa/           app iPad (index.html + app.js : bibliothèque; lecteur.html/js/css : lecteur et annotation;
+               vendor/ : pdf.js, copié dans le dépôt car l'iPad n'a pas forcément Internet)
 prototypes/    essais autonomes (ex. crayon), hors moteur
 tests/         tests pytest
 donnees/       données locales, exclu du dépôt (.gitignore)
@@ -50,3 +52,9 @@ Les fichiers des étudiants vont seulement sous `donnees/`.
 ## Bibliothèque (étape 1)
 Rangement : `donnees/bibliotheque/<cours>/<groupe>/classe.json` et `.../<lab>/<étudiant>/rapport.pdf`; les PDF à trancher sont dans `_attente/`.
 Association : le nom de famille (sans accents ni casse) doit figurer dans le nom du fichier; le nom le plus long l'emporte; le prénom départage les homonymes; sinon le fichier va « en attente » (ambigu, aucune correspondance ou rapport déjà importé, jamais écrasé sans choix de Guillaume). Les PDF sans texte sont refusés.
+
+## Annotations (étape 1)
+- Fichier `.../<lab>/<étudiant>/annotations.json` à côté de `rapport.pdf`; le PDF n'est jamais modifié.
+- `GET` / `PUT /api/annotations/<cours>/<groupe>/<lab>/<étudiant>` : `{version: 1, pages: {"1": [trait, …]}}`. Un trait : `outil` (crayon ou surligneur), `couleur` (#rrggbb), `largeur_min`, `largeur_max`, `courbe`, `points` [x, y, pression]. Coordonnées en points PDF, origine en haut à gauche (même repère que les zones des fautes).
+- Lecteur (`lecteur.html?cours=…&groupe=…&lab=…&etudiant=…`) : pages en défilement continu, canvas créés seulement pour les pages proches de l'écran (mémoire de l'iPad), enregistrement automatique 0,8 s après chaque modification, nouvel essai si le moteur est injoignable.
+- Largeurs de trait en points PDF (réglages par défaut 0,6 à 3,8 pt, gomme 6 pt) : le prototype était à 816 px de large, la page est maintenant à l'échelle réelle du PDF. À ajuster dans « Réglages » sur l'iPad.

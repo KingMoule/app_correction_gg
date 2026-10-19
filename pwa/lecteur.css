@@ -1,0 +1,30 @@
+:root { --barre: #222; --fg: #eee; --accent: #4da3ff; }
+* { box-sizing: border-box; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+html, body { height: 100%; margin: 0; background: #777; font: 15px -apple-system, system-ui, sans-serif; }
+body { display: flex; flex-direction: column; overflow: hidden; padding-top: env(safe-area-inset-top); background: var(--barre); }
+[hidden] { display: none !important; }
+
+#barre { flex: none; z-index: 10; position: relative; background: var(--barre); color: var(--fg);
+  padding: 8px 10px; display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center; }
+#barre button, #barre .bouton { background: #3a3a3a; color: var(--fg); border: 2px solid transparent; border-radius: 8px;
+  padding: 8px 12px; font: inherit; text-decoration: none; }
+#barre button.on { border-color: var(--accent); background: #2b4057; }
+#barre button:disabled { opacity: .35; }
+.grp { display: flex; gap: 6px; align-items: center; }
+.pastille { width: 34px; height: 34px; border-radius: 50%; padding: 0 !important; border: 3px solid #555 !important; }
+.pastille.on { border-color: #fff !important; }
+#titre { font-weight: 600; max-width: 14rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#page-info, #sauvegarde { font-size: 13px; opacity: .85; font-variant-numeric: tabular-nums; }
+#sauvegarde.erreur { color: #ff8a80; opacity: 1; }
+#reglages { position: absolute; top: 100%; right: 8px; background: var(--barre); padding: 10px 14px; border-radius: 0 0 10px 10px;
+  display: flex; flex-direction: column; gap: 8px; box-shadow: 0 4px 12px #0008; }
+#reglages input[type=range] { width: 140px; vertical-align: middle; }
+
+#fenetre { flex: 1; min-height: 0; overflow: auto; -webkit-overflow-scrolling: touch; touch-action: pan-x pan-y; background: #777; padding: 12px 0 60px; }
+#taille { position: relative; margin: 0 auto; }
+#pile { position: absolute; left: 0; top: 0; transform-origin: 0 0; touch-action: pan-x pan-y; }
+.page { position: relative; background: #fff; margin: 0 auto 12px; box-shadow: 0 2px 12px #0008; }
+.page canvas { position: absolute; left: 0; top: 0; width: 100%; height: 100%; touch-action: pan-x pan-y; }
+.page canvas.surligneur { opacity: .4; mix-blend-mode: multiply; pointer-events: none; }
+.page canvas.encre { }
+#message { position: fixed; inset: 40% 1rem auto; text-align: center; color: #fff; background: #000a; padding: 1rem; border-radius: 8px; }
