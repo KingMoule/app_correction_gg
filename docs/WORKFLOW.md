@@ -10,6 +10,8 @@ Principe : le contexte est la ressource à protéger. Plus il est gros, plus cha
 | Recherche simple, tri, reformatage, résumés, tâches répétitives | **Haiku 5.5** |
 | Architecture, bogue difficile, planification complexe | **Opus 5.5** (ou Fable 5.1), puis retour à Sonnet |
 
+Astuces : `/model opusplan` = Opus pour planifier, Sonnet pour exécuter. Fable 5.1 (`/model fable`) seulement pour les problèmes très ambigus, il peut consommer des crédits d'usage. Les sous-agents héritent du modèle du fil : fixer `model: haiku` pour les tâches simples.
+
 Règle : commence par Sonnet. Monte d'un cran seulement après un échec réel. Ne laisse jamais Opus comme défaut. Les sous-agents simples vont sur Haiku.
 
 ## 2. Diviser le travail
@@ -25,7 +27,8 @@ Règle : commence par Sonnet. Monte d'un cran seulement après un échec réel. 
 - Un fil trop long ou corrigé plus de 2 fois pour la même erreur : repartir à neuf avec un meilleur énoncé.
 - Garder `CLAUDE.md` court (< 100 lignes) ; les procédures rares vont dans des *skills*, pas dans `CLAUDE.md`.
 - Ne pas coller de gros fichiers ou logs en entier : donner le chemin ou les lignes utiles.
-- Effort de raisonnement bas pour les tâches simples, élevé seulement pour les problèmes difficiles.
+- Effort de raisonnement (`/effort`) : `low` pour les petits changements, `medium` (défaut) au quotidien, `high`/`xhigh` seulement pour les problèmes difficiles. `ultrathink` dans un prompt = réflexion accrue ponctuelle.
+- Compacter plus tôt si les fils s'allongent (`/autocompact`), en précisant quoi garder : `/compact garde les fichiers modifiés et les tests`.
 - Pauses > 1 h dans un fil long = cache perdu : préférer un nouveau fil avec un résumé.
 - Désactiver les connecteurs inutilisés.
 
@@ -38,6 +41,8 @@ Contraintes : …
 Vérification : (exemple d'entrée → sortie attendue / test à passer)
 Hors sujet : …
 ```
+
+Conseils de rédaction (doc Anthropic) : donner le contexte et le but, des exemples d'entrée/sortie, séparer instructions et documents avec des balises (`<rapport>…</rapport>`), mettre les longs documents en premier et la question à la fin.
 
 ## 5. Cycle recommandé
 
@@ -56,4 +61,5 @@ Ne commite jamais de rapports d'étudiants. Voir CLAUDE.md et docs/WORKFLOW.md d
 ```
 
 ## Sources
-Documentation Claude Code : « Manage costs effectively » et « Best practices » (code.claude.com/docs).
+- Claude Code : Manage costs, Best practices, Model configuration (code.claude.com/docs/en/costs, /best-practices, /model-config)
+- Anthropic : Prompt engineering (platform.claude.com/docs/en/build-with-claude/prompt-engineering/overview)
