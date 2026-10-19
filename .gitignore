@@ -3,3 +3,10 @@ rapports/
 copies/
 *.docx
 *.pdf
+
+# Dossier de données local (bibliothèque, listes de classe, annotations)
+donnees/
+__pycache__/
+*.egg-info/
+.venv/
+.pytest_cache/
