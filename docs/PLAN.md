@@ -40,6 +40,11 @@ Objectif : une seule app pour corriger les rapports de lab (français, annotatio
 - **Revue terminée** : les 4 étapes ont toutes leurs infos. Prochain fil : implémenter l'étape 1 (avec le test de consommation Claude sur 1 rapport).
 - **Étape 1, lab** : indiqué par Guillaume à l'import des PDF (un champ par lot, ex. « Lab 3 »).
 
+## Liaison avec Claude (2026-10-19)
+
+- Usage personnel de `claude -p` avec le forfait vérifié dans la doc d'Anthropic (sources dans `docs/CLAUDE_CLI.md`). Interdit : partager l'app avec d'autres personnes via le forfait.
+- Module `moteur/claude.py` et script `scripts/mesurer_consommation.py` prêts. [ ] **À faire par Guillaume** : lancer le test sur 1 rapport et noter ici la consommation (% de session et de semaine) pour fixer la taille des lots.
+
 ## Fonctions de l'annotateur PDF (étape 1, Guillaume, 2026-10-19)
 
 - **Outils** : crayon et surligneur, 5 couleurs (rester simple), gomme à effacer, annuler et rétablir. Pas de note, de commentaire ni de texte tapé : la note finale reste dans LÉA.

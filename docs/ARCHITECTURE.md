@@ -10,6 +10,7 @@
 moteur/        API et logique (un module par fonction)
   app.py       assemble l'application, route /api/etat
   config.py    chemins, dossier de données
+  claude.py    appel de `claude -p` (file d'attente, erreurs) ; voir docs/CLAUDE_CLI.md
   bibliotheque.py  liste de classe, import des PDF, rangement cours/groupe/lab/étudiant
   pdf_texte.py extraction du texte d'un PDF + position de chaque mot
   languagetool.py client du serveur LanguageTool local
@@ -17,6 +18,7 @@ moteur/        API et logique (un module par fonction)
   francais.py  API /api/francais (analyser, bareme)
   __main__.py  commande de lancement
 pwa/           app iPad (index.html, app.js, manifest, icône)
+scripts/       outils à lancer à la main (ex. test de consommation)
 prototypes/    essais autonomes (ex. crayon), hors moteur
 tests/         tests pytest
 donnees/       données locales, exclu du dépôt (.gitignore)
