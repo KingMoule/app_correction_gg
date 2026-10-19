@@ -4,10 +4,11 @@ Objectif : une seule app pour corriger les rapports de lab (français, annotatio
 
 ## État au 2026-10-19 (à lire en premier)
 
-Tout est fusionné dans `main` jusqu'à la PR #16 (bibliothèque, lecteur et annotation, fautes de français, export du PDF annoté, plagiat, indices d'IA). Reste à faire :
+Tout est fusionné dans `main` jusqu'à la PR #17 (bibliothèque, lecteur et annotation, fautes de français, export du PDF annoté, plagiat, indices d'IA, passe Claude sur le français). Reste à faire :
 
-- [x] **Passe Claude sur le français** (étape 2) : faite (PR à fusionner). Après LanguageTool, `claude -p` repère les erreurs subtiles; mêmes zones et décisions que LanguageTool. Reste : mesurer sa consommation réelle (test ci-dessous).
+- [x] **Passe Claude sur le français** (étape 2) : faite et fusionnée (PR #17). Après LanguageTool, `claude -p` repère les erreurs subtiles; mêmes zones et décisions que LanguageTool. Reste : mesurer sa consommation réelle (test ci-dessous).
 - [ ] **Essais de Guillaume sur l'iPad** : crayon dans l'app (le prototype seul est validé), tap sur une faute pour sa fiche, export du PDF depuis l'app installée sur l'écran d'accueil.
+- [ ] **Installer le CLI sous Windows** (absent du PATH sur l'ordi de Guillaume; seule l'app de bureau est installée) : suivre « Installer et connecter le CLI sous Windows » dans `docs/CLAUDE_CLI.md`. Le moteur et ses tests fonctionnent maintenant sous Windows (résolution de `claude.exe`).
 - [ ] **Test de consommation `claude -p`** sur l'ordi de Guillaume (`docs/CLAUDE_CLI.md`) : noter ici le % de session et de semaine, puis fixer la taille des lots (plagiat, français, indices d'IA).
 - [ ] Rendu surligné du plagiat sur le PDF (étape 3, optionnel).
 

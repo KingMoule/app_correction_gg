@@ -22,6 +22,7 @@ import json
 import os
 import queue
 import re
+import shutil
 import subprocess
 import tempfile
 import threading
@@ -110,8 +111,30 @@ class ClientClaude:
         self.dossier_travail = dossier_travail
         self._verrou = threading.Lock()
 
+    def _resoudre_executable(self) -> str:
+        """Chemin complet de `claude` (`shutil.which`, qui gère .exe et .cmd sous Windows)."""
+        chemin = shutil.which(self.executable)
+        if chemin is None:
+            raise ClaudeIntrouvable(
+                f"Commande « {self.executable} » introuvable : installer Claude Code "
+                "(voir « Installer sous Windows » dans docs/CLAUDE_CLI.md)."
+            )
+        if os.name == "nt" and chemin.lower().endswith((".cmd", ".bat")):
+            # cmd.exe ne transmet pas sûrement le long --json-schema (guillemets, %, &) :
+            # on lance plutôt le binaire natif que le paquet npm installe à côté du .cmd.
+            natif = os.path.join(os.path.dirname(chemin), "node_modules", "@anthropic-ai",
+                                 "claude-code", "bin", "claude.exe")
+            if os.path.isfile(natif):
+                return natif
+            raise ClaudeIntrouvable(
+                f"« {chemin} » est un script .cmd, que le moteur ne peut pas lancer sûrement. "
+                "Installer le Claude Code natif (claude.exe) : voir « Installer sous Windows » "
+                "dans docs/CLAUDE_CLI.md."
+            )
+        return chemin
+
     def commande(self, schema: dict | None = None, systeme: str | None = None) -> list[str]:
-        cmd = [self.executable, "-p", "--output-format", "json",
+        cmd = [self._resoudre_executable(), "-p", "--output-format", "json",
                "--permission-mode", "dontAsk"]
         if self.modele:
             cmd += ["--model", self.modele]

@@ -18,6 +18,22 @@ Le moteur appelle Claude Code en ligne de commande, connecté au forfait de Guil
 - Appel lancé depuis un dossier vide : ni `CLAUDE.md` ni réglages d'un projet ne sont chargés.
 - `--permission-mode dontAsk` : rien ne demande d'approbation (le moteur n'a besoin d'aucun outil).
 
+## Installer et connecter le CLI sous Windows
+
+L'app de bureau Claude **n'installe pas** la commande `claude` : il faut le CLI en plus. Source : [Advanced setup](https://code.claude.com/docs/en/setup) (vérifié le 2026-10-19).
+
+1. Dans **PowerShell** (pas CMD, pas besoin d'être administrateur) :
+   ```powershell
+   irm https://claude.ai/install.ps1 | iex
+   ```
+   Autre choix : `winget install Anthropic.ClaudeCode` (ne se met pas à jour tout seul : `winget upgrade Anthropic.ClaudeCode`).
+2. Ouvrir une **nouvelle** fenêtre de terminal, puis `claude --version` (affiche un numéro de version). Si « introuvable » : le dossier d'installation n'est pas encore dans le PATH ([dépannage](https://code.claude.com/docs/en/troubleshoot-install)).
+3. `claude doctor` pour vérifier l'installation.
+4. `claude` : suivre les invites dans le navigateur pour se connecter au compte du forfait (Pro ou Max). Ne **pas** définir `ANTHROPIC_API_KEY`.
+5. Git for Windows est facultatif (le moteur n'utilise aucun outil de Claude).
+
+Le moteur cherche `claude` avec `shutil.which`, donc `claude.exe` (installateur natif ou WinGet) fonctionne. Un script `claude.cmd` (installation npm) n'est pas lancé tel quel : le long `--json-schema` ne passe pas sûrement par `cmd.exe`. Le moteur prend alors le `claude.exe` natif que le paquet npm installe à côté (`node_modules\@anthropic-ai\claude-code\bin\claude.exe`), et sinon refuse avec un message clair. Le plus simple : l'installateur natif ci-dessus.
+
 ## Utiliser le module
 
 ```python
@@ -32,7 +48,7 @@ Erreurs (toutes des `ClaudeErreur`) : `ClaudeIntrouvable` (non installé), `Clau
 
 ## Test de consommation (à lancer par Guillaume)
 
-Prérequis : Claude Code installé et connecté (`claude`, puis `/login` si besoin) ; `pip install -e .` fait une seule fois (installe aussi la lecture des PDF).
+Prérequis : Claude Code installé et connecté (section « Installer et connecter le CLI sous Windows » ci-dessus ; `/login` si besoin) ; `pip install -e .` fait une seule fois (installe aussi la lecture des PDF).
 
 1. Dans Claude Code, tape `/usage` et note le pourcentage de la limite de session (5 h) et de la limite de la semaine **avant**. Ne rien faire d'autre avec Claude pendant le test.
 2. Depuis le dossier du projet :
