@@ -28,3 +28,28 @@ body { display: flex; flex-direction: column; overflow: hidden; padding-top: env
 .page canvas.surligneur { opacity: .4; mix-blend-mode: multiply; pointer-events: none; }
 .page canvas.encre { }
 #message { position: fixed; inset: 40% 1rem auto; text-align: center; color: #fff; background: #000a; padding: 1rem; border-radius: 8px; }
+
+/* Fautes de français */
+@font-face { font-family: "Caveat"; font-weight: 700; src: url("vendor/caveat-latin-700-normal.woff2") format("woff2"); }
+.fautes { position: absolute; inset: 0; pointer-events: none; }
+.zone { position: absolute; background: rgba(229, 57, 53, .22); border-bottom: 2px dashed #c62828; mix-blend-mode: multiply; border-radius: 2px; }
+.zone.acceptee { background: rgba(229, 57, 53, .45); border-bottom: 2px solid #c62828; }
+.zone.choisie { outline: 2px solid #1565c0; }
+.correction { position: absolute; font: 700 14px/1 "Caveat", "Bradley Hand", "Noteworthy", cursive; color: #c62828; white-space: nowrap; }
+#francais { position: absolute; top: 100%; right: 8px; width: min(26rem, calc(100vw - 16px)); max-height: 70vh; overflow-y: auto;
+  background: var(--barre); padding: 10px 14px; border-radius: 0 0 10px 10px; box-shadow: 0 4px 12px #0008; }
+#francais p { margin: .3rem 0; }
+#francais fieldset { border: 1px solid #555; border-radius: 8px; margin: .6rem 0; }
+#francais label { display: block; margin: .3rem 0; }
+#francais input[type=number] { width: 5.5rem; font-size: 1rem; }
+.fr-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+#fr-etat.erreur { color: #ff8a80; }
+.fr-ligne { display: flex; gap: 6px; align-items: center; padding: 6px 0; border-top: 1px solid #444; }
+.fr-ligne .texte { flex: 1; min-width: 0; }
+.fr-ligne.refusee .texte { opacity: .45; text-decoration: line-through; }
+.fr-ligne small { display: block; opacity: .7; }
+#detail { position: fixed; left: 0; right: 0; bottom: 0; z-index: 20; background: var(--barre); color: var(--fg);
+  padding: 12px 16px calc(12px + env(safe-area-inset-bottom)); box-shadow: 0 -4px 12px #0008; display: flex; flex-direction: column; gap: 8px; }
+#detail button { background: #3a3a3a; color: var(--fg); border: 2px solid transparent; border-radius: 8px; padding: 8px 12px; font: inherit; }
+#detail button.on { border-color: var(--accent); background: #2b4057; }
+#detail .rangee { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
