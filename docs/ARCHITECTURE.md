@@ -1,0 +1,37 @@
+# Architecture
+
+## Pile technique
+- **Moteur** : Python 3.10+, FastAPI + uvicorn. Choisi pour la suite : lecture de PDF, comparaison de textes (plagiat), appel de `claude -p` et LanguageTool sont tous simples en Python.
+- **PWA** : HTML/CSS/JavaScript sans étape de compilation, servie par le moteur depuis `pwa/`. Aucun outil Node requis pour l'utiliser.
+- **Tests** : pytest. **Contrôle** : GitHub Actions (`.github/workflows/ci.yml`) lance les tests à chaque PR.
+
+## Structure
+```
+moteur/        API et logique (un module par fonction)
+  app.py       assemble l'application, route /api/etat
+  config.py    chemins, dossier de données
+  __main__.py  commande de lancement
+pwa/           app iPad (index.html, app.js, manifest, icône)
+prototypes/    essais autonomes (ex. crayon), hors moteur
+tests/         tests pytest
+donnees/       données locales, exclu du dépôt (.gitignore)
+docs/          plan, workflow, architecture
+```
+
+## Lancer
+```
+pip install -e ".[test]"   # une seule fois
+python -m moteur           # affiche l'adresse à ouvrir sur l'iPad
+pytest                     # tests
+```
+Sur l'iPad (même Wi-Fi) : ouvrir l'adresse affichée dans Safari, puis Partager → « Sur l'écran d'accueil ». Option `--local` : accès depuis l'ordi seulement. Le dossier de données se change avec la variable `CORRECTION_DONNEES`.
+
+## Ajouter une fonction
+1. Créer `moteur/<fonction>.py` avec un `APIRouter` (préfixe `/api/<fonction>`).
+2. L'inscrire dans `creer_app()` de `moteur/app.py`, avant le montage de la PWA.
+3. Ajouter l'écran dans `pwa/` et un test dans `tests/`.
+Les fichiers des étudiants vont seulement sous `donnees/`.
+
+## Limites connues
+- Connexion en HTTP sur le réseau local : pas de service worker (réservé au HTTPS), donc pas de mode hors ligne. Le moteur doit être allumé pour corriger, ce qui est déjà le cas (voir PLAN.md).
+- Pas d'authentification : à n'utiliser que sur le Wi-Fi maison.

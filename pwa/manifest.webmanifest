@@ -1,0 +1,10 @@
+{
+  "name": "Correction de labs",
+  "short_name": "Correction",
+  "lang": "fr",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#b3261e",
+  "icons": [{ "src": "icone.svg", "sizes": "any", "type": "image/svg+xml" }]
+}
