@@ -41,11 +41,22 @@
       <p><a href="plagiat.html">Comparer les rapports de la bibliothèque</a></p>
     </section>
 
+    <section id="section-ia" hidden>
+      <h2>Indices d'IA</h2>
+      <p id="ia-titre"></p>
+      <p class="aide" id="ia-avertissement">Indice à revérifier, jamais un verdict.</p>
+      <button id="ia-analyser">Analyser le style avec Claude</button>
+      <button id="ia-pangram">Copier le texte et ouvrir Pangram</button>
+      <p id="ia-etat" aria-live="polite"></p>
+      <div id="ia-resultat"></div>
+    </section>
+
     <section id="section-attente" hidden>
       <h2>À trancher</h2>
       <div id="attente"></div>
     </section>
   </main>
   <script src="app.js"></script>
+  <script src="indices-ia.js"></script>
 </body>
 </html>
