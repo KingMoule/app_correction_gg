@@ -20,4 +20,7 @@ Le chargement d'un PDF utilise pdf.js depuis internet (cdnjs) ; la feuille blanc
 - Crayon, surligneur, 5 couleurs, gomme (efface le trait touché), annuler/rétablir par page.
 - Ligne d'info en haut : pression reçue, inclinaison, temps de traitement par événement.
 
-Limites connues : gomme par trait entier, pas de double tape du Pencil, pas d'export.
+Zoom : pincement à deux doigts (la barre reste fixe), bouton « Ajuster » pour revenir à la largeur de l écran.
+Gomme : efface seulement la partie touchée (taille réglable).
+
+Limites connues : pas de double tape du Pencil, pas d'export.

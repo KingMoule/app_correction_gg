@@ -2,13 +2,14 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>Prototype crayon</title>
 <style>
   :root { --bar:#222; --fg:#eee; --accent:#4da3ff; }
   * { box-sizing: border-box; -webkit-user-select:none; user-select:none; -webkit-touch-callout:none; }
-  html,body { margin:0; background:#777; font:15px -apple-system,system-ui,sans-serif; }
-  #bar { position:sticky; top:0; z-index:10; background:var(--bar); color:var(--fg); padding:8px 10px;
+  html,body { height:100%; margin:0; background:#777; font:15px -apple-system,system-ui,sans-serif; }
+  body { display:flex; flex-direction:column; overflow:hidden; }
+  #bar { flex:none; z-index:10; background:var(--bar); color:var(--fg); padding:8px 10px;
          display:flex; flex-wrap:wrap; gap:6px 12px; align-items:center; }
   #bar button, #bar label.btn { background:#3a3a3a; color:var(--fg); border:2px solid transparent; border-radius:8px;
          padding:8px 12px; font:inherit; }
@@ -20,11 +21,11 @@
   input[type=range] { width:110px; }
   [hidden] { display:none !important; }
   #info { font-size:12px; opacity:.8; font-variant-numeric:tabular-nums; }
-  #wrap { padding:12px 0 60px; display:flex; flex-direction:column; align-items:center; }
-  #page { position:relative; background:#fff; box-shadow:0 2px 12px #0008; touch-action:pan-x pan-y pinch-zoom; }
-  #page canvas { position:absolute; left:0; top:0; width:100%; height:100%; touch-action:pan-x pan-y pinch-zoom; }
+  #wrap { flex:1; min-height:0; overflow:auto; -webkit-overflow-scrolling:touch; touch-action:pan-x pan-y; padding:12px 0 60px; }
+  #sizer { position:relative; margin:0 auto; }
+  #page { position:absolute; left:0; top:0; transform-origin:0 0; background:#fff; box-shadow:0 2px 12px #0008; touch-action:pan-x pan-y; }
+  #page canvas { position:absolute; left:0; top:0; width:100%; height:100%; touch-action:pan-x pan-y; }
   #hl { opacity:.4; mix-blend-mode:multiply; }
-  #help { color:#fff; font-size:13px; margin:8px 12px; max-width:760px; }
 </style>
 </head>
 <body>
@@ -42,17 +43,18 @@
     <label>Min <input id="wmin" type="range" min="0.3" max="6" step="0.1" value="0.8"> <b id="wmin-v"></b></label>
     <label>Max <input id="wmax" type="range" min="1" max="20" step="0.5" value="5"> <b id="wmax-v"></b></label>
     <label>Courbe <input id="curve" type="range" min="0.4" max="2" step="0.1" value="1"> <b id="curve-v"></b></label>
+    <label>Gomme <input id="er" type="range" min="3" max="30" step="1" value="8"> <b id="er-v"></b></label>
   </div>
   <div class="grp">
     <label class="btn">PDF… <input id="file" type="file" accept="application/pdf" hidden></label>
     <button id="blank">Feuille blanche</button>
+    <button id="fit">Ajuster</button>
     <span id="pager" class="grp" hidden><button id="prev">‹</button><span id="pg"></span><button id="next">›</button></span>
   </div>
   <div class="grp"><label><input id="finger" type="checkbox"> Le doigt dessine aussi</label></div>
   <div id="info">—</div>
 </div>
-<div id="help">Crayon : appuyer plus fort = trait plus gros (entre Min et Max). Doigt : défiler / pincer pour zoomer. « Le doigt dessine aussi » sert pour tester à la souris ou sans Pencil.</div>
-<div id="wrap"><div id="page"><canvas id="bg"></canvas><canvas id="hl"></canvas><canvas id="ink"></canvas></div></div>
+<div id="wrap"><div id="sizer"><div id="page"><canvas id="bg"></canvas><canvas id="hl"></canvas><canvas id="ink"></canvas></div></div></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script>
@@ -64,11 +66,12 @@ const $ = id => document.getElementById(id);
 const page = $('page'), bg = $('bg'), hl = $('hl'), ink = $('ink');
 for (const c of [bg, hl, ink]) { c.width = W * SCALE; c.height = H * SCALE; }
 page.style.width = W + 'px'; page.style.height = H + 'px';
+const wrap = $('wrap'), sizer = $('sizer');
 const bgx = bg.getContext('2d'), hlx = hl.getContext('2d'), inkx = ink.getContext('2d');
 for (const x of [hlx, inkx]) { x.scale(SCALE, SCALE); x.lineCap = 'round'; x.lineJoin = 'round'; }
 
 // état
-const st = { tool: 'pen', color: 0, wmin: 0.8, wmax: 5, curve: 1, cur: 0, pages: [] };
+const st = { tool: 'pen', color: 0, wmin: 0.8, wmax: 5, curve: 1, er: 8, cur: 0, pages: [] };
 let pdf = null;
 const curPage = () => st.pages[st.cur] || (st.pages[st.cur] = { strokes: [], undo: [], redo: [] });
 
@@ -88,9 +91,9 @@ function setTool(t) {
   syncSwatches();
 }
 $('t-pen').onclick = () => setTool('pen'); $('t-hl').onclick = () => setTool('hl'); $('t-er').onclick = () => setTool('er');
-for (const k of ['wmin', 'wmax', 'curve']) {
+for (const k of ['wmin', 'wmax', 'curve', 'er']) {
   const el = $(k), out = $(k + '-v');
-  const f = () => { st[k] = +el.value; out.textContent = (+el.value).toFixed(1); if (st.wmin > st.wmax) { st.wmax = st.wmin; $('wmax').value = st.wmax; $('wmax-v').textContent = st.wmax.toFixed(1); } };
+  const f = () => { st[k] = +el.value; out.textContent = (+el.value).toFixed(1); if (k !== 'er' && st.wmin > st.wmax) { st.wmax = st.wmin; $('wmax').value = st.wmax; $('wmax-v').textContent = st.wmax.toFixed(1); } };
   el.oninput = f; f();
 }
 
@@ -144,7 +147,7 @@ ink.addEventListener('pointerdown', e => {
   if (!accepts(e)) return;
   e.preventDefault(); ink.setPointerCapture(e.pointerId);
   const p = pos(e); p.p = lastP = pressure(e);
-  if (st.tool === 'er') { strokeDown.set(e.pointerId, { erase: true, removed: [] }); eraseAt(p, strokeDown.get(e.pointerId)); return; }
+  if (st.tool === 'er') { strokeDown.set(e.pointerId, { erase: true, removed: [], added: [] }); eraseTo(p, strokeDown.get(e.pointerId)); return; }
   const s = { tool: st.tool, color: st.color, wmin: st.wmin, wmax: st.wmax, curve: st.curve, pts: [p] };
   strokeDown.set(e.pointerId, { s, drawn: 0 });
   curPage().strokes.push(s); drawLive(strokeDown.get(e.pointerId));
@@ -159,7 +162,7 @@ ink.addEventListener('pointermove', e => {
   const evs = e.getCoalescedEvents ? e.getCoalescedEvents() : [e];
   for (const ev of (evs.length ? evs : [e])) {
     const p = pos(ev);
-    if (d.erase) { eraseAt(p, d); continue; }
+    if (d.erase) { eraseTo(p, d); continue; }
     const last = d.s.pts[d.s.pts.length - 1];
     if (Math.hypot(p.x - last.x, p.y - last.y) < 0.4) continue;
     // lissage léger de la pression pour éviter les sauts
@@ -187,7 +190,7 @@ function end(e) {
   const d = strokeDown.get(e.pointerId); if (!d) return;
   strokeDown.delete(e.pointerId);
   const pg = curPage();
-  if (d.erase) { if (d.removed.length) { pg.undo.push({ type: 'erase', strokes: d.removed }); pg.redo = []; } }
+  if (d.erase) { if (d.removed.length) { pg.undo.push({ type: 'erase', removed: d.removed, added: d.added }); pg.redo = []; } }
   else {
     drawStroke(d.s); // trace finale propre jusqu'au dernier point
     pg.undo.push({ type: 'add', stroke: d.s }); pg.redo = [];
@@ -197,30 +200,66 @@ function end(e) {
 ink.addEventListener('pointerup', end); ink.addEventListener('pointercancel', end);
 ink.addEventListener('contextmenu', e => e.preventDefault());
 
+// Gomme partielle : retire les points sous la gomme et coupe le trait en morceaux.
+function segDist(p, a, b) {
+  const dx = b.x - a.x, dy = b.y - a.y, l2 = dx * dx + dy * dy;
+  const u = l2 ? Math.max(0, Math.min(1, ((p.x - a.x) * dx + (p.y - a.y) * dy) / l2)) : 0;
+  return Math.hypot(p.x - (a.x + u * dx), p.y - (a.y + u * dy));
+}
+function densify(pts, step) { // interpole des points pour que le trait puisse être coupé finement
+  const out = [pts[0]];
+  for (let i = 1; i < pts.length; i++) {
+    const a = pts[i - 1], b = pts[i], n = Math.ceil(Math.hypot(b.x - a.x, b.y - a.y) / step);
+    for (let k = 1; k < n; k++) { const f = k / n; out.push({ x: a.x + (b.x - a.x) * f, y: a.y + (b.y - a.y) * f, p: a.p + (b.p - a.p) * f }); }
+    out.push(b);
+  }
+  return out;
+}
 function eraseAt(p, d) {
-  const pg = curPage(), r = 10; let hit = false;
-  pg.strokes = pg.strokes.filter(s => {
-    if (s.pts.some(q => Math.hypot(q.x - p.x, q.y - p.y) < r + widthFor(s, q.p) / 2)) { d.removed.push(s); hit = true; return false; }
-    return true;
-  });
-  if (hit) redraw();
+  const pg = curPage(), r = st.er; let hit = false, next = [];
+  for (const s of pg.strokes) {
+    const pts = s.pts, rr = r + widthFor(s, 1) / 2;
+    let touched = pts.length === 1 ? Math.hypot(pts[0].x - p.x, pts[0].y - p.y) < rr : false;
+    for (let i = 1; !touched && i < pts.length; i++) touched = segDist(p, pts[i - 1], pts[i]) < rr;
+    if (!touched) { next.push(s); continue; }
+    hit = true;
+    const dense = densify(pts, 2); let run = [];
+    const pieces = [];
+    for (const q of dense) {
+      if (Math.hypot(q.x - p.x, q.y - p.y) < rr) { if (run.length) pieces.push(run); run = []; } else run.push(q);
+    }
+    if (run.length) pieces.push(run);
+    const i = d.added.indexOf(s);
+    if (i >= 0) d.added.splice(i, 1); else d.removed.push(s);
+    for (const pc of pieces) {
+      if (pc.length < 2 && dense.length > 1) continue; // miettes d'un seul point
+      const ns = { ...s, pts: pc }; next.push(ns); d.added.push(ns);
+    }
+  }
+  if (hit) { pg.strokes = next; redraw(); }
+}
+function eraseTo(p, d) { // comble les trous si la gomme va vite
+  const last = d.last; d.last = p;
+  if (!last) { eraseAt(p, d); return; }
+  const n = Math.max(1, Math.ceil(Math.hypot(p.x - last.x, p.y - last.y) / 3));
+  for (let k = 1; k <= n; k++) eraseAt({ x: last.x + (p.x - last.x) * k / n, y: last.y + (p.y - last.y) * k / n }, d);
 }
 
 // ----- annuler / rétablir -----
 function updateButtons() { const pg = curPage(); $('undo').disabled = !pg.undo.length; $('redo').disabled = !pg.redo.length; }
 $('undo').onclick = () => {
   const pg = curPage(), a = pg.undo.pop(); if (!a) return;
-  if (a.type === 'add') pg.strokes = pg.strokes.filter(s => s !== a.stroke); else pg.strokes.push(...a.strokes);
+  if (a.type === 'add') pg.strokes = pg.strokes.filter(s => s !== a.stroke); else { pg.strokes = pg.strokes.filter(s => !a.added.includes(s)); pg.strokes.push(...a.removed); }
   pg.redo.push(a); redraw();
 };
 $('redo').onclick = () => {
   const pg = curPage(), a = pg.redo.pop(); if (!a) return;
-  if (a.type === 'add') pg.strokes.push(a.stroke); else pg.strokes = pg.strokes.filter(s => !a.strokes.includes(s));
+  if (a.type === 'add') pg.strokes.push(a.stroke); else { pg.strokes = pg.strokes.filter(s => !a.removed.includes(s)); pg.strokes.push(...a.added); }
   pg.undo.push(a); redraw();
 };
 $('clear').onclick = () => {
   const pg = curPage(); if (!pg.strokes.length) return;
-  pg.undo.push({ type: 'erase', strokes: pg.strokes }); pg.redo = []; pg.strokes = []; redraw();
+  pg.undo.push({ type: 'erase', removed: pg.strokes, added: [] }); pg.redo = []; pg.strokes = []; redraw();
 };
 
 // ----- fond : feuille blanche ou PDF -----
@@ -247,6 +286,33 @@ async function showPdfPage() {
 }
 $('prev').onclick = () => { st.cur--; showPdfPage(); };
 $('next').onclick = () => { st.cur++; showPdfPage(); };
+
+// ----- zoom à deux doigts (la barre d'outils reste fixe) -----
+let scale = 1, pinch = null;
+function setScale(s) {
+  scale = Math.min(5, Math.max(0.3, s));
+  sizer.style.width = W * scale + 'px'; sizer.style.height = H * scale + 'px';
+  page.style.transform = 'scale(' + scale + ')';
+}
+function fitWidth() { setScale(Math.min(1.5, wrap.clientWidth / W)); wrap.scrollLeft = 0; wrap.scrollTop = 0; }
+$('fit').onclick = fitWidth;
+const tdist = t => Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY);
+wrap.addEventListener('touchstart', e => {
+  if (e.touches.length === 2 && !fingerDraws && [...e.touches].every(t => t.touchType !== 'stylus')) pinch = { d: tdist(e.touches), s: scale };
+}, { passive: false });
+wrap.addEventListener('touchmove', e => {
+  if (!pinch || e.touches.length !== 2) return;
+  e.preventDefault();
+  const cx = (e.touches[0].clientX + e.touches[1].clientX) / 2, cy = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+  const r = sizer.getBoundingClientRect(), ux = (cx - r.left) / scale, uy = (cy - r.top) / scale;
+  setScale(pinch.s * tdist(e.touches) / pinch.d);
+  const r2 = sizer.getBoundingClientRect();
+  wrap.scrollLeft += r2.left + ux * scale - cx; wrap.scrollTop += r2.top + uy * scale - cy;
+}, { passive: false });
+const endPinch = e => { if (e.touches.length < 2) pinch = null; };
+wrap.addEventListener('touchend', endPinch); wrap.addEventListener('touchcancel', endPinch);
+window.addEventListener('resize', () => { if (scale === 1) fitWidth(); });
+fitWidth();
 
 // ----- infos de test -----
 let frames = [], infoTxt = '';
