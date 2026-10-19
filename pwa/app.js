@@ -60,6 +60,7 @@ async function charger() {
     o.value = i;
     return o;
   }));
+  window.rafraichirLot?.(arbre);
   await chargerAttente();
 }
 

@@ -17,6 +17,7 @@ from .claude import (
     ClaudeLimite,
     ClaudeNonConnecte,
     FileClaude,
+    file_par_defaut,
 )
 
 SCHEMA = {
@@ -62,7 +63,7 @@ def obtenir_file() -> FileClaude:
     global _file
     with _verrou:
         if _file is None:
-            _file = FileClaude()
+            _file = file_par_defaut()
         return _file
 
 

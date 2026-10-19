@@ -25,7 +25,7 @@ from fastapi import APIRouter, File, HTTPException, UploadFile
 from pydantic import BaseModel, Field
 
 from . import bibliotheque, pdf_texte
-from .claude import ClaudeErreur, FileClaude
+from .claude import ClaudeErreur, FileClaude, file_par_defaut
 from .config import dossier_donnees
 
 router = APIRouter(prefix="/api/plagiat")
@@ -382,7 +382,7 @@ def file_claude() -> FileClaude:
     """File Claude du moteur (créée au premier envoi). Les tests la remplacent."""
     global _file
     if _file is None:
-        _file = FileClaude()
+        _file = file_par_defaut()
     return _file
 
 

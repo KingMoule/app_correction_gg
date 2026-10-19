@@ -19,12 +19,13 @@ moteur/        API et logique (un module par fonction)
   anonymat.py  masque les noms d'étudiants avant tout envoi à Claude
   francais_claude.py passe Claude sur le français (erreurs subtiles après LanguageTool)
   plagiat.py   comparaison locale de tous les rapports + analyse Claude des paires confirmées
+  lot.py       analyse par lot (français + indices d'IA sur plusieurs rapports d'un lab)
   indices_ia.py API /api/indices-ia (analyse de style par Claude, texte pour Pangram)
   annotations.py API /api/annotations (traits du crayon, enregistrés à part du PDF)
   export.py    API /api/export (PDF annoté pour LÉA, créé à la demande)
   polices/     Caveat Bold (OFL), écriture manuscrite des corrections dans le PDF exporté
   __main__.py  commande de lancement
-pwa/           app iPad (index.html + app.js : bibliothèque; lecteur.html/js/css : lecteur et annotation; plagiat.html/js/css : plagiat;
+pwa/           app iPad (index.html + app.js : bibliothèque; lecteur.html/js/css : lecteur et annotation; plagiat.html/js/css : plagiat; lot.js : analyse par lot;
                vendor/ : pdf.js, copié dans le dépôt car l'iPad n'a pas forcément Internet)
 scripts/       outils à lancer à la main (ex. test de consommation)
 prototypes/    essais autonomes (ex. crayon), hors moteur
@@ -95,3 +96,10 @@ Association : le nom de famille (sans accents ni casse) doit figurer dans le nom
 - **Confirmation avant Claude** : `POST /api/plagiat/paires/{cle}/confirmer` est le seul chemin vers Claude. Une paire par appel; seuls les passages communs partent (sous les noms « rapport A/B », sans nom d'étudiant), au plus 12 000 caractères. Verdict : copie, paraphrase ou coïncidence + confiance + explication, présenté comme un indice. `…/ecarter` écarte une paire.
 - **Données** sous `donnees/plagiat/` : `paires.json` (dernière comparaison), `decisions.json`, `reglages.json`, `textes/` (cache par empreinte du PDF; une décision suit le contenu des PDF, pas le nom). Un rapport remplacé donne une nouvelle paire, donc une nouvelle décision.
 - Limite connue : des partenaires de lab qui partagent légitimement leurs données ressortent comme paires; c'est à Claude (consigne) et à Guillaume de trancher.
+
+## Analyse par lot (Claude)
+- Modèle : la file Claude du moteur utilise **Sonnet** par défaut (`claude.file_par_defaut`, variable `CORRECTION_MODELE` pour changer). Mesuré : environ 2 % de la session de 5 h par rapport (français + indices d'IA), donc environ 10 rapports par lot avec une marge de 20 %.
+- `POST /api/lot/{cours}/{groupe}/{lab}` (`{n: 10 par défaut, 1 à 200, refaire: false}`) : lance un lot en arrière-plan (un seul à la fois, sinon 409; 409 aussi s'il n'y a rien à analyser). `GET /api/lot` : progression (`statut` en_cours / termine / arrete / limite / erreur, `fait`, `total`, `courant`, `erreurs`, `message`; état en mémoire, perdu au redémarrage du moteur). `POST /api/lot/arreter` : arrêt après le rapport en cours. `GET /api/lot/apercu/{cours}/{groupe}/{lab}?refaire=` : nombre de rapports qui seraient traités.
+- Rapport « à analyser » : pas de `francais.json` (ou passe Claude du français en échec) ou pas de `indices_ia.json`; seule la partie manquante est faite. Avec `refaire`, tous les rapports du lab sont repris; les décisions des fautes inchangées sont gardées (comportement de `analyser_rapport`). Sans `refaire`, une analyse existante n'est jamais touchée.
+- Arrêt propre : limite d'usage (429) ou Claude non connecté / LanguageTool absent (503) arrête le lot et garde les résultats; le message demande de reprendre après la réinitialisation. Les autres erreurs (504, 502…) sont notées pour le rapport touché et le lot continue.
+- Écran : section « Analyse par lot » de la page d'accueil (choix du lab, N, case « Refaire », progression, arrêt, erreurs).
