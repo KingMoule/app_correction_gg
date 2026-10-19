@@ -16,6 +16,7 @@ moteur/        API et logique (un module par fonction)
   languagetool.py client du serveur LanguageTool local
   bareme.py    pénalité (points par faute, plafond)
   francais.py  API /api/francais (analyser, bareme)
+  indices_ia.py API /api/indices-ia (analyse de style par Claude, texte pour Pangram)
   __main__.py  commande de lancement
 pwa/           app iPad (index.html, app.js, manifest, icône)
 scripts/       outils à lancer à la main (ex. test de consommation)
@@ -52,3 +53,9 @@ Les fichiers des étudiants vont seulement sous `donnees/`.
 ## Bibliothèque (étape 1)
 Rangement : `donnees/bibliotheque/<cours>/<groupe>/classe.json` et `.../<lab>/<étudiant>/rapport.pdf`; les PDF à trancher sont dans `_attente/`.
 Association : le nom de famille (sans accents ni casse) doit figurer dans le nom du fichier; le nom le plus long l'emporte; le prénom départage les homonymes; sinon le fichier va « en attente » (ambigu, aucune correspondance ou rapport déjà importé, jamais écrasé sans choix de Guillaume). Les PDF sans texte sont refusés.
+
+## Indices d'IA (étape 4)
+- `POST /api/indices-ia/analyser/{cours}/{groupe}/{lab}/{etudiant}` : Claude (`claude -p`, file partagée, schéma JSON) analyse le style du rapport rangé; résultat gardé dans `indices_ia.json` à côté du PDF. `GET .../resultat/...` le relit, `GET .../texte/...` donne le texte brut.
+- Sortie : `force` (faible / moderee / marquee), `resume`, `signaux` (observation + extrait cité, `verifie` = l'extrait est vraiment dans le rapport), `contre_indices`, `avertissement`. Toujours un indice à revérifier, jamais un verdict.
+- Écran (`pwa/indices-ia.js`) : bouton « IA » à côté de chaque lab. Bouton Pangram : copie le texte dans le presse-papiers et ouvre pangram.com; Guillaume colle lui-même, aucun envoi automatique.
+- Erreurs Claude : 503 (non connecté / introuvable), 429 (limite d'usage), 504 (délai), 502 (autre).

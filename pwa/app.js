@@ -46,6 +46,10 @@ async function charger() {
         a.href = `${API}/rapport/${c.cours}/${c.groupe}/${lab}/${e.id}`;
         a.target = "_blank";
         ligne.append(a);
+        const ia = texte("button", "IA", "bouton-ia");
+        ia.title = "Indices d'IA";
+        ia.onclick = () => window.ouvrirIndicesIA?.(c.cours, c.groupe, lab, e);
+        ligne.append(ia);
       }
       bloc.append(ligne);
     }
