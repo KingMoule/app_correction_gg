@@ -18,3 +18,10 @@ section input, section select, section button { display: block; margin: .4rem 0;
 .ia-signal { border-left: 3px solid #ccc; padding-left: .6rem; margin: .6rem 0; }
 .ia-signal blockquote { margin: .2rem 0; font-style: italic; }
 .ia-signal .non-verifie { color: #b3261e; font-size: .85rem; }
+
+/* Analyse par lot */
+#section-lot label { display: block; margin: .4rem 0; }
+#section-lot input[type=number] { display: inline-block; width: 4.5rem; }
+#section-lot input[type=checkbox] { display: inline-block; }
+#lot-barre { width: 100%; }
+#lot-erreurs { color: #b3261e; font-size: .9rem; }

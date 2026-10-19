@@ -240,3 +240,13 @@ class FileClaude:
                 futur.set_result(self.client.executer(prompt, schema, systeme))
             except BaseException as e:  # noqa: BLE001 : transmis tel quel à l'appelant
                 futur.set_exception(e)
+
+
+MODELE_DEFAUT = os.environ.get("CORRECTION_MODELE", "sonnet")
+
+
+def file_par_defaut() -> FileClaude:
+    """File Claude du moteur : modèle Sonnet (réglable avec CORRECTION_MODELE).
+
+    Mesuré : environ 2 % de la session de 5 h par rapport avec Sonnet (3 % avec Opus)."""
+    return FileClaude(ClientClaude(modele=MODELE_DEFAUT))

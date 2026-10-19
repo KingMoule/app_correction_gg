@@ -41,6 +41,20 @@
       <p><a href="plagiat.html">Comparer les rapports de la bibliothèque</a></p>
     </section>
 
+    <section id="section-lot">
+      <h2>Analyse par lot (Claude)</h2>
+      <p class="aide">Français (passe Claude) et indices d'IA sur les rapports d'un lab pas encore analysés. Compte dans la limite de ton forfait : environ 2 % de la session de 5 h par rapport avec Sonnet.</p>
+      <select id="lot-lab"></select>
+      <label>Rapports par lot <input type="number" id="lot-n" value="10" min="1" max="200"></label>
+      <label><input type="checkbox" id="lot-refaire"> Refaire aussi les rapports déjà analysés</label>
+      <p id="lot-apercu" class="aide"></p>
+      <button id="lot-lancer">Lancer le lot</button>
+      <button id="lot-arreter" hidden>Arrêter après le rapport en cours</button>
+      <progress id="lot-barre" hidden></progress>
+      <p id="lot-etat" aria-live="polite"></p>
+      <ul id="lot-erreurs"></ul>
+    </section>
+
     <section id="section-ia" hidden>
       <h2>Indices d'IA</h2>
       <p id="ia-titre"></p>
@@ -58,5 +72,6 @@
   </main>
   <script src="app.js"></script>
   <script src="indices-ia.js"></script>
+  <script src="lot.js"></script>
 </body>
 </html>
