@@ -34,6 +34,7 @@
     <button id="t-pen" class="on">✎ Crayon</button>
     <button id="t-hl">🖍 Surligneur</button>
     <button id="t-er">⌫ Gomme</button>
+    <button id="swap" title="Bascule crayon / gomme">⇄</button>
   </div>
   <div class="grp" id="colors"></div>
   <div class="grp">
@@ -313,6 +314,23 @@ const endPinch = e => { if (e.touches.length < 2) pinch = null; };
 wrap.addEventListener('touchend', endPinch); wrap.addEventListener('touchcancel', endPinch);
 window.addEventListener('resize', () => { if (scale === 1) fitWidth(); });
 fitWidth();
+
+// ----- bascule crayon / gomme (double tape du Pencil, si Safari le transmet) -----
+let lastTool = 'pen', special = '';
+function swapTool() { if (st.tool === 'er') setTool(lastTool); else { lastTool = st.tool; setTool('er'); } }
+$('swap').onclick = swapTool;
+// Test : note tout évènement inhabituel (double tape, bouton du Pencil, geste…) dans la ligne d'info.
+for (const type of ['contextmenu', 'auxclick', 'dblclick', 'keydown', 'gesturestart', 'pointerrawupdate', 'wheel']) {
+  window.addEventListener(type, e => {
+    if (type === 'pointerrawupdate' || type === 'wheel') return;
+    special = type + (e.key ? ' ' + e.key : '') + (e.pointerType ? ' ' + e.pointerType : '');
+    $('info').textContent = 'évènement spécial : ' + special;
+    if (e.pointerType === 'pen' && type !== 'dblclick') swapTool();
+  }, true);
+}
+ink.addEventListener('pointerdown', e => {
+  if (e.pointerType === 'pen' && (e.buttons > 1 || e.button > 0)) { special = 'bouton ' + e.buttons; $('info').textContent = 'évènement spécial : bouton du Pencil ' + e.buttons; swapTool(); }
+}, true);
 
 // ----- infos de test -----
 let frames = [], infoTxt = '';

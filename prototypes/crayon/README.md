@@ -23,4 +23,7 @@ Le chargement d'un PDF utilise pdf.js depuis internet (cdnjs) ; la feuille blanc
 Zoom : pincement à deux doigts (la barre reste fixe), bouton « Ajuster » pour revenir à la largeur de l écran.
 Gomme : efface seulement la partie touchée (taille réglable).
 
-Limites connues : pas de double tape du Pencil, pas d'export.
+Limites connues : pas d'export.
+
+## Double tape du Pencil
+Safari ne transmet pas toujours le double tape aux pages web. Le prototype écoute les évènements possibles (bouton, menu contextuel, clavier) et les écrit dans la ligne d'info ; le bouton ⇄ bascule crayon/gomme en attendant.
