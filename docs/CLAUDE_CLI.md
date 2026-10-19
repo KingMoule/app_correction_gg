@@ -28,6 +28,10 @@ L'app de bureau Claude **n'installe pas** la commande `claude` : il faut le CLI 
    ```
    Autre choix : `winget install Anthropic.ClaudeCode` (ne se met pas à jour tout seul : `winget upgrade Anthropic.ClaudeCode`).
 2. Ouvrir une **nouvelle** fenêtre de terminal, puis `claude --version` (affiche un numéro de version). Si « introuvable » : le dossier d'installation n'est pas encore dans le PATH ([dépannage](https://code.claude.com/docs/en/troubleshoot-install)).
+   Si c'est toujours « introuvable » alors que `%USERPROFILE%\.local\bin\claude.exe` existe (cas vécu sur le PC de Guillaume), ajouter ce dossier au PATH, puis **fermer et rouvrir** le terminal :
+   ```powershell
+   [Environment]::SetEnvironmentVariable('Path', [Environment]::GetEnvironmentVariable('Path','User') + ';' + "$env:USERPROFILE\.local\bin", 'User')
+   ```
 3. `claude doctor` pour vérifier l'installation.
 4. `claude` : suivre les invites dans le navigateur pour se connecter au compte du forfait (Pro ou Max). Ne **pas** définir `ANTHROPIC_API_KEY`.
 5. Git for Windows est facultatif (le moteur n'utilise aucun outil de Claude).
