@@ -8,3 +8,13 @@ section input, section select, section button { display: block; margin: .4rem 0;
 .aide { color: #666; font-size: .9rem; }
 .etudiant a { margin-right: .5rem; }
 .attente-item { border: 1px solid #ccc; border-radius: 8px; padding: .6rem; margin: .5rem 0; }
+
+/* Indices d'IA */
+.bouton-ia { font-size: .8rem; margin-right: .5rem; }
+#section-ia { border: 1px solid #ccc; border-radius: 8px; padding: .6rem 1rem; }
+.ia-force { display: inline-block; padding: .1rem .6rem; border-radius: 1rem; font-weight: 600; background: #eee; }
+.ia-force.moderee { background: #ffe8b3; }
+.ia-force.marquee { background: #f5c2bd; }
+.ia-signal { border-left: 3px solid #ccc; padding-left: .6rem; margin: .6rem 0; }
+.ia-signal blockquote { margin: .2rem 0; font-style: italic; }
+.ia-signal .non-verifie { color: #b3261e; font-size: .85rem; }

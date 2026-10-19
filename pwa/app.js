@@ -46,6 +46,10 @@ async function charger() {
         const q = new URLSearchParams({ cours: c.cours, groupe: c.groupe, lab, etudiant: e.id, nom: `${e.prenom} ${e.nom}` });
         a.href = `lecteur.html?${q}`;
         ligne.append(a);
+        const ia = texte("button", "IA", "bouton-ia");
+        ia.title = "Indices d'IA";
+        ia.onclick = () => window.ouvrirIndicesIA?.(c.cours, c.groupe, lab, e);
+        ligne.append(ia);
       }
       bloc.append(ligne);
     }
