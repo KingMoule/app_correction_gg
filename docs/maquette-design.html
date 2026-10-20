@@ -1,0 +1,269 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Maquette design — Correction de labs</title>
+<style>
+/* ===== Système de design minimal (jetons) — voir docs/DESIGN.md ===== */
+:root {
+  --font: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, Roboto, sans-serif;
+  --bg: #f5f6f8; --surface: #fff; --surface-2: #eef0f4; --border: #dde1e7; --border-fort: #b9c0cb;
+  --texte: #1b2430; --texte-2: #566070;
+  --accent: #2f55d4; --accent-fort: #2443ad; --accent-doux: #e6ecfc; --sur-accent: #fff;
+  --ok: #17692e; --ok-fond: #dcf2e2; --attention: #7a4b00; --attention-fond: #fdeccb;
+  --danger: #b42318; --danger-fond: #fde3e0; --info: #2443ad; --info-fond: #e6ecfc; --neutre-fond: #e9ecf1;
+  --faute: rgba(229, 57, 53, .26);
+  --e1: 4px; --e2: 8px; --e3: 12px; --e4: 16px; --e5: 24px; --e6: 32px;
+  --r-s: 8px; --r-m: 12px; --r-pilule: 999px;
+  --ombre: 0 1px 2px rgba(20,30,50,.08), 0 2px 8px rgba(20,30,50,.06);
+  --cible: 44px;
+}
+[data-dir="chaleureuse"] {
+  --bg: #f8f5f0; --surface: #fffefb; --surface-2: #f0ebe2; --border: #e4ddd0; --border-fort: #c4baa8;
+  --texte: #2a2420; --texte-2: #655b50;
+  --accent: #0f6f66; --accent-fort: #0a554e; --accent-doux: #dcf0ec; --info: #0a554e; --info-fond: #dcf0ec;
+  --neutre-fond: #eee8dc; --r-s: 10px; --r-m: 16px;
+}
+* { box-sizing: border-box; }
+body { margin: 0; font: 16px/1.4 var(--font); background: #20242b; color: #ddd; }
+.hors { padding: 16px; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; position: sticky; top: 0; background: #20242b; z-index: 9; border-bottom: 1px solid #444; }
+.hors button { font: 14px var(--font); padding: 8px 14px; border-radius: 8px; border: 1px solid #555; background: #2c313a; color: #eee; cursor: pointer; }
+.hors button.on { background: #fff; color: #111; }
+.hors span { color: #9aa; font-size: 13px; margin-left: 8px; }
+.scene { padding: 24px; overflow: auto; }
+.cadre { width: 1180px; height: 820px; margin: 0 auto; background: var(--bg); color: var(--texte); overflow: hidden; position: relative; border-radius: 12px; }
+.avant img { width: 1180px; height: 820px; display: block; margin: 0 auto; border-radius: 12px; }
+.cache { display: none !important; }
+
+/* ===== Composants de base ===== */
+.nav { height: 60px; background: var(--surface); border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: var(--e2); padding: 0 var(--e5); }
+.marque { font-weight: 700; font-size: 18px; margin-right: var(--e4); display: flex; align-items: center; gap: var(--e2); }
+.marque i { width: 28px; height: 28px; border-radius: 8px; background: var(--accent); display: inline-block; }
+.onglet { min-height: var(--cible); padding: 0 var(--e4); border-radius: var(--r-s); display: inline-flex; align-items: center; gap: 6px; font-weight: 500; color: var(--texte-2); border: 0; background: none; font-family: inherit; font-size: 16px; }
+.onglet.on { background: var(--accent-doux); color: var(--accent-fort); }
+.etat-moteur { margin-left: auto; font-size: 14px; color: var(--ok); display: flex; align-items: center; gap: 6px; }
+.etat-moteur::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--ok); }
+svg.ic { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+.page { padding: var(--e5); }
+.fil { font-size: 14px; color: var(--texte-2); display: flex; gap: var(--e2); }
+.fil a { color: var(--accent-fort); }
+h1 { font-size: 24px; line-height: 1.2; margin: var(--e1) 0 var(--e4); font-weight: 700; letter-spacing: -.01em; }
+h2 { font-size: 20px; margin: 0 0 var(--e3); }
+.btn { min-height: var(--cible); padding: 0 var(--e4); border-radius: var(--r-s); border: 1px solid var(--border-fort); background: var(--surface); color: var(--texte); font: 500 15px var(--font); display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+.btn.principal { background: var(--accent); border-color: var(--accent); color: var(--sur-accent); }
+.btn.discret { border-color: transparent; background: none; color: var(--accent-fort); }
+.btn.ok { background: var(--ok); border-color: var(--ok); color: #fff; }
+.badge { display: inline-flex; align-items: center; gap: 4px; font-size: 13px; font-weight: 600; padding: 2px 10px; border-radius: var(--r-pilule); background: var(--neutre-fond); color: var(--texte-2); white-space: nowrap; }
+.badge.ok { background: var(--ok-fond); color: var(--ok); }
+.badge.att { background: var(--attention-fond); color: var(--attention); }
+.badge.dan { background: var(--danger-fond); color: var(--danger); }
+.badge.inf { background: var(--info-fond); color: var(--info); }
+.badge::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.carte { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-m); box-shadow: var(--ombre); }
+.chiffres { display: flex; gap: var(--e3); margin-bottom: var(--e4); }
+.chiffre { flex: 1; padding: var(--e3) var(--e4); }
+.chiffre b { display: block; font-size: 28px; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.chiffre span { font-size: 14px; color: var(--texte-2); }
+.segment { display: inline-flex; background: var(--surface-2); border-radius: var(--r-s); padding: 3px; }
+.segment span { min-height: 38px; padding: 0 var(--e4); display: inline-flex; align-items: center; border-radius: 6px; font-size: 15px; font-weight: 500; color: var(--texte-2); }
+.segment .on { background: var(--surface); color: var(--texte); box-shadow: var(--ombre); }
+.barre-outils { display: flex; gap: var(--e3); align-items: center; margin-bottom: var(--e3); flex-wrap: wrap; }
+.note { background: var(--attention-fond); color: var(--attention); border-radius: var(--r-s); padding: var(--e2) var(--e3); font-size: 14px; display: flex; gap: var(--e2); align-items: center; margin-bottom: var(--e3); }
+table.tab { width: 100%; border-collapse: collapse; }
+.tab th { text-align: left; font-size: 13px; font-weight: 600; color: var(--texte-2); text-transform: uppercase; letter-spacing: .04em; padding: var(--e2) var(--e4); background: var(--surface-2); }
+.tab td { padding: var(--e2) var(--e4); border-top: 1px solid var(--border); height: 60px; font-size: 15px; vertical-align: middle; }
+.tab tr.groupe td { background: var(--bg); font-weight: 600; height: 44px; font-size: 14px; color: var(--texte-2); }
+.tab td small { display: block; color: var(--texte-2); font-size: 13px; }
+.tab .actions { display: flex; gap: var(--e2); justify-content: flex-end; }
+.tab tr.fini td { color: var(--texte-2); }
+.champ { display: block; margin-bottom: var(--e4); }
+.champ label { display: block; font-size: 14px; font-weight: 600; margin-bottom: 6px; }
+.champ .saisie { min-height: var(--cible); border: 1px solid var(--border-fort); border-radius: var(--r-s); background: var(--surface); padding: 0 var(--e3); display: flex; align-items: center; color: var(--texte-2); }
+.champ small { display: block; color: var(--texte-2); font-size: 13px; margin-top: 4px; }
+.depot { border: 2px dashed var(--border-fort); border-radius: var(--r-m); background: var(--surface); min-height: 150px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--e2); color: var(--texte-2); }
+.toast { position: absolute; right: var(--e5); bottom: var(--e5); background: #1b2430; color: #fff; padding: var(--e3) var(--e4); border-radius: var(--r-s); box-shadow: 0 6px 20px rgba(0,0,0,.25); display: flex; gap: var(--e3); align-items: center; font-size: 15px; }
+.cols { display: grid; grid-template-columns: 1fr 1fr; gap: var(--e5); }
+
+/* Lecteur (sombre, gardé : le PDF blanc ressort) */
+.lecteur { background: #2a2f37; height: 100%; display: flex; flex-direction: column; color: #eef1f5; }
+.lecteur .l1, .lecteur .l2 { display: flex; align-items: center; gap: var(--e2); padding: 6px var(--e3); }
+.lecteur .l1 { background: #20242b; }
+.lecteur .l2 { background: #262b33; border-top: 1px solid #000; }
+.lb { min-height: 44px; min-width: 44px; padding: 0 var(--e3); border-radius: var(--r-s); background: #353b45; color: #eef1f5; border: 2px solid transparent; display: inline-flex; align-items: center; justify-content: center; gap: 6px; font: 500 15px var(--font); }
+.lb.on { border-color: #7d9bff; background: #2c3a63; }
+.lb.principal { background: var(--accent); }
+.lb.ok { background: #2e7d4a; }
+.lsep { width: 1px; height: 28px; background: #4a515d; margin: 0 4px; }
+.pastille-c { width: 36px; height: 36px; border-radius: 50%; border: 3px solid #5a626f; }
+.pastille-c.on { border-color: #fff; }
+.corps { flex: 1; display: flex; min-height: 0; }
+.fenetre { flex: 1; background: #6b727d; padding: 20px; overflow: hidden; display: flex; justify-content: center; }
+.feuille { width: 480px; background: #fff; color: #222; padding: 50px 46px; font: 12.5px/1.7 Helvetica, Arial, sans-serif; box-shadow: 0 2px 14px rgba(0,0,0,.45); height: 700px; }
+.feuille h3 { font-size: 15px; margin: 0 0 8px; }
+.f { background: var(--faute); border-radius: 2px; }
+.f.sel { outline: 2px solid #4f7bff; }
+.cm { font: 700 15px "Caveat", cursive; color: #c62828; margin-left: 4px; }
+.panneau { width: 380px; background: #20242b; border-left: 1px solid #000; padding: var(--e3) var(--e4); overflow: hidden; }
+.panneau h2 { font-size: 16px; margin-bottom: 4px; }
+.resume-f { color: #b9c0cc; font-size: 14px; margin-bottom: var(--e3); }
+.ligne-f { display: flex; align-items: center; gap: var(--e2); padding: 10px 0; border-top: 1px solid #3a414c; }
+.ligne-f .t { flex: 1; font-size: 15px; } .ligne-f small { display: block; color: #9aa3b0; font-size: 13px; }
+.ligne-f.ref .t { opacity: .5; text-decoration: line-through; }
+.dec { width: 44px; height: 44px; border-radius: var(--r-s); border: 2px solid #4a515d; background: #2a2f37; color: #eef1f5; display: inline-flex; align-items: center; justify-content: center; }
+.dec.oui { background: #2e7d4a; border-color: #2e7d4a; } .dec.non { background: #c62828; border-color: #c62828; }
+.prog { height: 8px; background: var(--surface-2); border-radius: 99px; overflow: hidden; margin: 6px 0 var(--e3); }
+.prog i { display: block; height: 100%; background: var(--accent); border-radius: 99px; }
+.vide { text-align: center; padding: var(--e6); color: var(--texte-2); }
+</style>
+</head>
+<body>
+<div class="hors">
+  <b style="color:#fff">Écran</b>
+  <button data-e="suivi" class="on">Tableau de suivi</button>
+  <button data-e="lecteur">Lecteur + fautes</button>
+  <button data-e="import">Import</button>
+  <b style="color:#fff;margin-left:16px">Version</b>
+  <button data-v="avant">Avant</button>
+  <button data-v="sobre" class="on">Après : sobre et neutre</button>
+  <button data-v="chaleureuse">Après : chaleureuse</button>
+  <span>Format iPad 1180×820 (maquette statique, données fictives)</span>
+</div>
+
+<div class="scene">
+  <div class="avant cache" id="avant"><img id="img-avant" alt="Capture avant"></div>
+
+  <div id="apres" data-dir="sobre">
+  <!-- ============ SUIVI ============ -->
+  <div class="cadre" data-ecran="suivi">
+    <div class="nav"><span class="marque"><i></i>Correction</span>
+      <button class="onglet"><svg class="ic" viewBox="0 0 24 24"><path d="M4 11l8-7 8 7v9H4z"/></svg>Accueil</button>
+      <button class="onglet on"><svg class="ic" viewBox="0 0 24 24"><path d="M4 5h6l2 2h8v12H4z"/></svg>Bibliothèque</button>
+      <button class="onglet"><svg class="ic" viewBox="0 0 24 24"><path d="M12 16V4M7 9l5-5 5 5M4 20h16"/></svg>Importer <span class="badge dan" style="padding:0 7px">2</span></button>
+      <button class="onglet"><svg class="ic" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6"/><path d="M20 20l-4-4"/></svg>Lot et plagiat</button>
+      <span class="etat-moteur">Moteur connecté</span></div>
+    <div class="page">
+      <div class="fil"><a>Bibliothèque</a> › <span>202SNURE</span> › <span>Lab 3</span></div>
+      <h1>Suivi du Lab 3</h1>
+      <div class="chiffres">
+        <div class="carte chiffre"><b>12</b><span>rapports</span></div>
+        <div class="carte chiffre"><b>6</b><span>à corriger</span></div>
+        <div class="carte chiffre"><b>3</b><span>en cours</span></div>
+        <div class="carte chiffre"><b>3</b><span>terminés</span></div>
+        <div class="carte chiffre"><b style="color:var(--attention)">3</b><span>à revoir</span></div>
+      </div>
+      <div class="barre-outils">
+        <div class="segment"><span class="on">À corriger</span><span>Tous</span><span>À revoir</span></div>
+        <div class="btn">Tous les groupes ▾</div>
+        <div style="margin-left:auto" class="btn"><svg class="ic" viewBox="0 0 24 24"><path d="M5 3l14 9-14 9z"/></svg>Analyse par lot</div>
+      </div>
+      <div class="note"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg>Les indices d'IA et de plagiat sont des indices à revérifier, jamais un verdict.</div>
+      <div class="carte" style="overflow:hidden">
+        <table class="tab">
+          <tr><th>Étudiant</th><th>Annotation</th><th>Français</th><th>Indice d'IA</th><th>État</th><th></th></tr>
+          <tr class="groupe"><td colspan="6">Groupe 00001 · 3 rapports</td></tr>
+          <tr><td><b>Bouchard, Maya</b></td><td><span class="badge ok">commencée</span></td><td><span class="badge att">3 à trancher</span><small>1 acceptée · −0,5 pt</small></td><td><span class="badge">non analysé</span></td><td><span class="badge inf">en cours</span></td><td class="actions"><span class="btn">Analyser</span><span class="btn principal">Ouvrir</span></td></tr>
+          <tr><td><b>Côté, Étienne</b></td><td><span class="badge ok">commencée</span></td><td><span class="badge att">3 à trancher</span><small>1 acceptée · −0,5 pt</small></td><td><span class="badge dan">marquée</span><small>à revérifier</small></td><td><span class="badge inf">en cours</span></td><td class="actions"><span class="btn">Analyser</span><span class="btn principal">Ouvrir</span></td></tr>
+          <tr class="fini"><td><b>Tremblay, Camille</b><small>Note 17,5</small></td><td><span class="badge ok">complète</span></td><td><span class="badge ok">tranché</span><small>2 acceptées · −1 pt</small></td><td><span class="badge">faible</span></td><td><span class="badge ok">terminé</span></td><td class="actions"><span class="btn">Rouvrir</span></td></tr>
+          <tr class="groupe"><td colspan="6">Groupe 00002 · 6 rapports</td></tr>
+          <tr><td><b>Bélanger, Samuel</b></td><td><span class="badge">pas commencée</span></td><td><span class="badge">non analysé</span></td><td><span class="badge">non analysé</span></td><td><span class="badge">à corriger</span></td><td class="actions"><span class="btn">Analyser</span><span class="btn principal">Ouvrir</span></td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ LECTEUR ============ -->
+  <div class="cadre cache" data-ecran="lecteur">
+    <div class="lecteur">
+      <div class="l1">
+        <span class="lb"><svg class="ic" viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg>Tableau</span>
+        <b style="font-size:16px;margin:0 8px">Roy, Léa <span style="font-weight:400;color:#9aa3b0">· Lab 3</span></b>
+        <span class="lb"><svg class="ic" viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg></span>
+        <span style="font-size:14px;color:#b9c0cc">5 / 6</span>
+        <span class="lb principal">Rapport suivant<svg class="ic" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></span>
+        <span class="badge att" style="margin-left:8px">en cours</span>
+        <span style="margin-left:auto" class="lb ok"><svg class="ic" viewBox="0 0 24 24"><path d="M5 12l5 5 9-10"/></svg>Terminé et suivant</span>
+      </div>
+      <div class="l2">
+        <span class="lb on"><svg class="ic" viewBox="0 0 24 24"><path d="M4 20l1-4.5L16.5 4a1.8 1.8 0 012.5 0l1 1a1.8 1.8 0 010 2.5L8.5 19z"/></svg></span>
+        <span class="lb"><svg class="ic" viewBox="0 0 24 24"><path d="M15.5 3l5.5 5.5-8 8-5.5-5.5z"/><path d="M3 22h18"/></svg></span>
+        <span class="lb"><svg class="ic" viewBox="0 0 24 24"><path d="M4.5 14L14 4.5a2 2 0 012.8 0l3.2 3.2a2 2 0 010 2.8L11 19.5H7z"/></svg></span>
+        <span class="lsep"></span>
+        <span class="pastille-c on" style="background:#e53935"></span><span class="pastille-c" style="background:#1e6fd0"></span><span class="pastille-c" style="background:#2e8b3d"></span><span class="pastille-c" style="background:#111"></span><span class="pastille-c" style="background:#f07800"></span>
+        <span class="lsep"></span>
+        <span class="lb">↶</span><span class="lb">↷</span>
+        <span style="margin-left:auto;font-size:14px;color:#9aa3b0">Enregistré · page 2 / 4</span>
+        <span class="lb">Exporter le PDF</span>
+        <span class="lb on">Français</span>
+      </div>
+      <div class="corps">
+        <div class="fenetre"><div class="feuille">
+          <h3>Introduction</h3>
+          L'objectif de ce laboratoire est de mesurer la résistance équivalente d'un circuit en série et en parallèle. Nous avons utilisé un multimètre et une source de tension continue.<br>Les résultats <span class="f sel">obtenue</span><span class="cm">obtenus</span> montrent un écart inférieur à cinq pour cent avec la théorie.<br><br>
+          <h3>Méthode</h3>
+          Les résistances ont été branchées sur une plaquette d'essai. Chaque <span class="f">mesures</span> a été reprise trois fois afin de réduire l'incertitude.
+        </div></div>
+        <div class="panneau">
+          <h2>Fautes de français</h2>
+          <div class="resume-f">4 fautes · 2 acceptées · 1 refusée · 1 à trancher<br>Pénalité : 1 point (0,5 par faute)</div>
+          <div style="display:flex;gap:8px;margin-bottom:8px"><span class="lb">Relancer</span><span class="lb">Accepter les restantes</span></div>
+          <div class="ligne-f"><div class="t">p. 2 · « obtenue » → obtenus<small>Accord probable à corriger</small></div><span class="dec oui">✓</span><span class="dec">✗</span></div>
+          <div class="ligne-f ref"><div class="t">p. 3 · « mesures » → mesure<small>Accord probable à corriger</small></div><span class="dec">✓</span><span class="dec non">✗</span></div>
+          <div class="ligne-f"><div class="t">p. 4 · « mesures » → mesure<small>Accord probable à corriger</small></div><span class="dec oui">✓</span><span class="dec">✗</span></div>
+          <div class="ligne-f"><div class="t">p. 4 · « aurions » → avions<small>Accord probable à corriger</small></div><span class="dec">✓</span><span class="dec">✗</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="toast"><svg class="ic" viewBox="0 0 24 24"><path d="M5 12l5 5 9-10"/></svg>Annotations enregistrées</div>
+  </div>
+
+  <!-- ============ IMPORT ============ -->
+  <div class="cadre cache" data-ecran="import">
+    <div class="nav"><span class="marque"><i></i>Correction</span>
+      <button class="onglet">Accueil</button><button class="onglet">Bibliothèque</button>
+      <button class="onglet on">Importer <span class="badge dan" style="padding:0 7px">2</span></button><button class="onglet">Lot et plagiat</button>
+      <span class="etat-moteur">Moteur connecté</span></div>
+    <div class="page">
+      <h1>Importer</h1>
+      <div class="cols">
+        <div class="carte" style="padding:var(--e5)">
+          <h2>1. Liste de classe</h2>
+          <p style="color:var(--texte-2);margin-top:0;font-size:15px">Fichier Excel ou CSV d'Omnivox, nommé <code>ListeEtudiants_cours…_gr…</code>.</p>
+          <div class="depot"><svg class="ic" style="width:32px;height:32px" viewBox="0 0 24 24"><path d="M12 16V4M7 9l5-5 5 5M4 20h16"/></svg>Choisir un fichier</div>
+        </div>
+        <div class="carte" style="padding:var(--e5)">
+          <h2>2. Rapports (PDF)</h2>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+            <div class="champ"><label>Cours</label><div class="saisie">202SNURE ▾</div></div>
+            <div class="champ"><label>Groupe</label><div class="saisie">Tous les groupes ▾</div></div>
+          </div>
+          <div class="champ"><label>Lab</label><div class="saisie">Lab 3</div><small>« Tous les groupes » range chaque rapport dans le groupe de son étudiant (n° de DA).</small></div>
+          <div class="btn principal">Importer 12 PDF</div>
+          <div class="prog"><i style="width:75%"></i></div>
+          <span class="badge ok">9 rangés</span> <span class="badge att">2 à trancher</span> <span class="badge dan">1 refusé</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  </div>
+</div>
+
+<script>
+let ecran = "suivi", version = "sobre";
+const avantImg = { suivi: "suivi", lecteur: "lecteur-fautes", import: "import" };
+function maj() {
+  const av = version === "avant";
+  document.getElementById("avant").classList.toggle("cache", !av);
+  document.getElementById("apres").classList.toggle("cache", av);
+  document.getElementById("img-avant").src = `design/avant/${avantImg[ecran]}-ipad-paysage.png`;
+  document.getElementById("apres").dataset.dir = version === "chaleureuse" ? "chaleureuse" : "sobre";
+  document.querySelectorAll("[data-ecran]").forEach(e => e.classList.toggle("cache", e.dataset.ecran !== ecran));
+  document.querySelectorAll("[data-e]").forEach(b => b.classList.toggle("on", b.dataset.e === ecran));
+  document.querySelectorAll("[data-v]").forEach(b => b.classList.toggle("on", b.dataset.v === version));
+}
+document.querySelectorAll("[data-e]").forEach(b => b.onclick = () => { ecran = b.dataset.e; maj(); });
+document.querySelectorAll("[data-v]").forEach(b => b.onclick = () => { version = b.dataset.v; maj(); });
+maj();
+</script>
+</body>
+</html>
