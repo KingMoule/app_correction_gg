@@ -111,4 +111,4 @@ Coéquipiers : à l'import, les étudiants du cours dont le nom ET le prénom fi
 - `PUT /api/bibliotheque/statut/<cours>/<groupe>/<lab>/<étudiant>` `{termine}` : écrit `statut.json` à côté du rapport. `PUT /api/bibliotheque/archive/<cours>/<groupe>/<lab>` `{archive}` : écrit `archive.json` dans le dossier du lab. Rien n'est déplacé.
 - `GET /api/bibliotheque` ajoute `termines` (labs terminés) à chaque étudiant et `labs_archives` à chaque classe. Un lab est « terminé » à l'écran s'il est archivé ou si tous ses rapports sont terminés.
 - `GET /api/plagiat/enonces/<cours>/<lab>` renvoie le PDF de l'énoncé (404 s'il n'y en a pas); le même chemin en POST le remplace.
-- Écran : arbre `<details>` replié, état ouvert/fermé et filtre gardés dans le `localStorage` de l'appareil.
+- Écran : arbre `<details>` replié cours → lab (énoncé ici) → groupe → rapports, état ouvert/fermé et filtre gardés dans le `localStorage` de l'appareil.

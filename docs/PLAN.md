@@ -89,11 +89,11 @@ Constat : listes toujours dépliées et interminables, pas de distinction en cou
 **Décisions** (toutes les recommandations retenues) :
 - **Terminé** = bouton « Terminé » sur chaque rapport (réversible; pas lié à l'export LÉA). Le lecteur aura « Terminé et suivant » (ouvre le prochain rapport non terminé du lab) et des flèches ‹ ›.
 - **Archivage par lab** : un lab dont tous les rapports sont terminés, ou marqué à la main, passe dans « Terminés ». Rien n'est déplacé sur le disque (`statut.json` par rapport, `archive.json` par lab).
-- **Accueil** : « Continuer » (dernier rapport ouvert) + « À corriger » (labs en cours avec avancement) + bibliothèque repliée cours → groupe → lab → rapports. Import, lot et plagiat dans une barre de navigation.
+- **Accueil** : « Continuer » (dernier rapport ouvert) + « À corriger » (labs en cours avec avancement) + bibliothèque repliée cours → lab → groupe → rapports. Import, lot et plagiat dans une barre de navigation.
 - Maquette : `docs/maquette-navigation.html` (données fictives).
 
 **Découpe en PR** :
-1. [x] **Bibliothèque** : arbre replié (état gardé par appareil), filtres En cours / Terminés / Tout, bouton Terminé par rapport, archive de lab, énoncé visible, consultable et remplaçable à côté de son lab. Moteur : `PUT /api/bibliotheque/statut/…`, `PUT /api/bibliotheque/archive/…`, `GET /api/plagiat/enonces/{cours}/{lab}`.
+1. [x] **Bibliothèque** : arbre replié **cours → lab → groupe → rapports** (décision de Guillaume : l'énoncé s'applique au lab, donc le lab est au-dessus du groupe; état gardé par appareil), filtres En cours / Terminés / Tout, bouton Terminé par rapport, archive de lab, énoncé visible, consultable et remplaçable à côté de son lab. Moteur : `PUT /api/bibliotheque/statut/…`, `PUT /api/bibliotheque/archive/…`, `GET /api/plagiat/enonces/{cours}/{lab}`.
 2. [ ] **Barre de navigation et accueil** : onglets Accueil / Bibliothèque / Importer / Lot et plagiat, « Continuer », « À corriger ».
 3. [ ] **Lecteur** : « Terminé et suivant », flèches ‹ ›, retour au lab déplié, statut visible.
 4. [ ] **Plagiat et lot** : lab présélectionné depuis la bibliothèque, énoncés manquants signalés.

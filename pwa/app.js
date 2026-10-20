@@ -108,11 +108,11 @@ function blocEnonce(cours, lab) {
   return zone;
 }
 
-function blocLab(c, lab) {
+function blocGroupe(c, lab) {
   const avec = c.etudiants.filter((e) => e.labs.includes(lab));
   const faits = avec.filter((e) => e.termines.includes(lab));
   const fini = labFini(c, lab);
-  const titre = texte("span", lab);
+  const titre = texte("span", `Groupe ${c.groupe}`);
   titre.append(texte("span", fini ? "terminé" : `${faits.length} / ${avec.length}`, `pastille ${fini ? "p-fini" : "p-cours"}`));
   const archiver = texte("button", c.labs_archives.includes(lab) ? "Rouvrir le lab" : "Marquer le lab terminé", "bk");
   archiver.onclick = async () => {
@@ -120,11 +120,11 @@ function blocLab(c, lab) {
   };
   const encours = avec.filter((e) => !e.termines.includes(lab)).map((e) => ligneRapport(c, lab, e));
   const termines = faits.map((e) => ligneRapport(c, lab, e));
-  const cle = `${c.cours}/${c.groupe}/${lab}`;
+  const cle = `${c.cours}/${lab}/${c.groupe}`;
   const sousTermines = termines.length
     ? [remplir(bloc(cle + "/termines", texte("span", "Terminés"), String(termines.length)), termines)] : [];
   return remplir(bloc(cle, titre, fini ? "" : `${encours.length} à corriger`),
-    [blocEnonce(c.cours, lab), archiver, ...encours, ...sousTermines]);
+    [archiver, ...encours, ...sousTermines]);
 }
 
 function remplir(details, enfants) {
@@ -142,17 +142,24 @@ function rendreArbre() {
   if (!arbre.length) zone.append(texte("p", "Aucune classe importée."));
   const parCours = Map.groupBy(arbre, (c) => c.cours);
   for (const [cours, classes] of parCours) {
-    const groupes = [];
-    for (const c of classes) {
-      const labs = [...new Set(c.etudiants.flatMap((e) => e.labs))].filter((lab) => {
+    const labs = [...new Set(classes.flatMap((c) => c.etudiants.flatMap((e) => e.labs)))].sort();
+    const blocsLabs = [];
+    for (const lab of labs) {
+      const groupes = classes.filter((c) => {
+        if (!c.etudiants.some((e) => e.labs.includes(lab))) return false;
         const fini = labFini(c, lab);
         return filtre === "tout" || (filtre === "finis" ? fini : !fini);
       });
-      const nbRapports = c.etudiants.reduce((n, e) => n + e.labs.length, 0);
-      groupes.push(remplir(bloc(`${cours}/${c.groupe}`, texte("span", `Groupe ${c.groupe}`),
-        `${c.etudiants.length} étudiants · ${labs.length} lab(s) · ${nbRapports} rapports`), labs.length ? labs.map((lab) => blocLab(c, lab)) : [texte("p", "Aucun lab dans cette vue.", "aide")]));
+      if (!groupes.length) continue;
+      const total = groupes.reduce((n, c) => n + c.etudiants.filter((e) => e.labs.includes(lab)).length, 0);
+      const faits = groupes.reduce((n, c) => n + c.etudiants.filter((e) => e.termines.includes(lab)).length, 0);
+      const titre = texte("span", lab);
+      titre.append(texte("span", `${faits} / ${total}`, `pastille ${faits === total ? "p-fini" : ""}`));
+      blocsLabs.push(remplir(bloc(`${cours}/${lab}`, titre, `${groupes.length} groupe(s)`),
+        [blocEnonce(cours, lab), ...groupes.map((c) => blocGroupe(c, lab))]));
     }
-    zone.append(remplir(bloc(cours, texte("b", cours), `${classes.length} groupe(s)`), groupes));
+    zone.append(remplir(bloc(cours, texte("b", cours), `${labs.length} lab(s) · ${classes.length} groupe(s)`),
+      blocsLabs.length ? blocsLabs : [texte("p", "Aucun lab dans cette vue.", "aide")]));
   }
 }
 
