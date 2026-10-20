@@ -37,7 +37,7 @@ def labo(client, monkeypatch):
     charger_classe(client)
     d = importer(client, [(n, pdf(f"Texte du rapport {n}.")) for n in NOMS])
     assert len(d["ranges"]) == 4, d
-    monkeypatch.setattr(languagetool, "verifier", lambda t, langue="fr": [])
+    monkeypatch.setattr(languagetool, "verifier", lambda t, langue="fr", **kw: [])
     lot._etat.clear()
     lot._etat["statut"] = "inactif"
     return client

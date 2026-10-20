@@ -85,6 +85,17 @@ window.surToucher = (pg, p) => {
   if (f) ouvrirFiche(f.id);
 };
 
+// ----- lexique global : un mot d'orthographe refusé et ignoré aux prochaines analyses -----
+const REGLES_ORTHOGRAPHE = ["FR_SPELLING_RULE", "MORFOLOGIK_RULE_FR_FR"];
+async function ajouterAuLexique(f) {
+  const r = await fetch("/api/francais/lexique", {
+    method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ mot: f.texte }),
+  });
+  if (!r.ok) { etatFr(await erreurFr(r), true); return; }
+  etatFr(`« ${f.texte} » ajouté au lexique : ignoré aux prochaines analyses.`);
+  decider(f.id, "refusee");
+}
+
 // ----- fiche d'une faute -----
 function ouvrirFiche(id) { selection = id; afficherFiche(); afficherCouches(); }
 function fermerFiche() { selection = null; $("detail").hidden = true; afficherCouches(); }
@@ -112,6 +123,11 @@ function afficherFiche() {
   const fermer = el("button", "Fermer");
   fermer.onclick = fermerFiche;
   rangee.append(bascule, fermer);
+  if (REGLES_ORTHOGRAPHE.includes(f.regle) && !/\s/.test(f.texte)) {
+    const lex = el("button", "Ajouter au lexique");
+    lex.onclick = () => ajouterAuLexique(f);
+    rangee.append(lex);
+  }
   d.append(sugg, rangee);
   d.hidden = false;
 }
