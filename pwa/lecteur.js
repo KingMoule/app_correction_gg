@@ -412,6 +412,11 @@ async function ouvrir() {
   if (ref.some((v) => !v)) { message("Rapport non précisé : ouvrir le lecteur depuis la bibliothèque."); return; }
   $("titre").textContent = params.get("nom") || `${ref[3]} · ${ref[2]}`;
   document.title = `${$("titre").textContent} — Correction de labs`;
+  try { // « Continuer » de l'accueil
+    const sans = new URLSearchParams(location.search);
+    sans.delete("panneau");
+    localStorage.setItem("dernier", JSON.stringify({ cours: ref[0], groupe: ref[1], lab: ref[2], nom: params.get("nom"), url: `lecteur.html?${sans}` }));
+  } catch { /* stockage indisponible */ }
   pdfjsLib.GlobalWorkerOptions.workerSrc = "vendor/pdf.worker.min.js";
   let doc, annotations;
   try {

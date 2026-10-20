@@ -46,3 +46,21 @@ main { max-width: 56rem; }
 .filtres button { min-height: 44px; padding: 0 1rem; border: 1px solid #d8d8d8; border-radius: 22px; background: #fff; font-size: 1rem; }
 .filtres button.on { background: #222; color: #fff; }
 [hidden] { display: none !important; }
+
+/* Barre de navigation et accueil */
+body { padding: 0; }
+main { margin-top: 1rem; padding: 0 1rem 1rem; }
+#barre-nav { position: sticky; top: 0; z-index: 5; display: flex; gap: .25rem; align-items: center; flex-wrap: wrap; background: #fff; border-bottom: 1px solid #d8d8d8; padding: env(safe-area-inset-top) .6rem 0; }
+#barre-nav b { margin-right: .6rem; }
+#nav { display: flex; flex-wrap: wrap; gap: .2rem; }
+#nav button { min-height: 44px; padding: 0 .9rem; border: 0; border-radius: 8px; background: none; font-size: 1rem; }
+#nav button.on { background: #b3261e; color: #fff; }
+.etat { margin-left: auto; font-size: .85rem; }
+.badge { background: #b3261e; color: #fff; border-radius: 10px; padding: 0 .4rem; font-size: .8rem; }
+#nav .on .badge { background: #fff; color: #b3261e; }
+.carte { background: #fff; border: 1px solid #d8d8d8; border-radius: 12px; padding: .7rem 1rem; margin: .4rem 0; }
+.cartes { display: grid; grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr)); gap: .5rem; }
+.cartes .carte { margin: 0; }
+#a-corriger progress { width: 100%; }
+.raccourcis { display: flex; flex-wrap: wrap; gap: .4rem; }
+.raccourcis button { display: inline-block; min-height: 44px; padding: 0 1rem; border: 1px solid #d8d8d8; border-radius: 10px; background: #fff; font-size: 1rem; }
