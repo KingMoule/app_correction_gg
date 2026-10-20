@@ -30,33 +30,152 @@ async function erreurApi(r) {
   return d.detail || `Erreur ${r.status}`;
 }
 
-async function charger() {
-  arbre = await (await fetch(API)).json();
+// --- Navigation repliée : cours > groupe > lab > rapports ---
+let enonces = [];
+const stockage = {
+  lire(cle, defaut) { try { return localStorage.getItem(cle) ?? defaut; } catch { return defaut; } },
+  ecrire(cle, valeur) { try { localStorage.setItem(cle, valeur); } catch { /* sans stockage : tout reste replié */ } },
+};
+
+function bloc(cle, titreEl, compteur, ...contenu) {
+  const d = document.createElement("details");
+  d.open = stockage.lire("ouvert:" + cle, "0") === "1";
+  d.ontoggle = () => stockage.ecrire("ouvert:" + cle, d.open ? "1" : "0");
+  const s = document.createElement("summary");
+  s.append(titreEl);
+  if (compteur) s.append(texte("span", compteur, "n"));
+  d.append(s, ...contenu);
+  return d;
+}
+
+async function api(methode, chemin, corps) {
+  const r = await fetch(chemin, { method: methode, headers: { "Content-Type": "application/json" }, body: JSON.stringify(corps) });
+  if (!r.ok) alert(await erreurApi(r));
+  return r.ok;
+}
+
+function labFini(c, lab) {
+  const avec = c.etudiants.filter((e) => e.labs.includes(lab));
+  return c.labs_archives.includes(lab) || (avec.length > 0 && avec.every((e) => e.termines.includes(lab)));
+}
+
+function ligneRapport(c, lab, e) {
+  const fini = e.termines.includes(lab);
+  const ligne = texte("div", "", "rap");
+  const nom = texte("span", `${e.nom}, ${e.prenom}`, "nom");
+  const equipe = e.equipes?.[lab];
+  if (equipe?.length) nom.append(texte("small", ` (avec ${equipe.map((x) => `${x.prenom} ${x.nom}`).join(", ")})`));
+  const q = new URLSearchParams({ cours: c.cours, groupe: c.groupe, lab, etudiant: e.id, nom: `${e.prenom} ${e.nom}` });
+  const ouvrir = texte("a", "Annoter", "gros");
+  ouvrir.href = `lecteur.html?${q}`;
+  ouvrir.title = "Ouvrir le rapport dans l'outil d'annotation";
+  const francais = texte("a", "Français", "bk");
+  q.set("panneau", "francais");
+  francais.href = `lecteur.html?${q}`;
+  francais.title = "Ouvrir le rapport avec le panneau des fautes de français";
+  const ia = texte("button", "IA", "bk");
+  ia.title = "Indices d'IA";
+  ia.onclick = () => window.ouvrirIndicesIA?.(c.cours, c.groupe, lab, e);
+  const statut = texte("button", fini ? "↩ Ré-ouvrir" : "✔ Terminé", "bk");
+  statut.onclick = async () => {
+    if (await api("PUT", `${API}/statut/${c.cours}/${c.groupe}/${lab}/${e.id}`, { termine: !fini })) await charger();
+  };
+  ligne.append(nom, ia, statut, francais, ouvrir);
+  return ligne;
+}
+
+function blocEnonce(cours, lab) {
+  const existe = enonces.some((x) => x.cours === cours && x.lab === lab);
+  const zone = texte("div", "", "enonce");
+  zone.append(texte("span", existe ? "📄 Énoncé enregistré" : "Aucun énoncé"));
+  if (existe) {
+    const voir = texte("a", "Voir", "bk");
+    voir.href = `/api/plagiat/enonces/${encodeURIComponent(cours)}/${encodeURIComponent(lab)}`;
+    voir.target = "_blank";
+    zone.append(voir);
+  }
+  const champ = document.createElement("input");
+  champ.type = "file";
+  champ.accept = "application/pdf";
+  champ.hidden = true;
+  champ.onchange = async () => {
+    if (!champ.files[0]) return;
+    if (existe && !confirm("Remplacer l'énoncé de ce lab ?")) { champ.value = ""; return; }
+    const form = new FormData();
+    form.append("pdf", champ.files[0]);
+    const r = await fetch(`/api/plagiat/enonces/${encodeURIComponent(cours)}/${encodeURIComponent(lab)}`, { method: "POST", body: form });
+    if (!r.ok) alert(await erreurApi(r));
+    await charger();
+  };
+  const bouton = texte("button", existe ? "Remplacer" : "Téléverser", "bk");
+  bouton.onclick = () => champ.click();
+  zone.append(bouton, champ);
+  return zone;
+}
+
+function blocGroupe(c, lab) {
+  const avec = c.etudiants.filter((e) => e.labs.includes(lab));
+  const faits = avec.filter((e) => e.termines.includes(lab));
+  const fini = labFini(c, lab);
+  const titre = texte("span", `Groupe ${c.groupe}`);
+  titre.append(texte("span", fini ? "terminé" : `${faits.length} / ${avec.length}`, `pastille ${fini ? "p-fini" : "p-cours"}`));
+  const archiver = texte("button", c.labs_archives.includes(lab) ? "Ré-ouvrir le lab" : "Marquer le lab terminé", "bk");
+  archiver.onclick = async () => {
+    if (await api("PUT", `${API}/archive/${c.cours}/${c.groupe}/${lab}`, { archive: !c.labs_archives.includes(lab) })) await charger();
+  };
+  const encours = avec.filter((e) => !e.termines.includes(lab)).map((e) => ligneRapport(c, lab, e));
+  const termines = faits.map((e) => ligneRapport(c, lab, e));
+  const cle = `${c.cours}/${lab}/${c.groupe}`;
+  const sousTermines = termines.length
+    ? [remplir(bloc(cle + "/termines", texte("span", "Terminés"), String(termines.length)), termines)] : [];
+  return remplir(bloc(cle, titre, fini ? "" : `${encours.length} à corriger`),
+    [archiver, ...encours, ...sousTermines]);
+}
+
+function remplir(details, enfants) {
+  const corps = texte("div", "", "corps");
+  corps.append(...enfants);
+  details.append(corps);
+  return details;
+}
+
+function rendreArbre() {
+  const filtre = stockage.lire("filtre", "cours");
+  document.querySelectorAll("#filtres button").forEach((b) => b.classList.toggle("on", b.dataset.f === filtre));
   const zone = $("arbre");
   zone.replaceChildren();
   if (!arbre.length) zone.append(texte("p", "Aucune classe importée."));
-  for (const c of arbre) {
-    const bloc = document.createElement("details");
-    bloc.open = true;
-    bloc.append(texte("summary", `${c.cours} · groupe ${c.groupe} (${c.etudiants.length})`));
-    for (const e of c.etudiants) {
-      const ligne = texte("div", `${e.nom}, ${e.prenom} `, "etudiant");
-      for (const lab of e.labs) {
-        const a = texte("a", lab);
-        const q = new URLSearchParams({ cours: c.cours, groupe: c.groupe, lab, etudiant: e.id, nom: `${e.prenom} ${e.nom}` });
-        a.href = `lecteur.html?${q}`;
-        ligne.append(a);
-        const equipe = e.equipes?.[lab];
-        if (equipe?.length) ligne.append(texte("small", ` (avec ${equipe.map((x) => `${x.prenom} ${x.nom}`).join(", ")})`));
-        const ia = texte("button", "IA", "bouton-ia");
-        ia.title = "Indices d'IA";
-        ia.onclick = () => window.ouvrirIndicesIA?.(c.cours, c.groupe, lab, e);
-        ligne.append(ia);
-      }
-      bloc.append(ligne);
+  const parCours = Map.groupBy(arbre, (c) => c.cours);
+  for (const [cours, classes] of parCours) {
+    const labs = [...new Set(classes.flatMap((c) => c.etudiants.flatMap((e) => e.labs)))].sort();
+    const blocsLabs = [];
+    for (const lab of labs) {
+      const groupes = classes.filter((c) => {
+        if (!c.etudiants.some((e) => e.labs.includes(lab))) return false;
+        const fini = labFini(c, lab);
+        return filtre === "tout" || (filtre === "finis" ? fini : !fini);
+      });
+      if (!groupes.length) continue;
+      const total = groupes.reduce((n, c) => n + c.etudiants.filter((e) => e.labs.includes(lab)).length, 0);
+      const faits = groupes.reduce((n, c) => n + c.etudiants.filter((e) => e.termines.includes(lab)).length, 0);
+      const titre = texte("span", lab);
+      titre.append(texte("span", `${faits} / ${total}`, `pastille ${faits === total ? "p-fini" : ""}`));
+      blocsLabs.push(remplir(bloc(`${cours}/${lab}`, titre, `${groupes.length} groupe(s)`),
+        [blocEnonce(cours, lab), ...groupes.map((c) => blocGroupe(c, lab))]));
     }
-    zone.append(bloc);
+    zone.append(remplir(bloc(cours, texte("b", cours), `${labs.length} lab(s) · ${classes.length} groupe(s)`),
+      blocsLabs.length ? blocsLabs : [texte("p", "Aucun lab dans cette vue.", "aide")]));
   }
+}
+
+document.querySelectorAll("#filtres button").forEach((b) => {
+  b.onclick = () => { stockage.ecrire("filtre", b.dataset.f); rendreArbre(); };
+});
+
+async function charger() {
+  arbre = await (await fetch(API)).json();
+  enonces = await (await fetch("/api/plagiat/enonces")).json().catch(() => []);
+  rendreArbre();
   const cours = [...new Set(arbre.map((c) => c.cours))];
   $("choix-cours").replaceChildren(...cours.map((c) => { const o = texte("option", c); o.value = c; return o; }));
   $("choix-cours").onchange = remplirGroupes;

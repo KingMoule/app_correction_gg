@@ -106,3 +106,9 @@ Coéquipiers : à l'import, les étudiants du cours dont le nom ET le prénom fi
 - Rapport « à analyser » : pas de `francais.json` (ou passe Claude du français en échec) ou pas de `indices_ia.json`; seule la partie manquante est faite. Avec `refaire`, tous les rapports du lab sont repris; les décisions des fautes inchangées sont gardées (comportement de `analyser_rapport`). Sans `refaire`, une analyse existante n'est jamais touchée.
 - Arrêt propre : limite d'usage (429) ou Claude non connecté / LanguageTool absent (503) arrête le lot et garde les résultats; le message demande de reprendre après la réinitialisation. Les autres erreurs (504, 502…) sont notées pour le rapport touché et le lot continue.
 - Écran : section « Analyse par lot » de la page d'accueil (choix du lab, N, case « Refaire », progression, arrêt, erreurs).
+
+## Statut et archive (navigation)
+- `PUT /api/bibliotheque/statut/<cours>/<groupe>/<lab>/<étudiant>` `{termine}` : écrit `statut.json` à côté du rapport. `PUT /api/bibliotheque/archive/<cours>/<groupe>/<lab>` `{archive}` : écrit `archive.json` dans le dossier du lab. Rien n'est déplacé.
+- `GET /api/bibliotheque` ajoute `termines` (labs terminés) à chaque étudiant et `labs_archives` à chaque classe. Un lab est « terminé » à l'écran s'il est archivé ou si tous ses rapports sont terminés.
+- `GET /api/plagiat/enonces/<cours>/<lab>` renvoie le PDF de l'énoncé (404 s'il n'y en a pas); le même chemin en POST le remplace.
+- Écran : arbre `<details>` replié cours → lab (énoncé ici) → groupe → rapports, état ouvert/fermé et filtre gardés dans le `localStorage` de l'appareil.

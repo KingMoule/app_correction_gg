@@ -188,3 +188,13 @@ def test_ecarter_et_paire_inconnue(client, monkeypatch):
     assert client.get("/api/plagiat/paires").json()["paires"][0]["statut"] == "ecartee"
     assert client.post("/api/plagiat/paires/inconnue/confirmer").status_code == 404
     assert file.prompts == []
+
+
+def test_enonce_consultable_et_remplacable(client):
+    assert client.get("/api/plagiat/enonces/202SNURE/Lab 3").status_code == 404
+    for texte in ("Enonce un deux trois", "Enonce remplace quatre cinq"):
+        r = client.post("/api/plagiat/enonces/202SNURE/Lab 3", files={"pdf": ("e.pdf", pdf(texte), "application/pdf")})
+        assert r.status_code == 200
+    r = client.get("/api/plagiat/enonces/202SNURE/Lab 3")
+    assert r.status_code == 200 and r.headers["content-type"] == "application/pdf"
+    assert client.get("/api/plagiat/enonces").json() == [{"cours": "202SNURE", "lab": "lab-3"}]

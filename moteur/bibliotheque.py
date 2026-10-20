@@ -4,6 +4,8 @@ Rangement sous `<données>/bibliotheque/` :
     <cours>/<groupe>/classe.json                    liste de classe
     <cours>/<groupe>/<lab>/<étudiant>/rapport.pdf   rapport rangé
     <cours>/<groupe>/<lab>/<étudiant>/equipe.json   coéquipiers repérés sur la page titre
+    <cours>/<groupe>/<lab>/<étudiant>/statut.json   {"termine": true} quand la correction est finie
+    <cours>/<groupe>/<lab>/archive.json             {"archive": true} : lab rangé dans « Terminés »
     _attente/<id>.pdf + <id>.json                   PDF à trancher par Guillaume
     _ecartes/<id>.pdf + <id>.json                   PDF écartés (récupérables, jamais supprimés)
 """
@@ -366,8 +368,50 @@ def arbre() -> list[dict]:
                        for p in rapports if (p.parent / "equipe.json").is_file()}
             if equipes:
                 e["equipes"] = equipes
+            e["termines"] = [p.parent.parent.name for p in rapports if _termine(p.parent)]
+        classe["labs_archives"] = sorted(a.parent.name for a in f.parent.glob("*/archive.json") if _lire_drapeau(a, "archive"))
         sortie.append(classe)
     return sortie
+
+
+def _lire_drapeau(fichier: Path, cle: str) -> bool:
+    try:
+        return bool(json.loads(fichier.read_text(encoding="utf-8")).get(cle))
+    except (OSError, ValueError, AttributeError):
+        return False
+
+
+def _termine(dossier_rapport: Path) -> bool:
+    return _lire_drapeau(dossier_rapport / "statut.json", "termine")
+
+
+class Termine(BaseModel):
+    termine: bool
+
+
+class Archive(BaseModel):
+    archive: bool
+
+
+@router.put("/statut/{cours}/{groupe}/{lab}/{etudiant}")
+def changer_statut(cours: str, groupe: str, lab: str, etudiant: str, corps: Termine) -> dict:
+    """Marque un rapport terminé (ou le remet en cours). Le rapport doit exister."""
+    segment_sur(etudiant, "étudiant")
+    dossier = chemin_rapport(cours, groupe, lab, etudiant).parent
+    if not (dossier / "rapport.pdf").is_file():
+        raise HTTPException(404, "Rapport introuvable.")
+    (dossier / "statut.json").write_text(json.dumps({"termine": corps.termine}), encoding="utf-8")
+    return {"termine": corps.termine}
+
+
+@router.put("/archive/{cours}/{groupe}/{lab}")
+def changer_archive(cours: str, groupe: str, lab: str, corps: Archive) -> dict:
+    """Archive un lab (il passe dans « Terminés » à l'écran; rien n'est déplacé ni supprimé)."""
+    dossier = dossier_groupe(cours, groupe) / segment_sur(lab, "lab")
+    if not dossier.is_dir():
+        raise HTTPException(404, "Lab introuvable.")
+    (dossier / "archive.json").write_text(json.dumps({"archive": corps.archive}), encoding="utf-8")
+    return {"archive": corps.archive}
 
 
 @router.get("/rapport/{cours}/{groupe}/{lab}/{etudiant}")

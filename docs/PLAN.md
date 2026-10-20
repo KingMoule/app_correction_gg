@@ -4,7 +4,7 @@ Objectif : une seule app pour corriger les rapports de lab (français, annotatio
 
 ## État au 2026-10-19 (à lire en premier)
 
-Tout est fusionné dans `main` jusqu'à la PR #19 (bibliothèque, lecteur et annotation, fautes de français, export du PDF annoté, plagiat, indices d'IA, passe Claude sur le français, mesure de consommation, compatibilité Windows, analyse par lot). Reste à faire :
+Tout est fusionné dans `main` jusqu'à la PR #22 (bibliothèque, lecteur et annotation, fautes de français, export du PDF annoté, plagiat, indices d'IA, passe Claude sur le français, mesure de consommation, compatibilité Windows, analyse par lot, démarrage en un clic, liste Omnivox, import par DA et multi-groupes). Reste à faire :
 
 - [x] **Passe Claude sur le français** (étape 2) : faite et fusionnée (PR #17). Après LanguageTool, `claude -p` repère les erreurs subtiles; mêmes zones et décisions que LanguageTool. Consommation mesurée (ligne ci-dessous).
 - [ ] **Essais de Guillaume sur l'iPad** : crayon dans l'app (le prototype seul est validé), tap sur une faute pour sa fiche, export du PDF depuis l'app installée sur l'écran d'accueil.
@@ -81,3 +81,19 @@ Reprise dans un nouveau compte Claude : le dépôt contient tout le contexte; il
 2. **Fautes de français sur le PDF** : analyse du rapport rangé, surlignage rouge + correction manuscrite effaçable, accepter/refuser chaque faute, barème (points par faute, plafond par cours). [fait]
 3. **Export du PDF annoté** pour LÉA : traits, surlignages et fautes acceptées dessinés dans le PDF. [fait]
 Chaque PR est relue puis fusionnée par Guillaume avant de commencer la suivante.
+
+## Refonte de la navigation (Guillaume, 2026-10-19, après son premier essai réel)
+
+Constat : listes toujours dépliées et interminables, pas de distinction en cours / terminé, écrans éparpillés. Cause du « bogue de l'énoncé » : il était bien enregistré (`bibliotheque/<cours>/_enonces/<lab>.pdf`) mais aucun écran ne le listait; ce n'était qu'un trou d'affichage.
+
+**Décisions** (toutes les recommandations retenues) :
+- **Terminé** = bouton « Terminé » sur chaque rapport (réversible; pas lié à l'export LÉA). Le lecteur aura « Terminé et suivant » (ouvre le prochain rapport non terminé du lab) et des flèches ‹ ›.
+- **Archivage par lab** : un lab dont tous les rapports sont terminés, ou marqué à la main, passe dans « Terminés ». Rien n'est déplacé sur le disque (`statut.json` par rapport, `archive.json` par lab).
+- **Accueil** : « Continuer » (dernier rapport ouvert) + « À corriger » (labs en cours avec avancement) + bibliothèque repliée cours → lab → groupe → rapports. Import, lot et plagiat dans une barre de navigation.
+- Maquette : `docs/maquette-navigation.html` (données fictives).
+
+**Découpe en PR** :
+1. [x] **Bibliothèque** : arbre replié **cours → lab → groupe → rapports** (décision de Guillaume : l'énoncé s'applique au lab, donc le lab est au-dessus du groupe; état gardé par appareil), filtres En cours / Terminés / Tout, bouton Terminé par rapport, archive de lab, énoncé visible, consultable et remplaçable à côté de son lab. Moteur : `PUT /api/bibliotheque/statut/…`, `PUT /api/bibliotheque/archive/…`, `GET /api/plagiat/enonces/{cours}/{lab}`.
+2. [ ] **Barre de navigation et accueil** : onglets Accueil / Bibliothèque / Importer / Lot et plagiat, « Continuer », « À corriger ».
+3. [ ] **Lecteur** : « Terminé et suivant », flèches ‹ ›, retour au lab déplié, statut visible.
+4. [ ] **Plagiat et lot** : lab présélectionné depuis la bibliothèque, énoncés manquants signalés.
