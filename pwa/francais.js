@@ -113,7 +113,7 @@ function afficherFiche() {
   if (!f.suggestions.length) sugg.append(el("span", "Aucune suggestion"));
   const rangee = el("div", undefined, "rangee");
   for (const [valeur, libelle] of [["acceptee", "✓ Accepter"], ["refusee", "✗ Refuser"], [undefined, "À trancher"]]) {
-    const b = el("button", libelle, decisionDe(f) === valeur ? "on" : "");
+    const b = el("button", libelle, (valeur === "acceptee" ? "ok " : valeur === "refusee" ? "non " : "") + (decisionDe(f) === valeur ? "on" : ""));
     b.onclick = () => decider(f.id, valeur);
     rangee.append(b);
   }
@@ -158,9 +158,9 @@ function afficherListe() {
       const z = f.zones[0];
       if (z) pages[z.page - 1].el.scrollIntoView({ block: "start" });
     };
-    const ok = el("button", "✓", decisionDe(f) === "acceptee" ? "on" : "");
+    const ok = el("button", "✓", "ok" + (decisionDe(f) === "acceptee" ? " on" : ""));
     ok.onclick = () => decider(f.id, decisionDe(f) === "acceptee" ? undefined : "acceptee");
-    const non = el("button", "✗", refusee ? "on" : "");
+    const non = el("button", "✗", "non" + (refusee ? " on" : ""));
     non.onclick = () => decider(f.id, refusee ? undefined : "refusee");
     ligne.append(texte, ok, non);
     zone.append(ligne);
