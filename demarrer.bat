@@ -85,6 +85,12 @@ echo Version :
 git log -1 --oneline 2>nul
 
 :suite
+rem --- Sauvegarde des donnees (avant de lancer le moteur : rien n'ecrit pendant la copie) ---
+rem Archive datee dans CORRECTION_SAUVEGARDES (defaut : <donnees>_sauvegardes). Un echec
+rem est affiche mais ne bloque jamais le demarrage. Voir docs/DEMARRAGE.md.
+python -m moteur.sauvegarde auto
+if errorlevel 1 echo Sauvegarde impossible : le demarrage continue.
+
 if defined DEMARRER_ESSAI (
   echo [essai] LanguageTool et moteur non lances.
   exit /b 0
