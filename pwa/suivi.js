@@ -84,7 +84,7 @@
     act.append(el("span", { a_corriger: "à corriger", en_cours: "en cours", termine: "terminé" }[r.etat] + (r.termine && r.note ? ` · ${r.note}` : ""),
       "pastille " + { a_corriger: "p-nouv", en_cours: "p-cours", termine: "p-fini" }[r.etat]));
     if (!r.termine && (r.francais.etat === "non_analyse" || !r.ia)) {
-      const b = el("button", "🔍 Analyser", "bk"); b.onclick = () => analyser(r, b); act.append(b);
+      const b = el("button", "Analyser", "bk"); b.onclick = () => analyser(r, b); act.append(b);
     }
     const t = el("button", r.termine ? "↩ Ré-ouvrir" : "✔ Terminé", "bk"); t.onclick = () => terminer(r);
     const o = el("a", "Ouvrir", "gros"); o.href = lien(r);

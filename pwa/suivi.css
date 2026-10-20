@@ -2,7 +2,7 @@
 #suivi-page { max-width: 72rem; margin: .5rem auto; }
 #suivi-page h1 { font-size: 1.25rem; margin: .3rem 0; }
 .fil { color: #666; display: flex; gap: .5rem; align-items: center; }
-.fil a { color: #b3261e; min-height: 44px; display: inline-flex; align-items: center; text-decoration: none; }
+.fil a { color: var(--accent-fort); min-height: 44px; display: inline-flex; align-items: center; text-decoration: none; }
 .resume { display: flex; gap: .5rem; flex-wrap: wrap; margin: .5rem 0; }
 .resume span { background: #fff; border: 1px solid #d8d8d8; border-radius: 10px; padding: .4rem .8rem; }
 .filtres { flex-wrap: wrap; align-items: center; }
@@ -10,13 +10,13 @@
 .filtres button.on { background: #222; color: #fff; }
 .avert { background: #fff8e1; border: 1px solid #ecd58a; border-radius: 8px; padding: .5rem .8rem; font-size: .9rem; }
 .tab { background: #fff; border: 1px solid #d8d8d8; border-radius: 12px; overflow: hidden; }
-.tab .ligne { display: grid; grid-template-columns: 13rem 6.5rem 9rem 8rem 8rem 1fr; gap: .4rem .6rem; align-items: center; padding: .5rem .8rem; border-top: 1px solid #eee; min-height: 56px; }
+.tab .ligne { display: grid; grid-template-columns: 10rem 8.5rem 9rem 7.5rem 4rem minmax(0, 1fr); gap: .4rem .6rem; align-items: center; padding: .5rem .8rem; border-top: 1px solid #eee; min-height: 56px; }
 .tab .tete { background: #fafafa; font-size: .85rem; color: #666; border-top: 0; min-height: 40px; }
 .tab .titre-groupe { background: #f1f1ee; font-weight: 600; min-height: 44px; display: flex; }
 .tab .nom a { color: #222; text-decoration: none; font-weight: 600; display: block; min-height: 44px; padding: .35rem 0; box-sizing: border-box; }
 .tab small { display: block; color: #666; font-weight: 400; }
 .tab .fini { opacity: .62; }
-.tab .act .bk, .tab .act .gros { white-space: nowrap; }
+.tab .act .bk, .tab .act .gros { white-space: nowrap; padding: 0 var(--e3); }
 .tab .act { display: flex; gap: .4rem; justify-content: flex-end; align-items: center; }
 .tab .act .pastille { margin-right: auto; }
 .pastille.p-alerte { background: #f8d2cf; }
