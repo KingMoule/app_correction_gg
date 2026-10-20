@@ -172,6 +172,10 @@ async function charger_cours() {
   const arbre = await (await fetch("/api/bibliotheque")).json();
   const cours = [...new Set(arbre.map((c) => c.cours))];
   $("enonce-cours").replaceChildren(...cours.map((c) => { const o = texte("option", c); o.value = c; return o; }));
+  // Arrivée depuis la bibliothèque : cours et lab déjà choisis pour l'énoncé
+  const q = new URLSearchParams(location.search);
+  if (cours.includes(q.get("cours"))) $("enonce-cours").value = q.get("cours");
+  if (q.get("lab")) $("enonce-lab").value = q.get("lab");
 }
 
 charger_cours().catch(() => {});
