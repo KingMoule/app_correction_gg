@@ -56,14 +56,17 @@ function majBarre() {
   for (const k of ["crayon", "surligneur", "gomme"]) $("o-" + k).classList.toggle("on", k === o);
   for (const k of ["crayon", "surligneur"]) $("o-" + k).querySelector("i").style.background = couleurDe(k);
   $("options-trait").hidden = gomme; $("options-gomme").hidden = !gomme;
+  fermerMenu();
   $("g-trait").classList.toggle("on", reglages.gommeMode === "trait");
   $("g-partielle").classList.toggle("on", reglages.gommeMode === "partielle");
   if (gomme) return;
   const t = reglages[o];
+  const hauteur = (i) => Math.max(2, EPAISSEURS[o][i].max * (o === "surligneur" ? 0.7 : 1.4)) + "px";
   [...$("epaisseurs").children].forEach((b, i) => {
     b.classList.toggle("on", i === t.epaisseur);
-    b.firstChild.style.height = Math.max(2, EPAISSEURS[o][i].max * (o === "surligneur" ? 0.7 : 1.4)) + "px";
+    b.firstChild.style.height = hauteur(i);
   });
+  $("ep-bouton").querySelector(".trait-ap").style.height = hauteur(t.epaisseur);
   [...$("couleurs").children].forEach((b, i) => {
     b.style.background = PALETTES[o][i];
     b.classList.toggle("on", i === t.couleur);
@@ -73,9 +76,15 @@ for (let i = 0; i < 3; i++) {
   const b = document.createElement("button");
   b.className = "epaisseur"; b.setAttribute("aria-label", `Épaisseur ${i + 1}`);
   b.append(document.createElement("span"));
-  b.onclick = () => { reglageTrait().epaisseur = i; majBarre(); garderReglages(); };
+  b.onclick = () => { reglageTrait().epaisseur = i; fermerMenu(); majBarre(); garderReglages(); };
   $("epaisseurs").append(b);
 }
+function fermerMenu() { $("epaisseurs").hidden = true; $("ep-bouton").setAttribute("aria-expanded", "false"); }
+$("ep-bouton").onclick = () => {
+  const ouvrir = $("epaisseurs").hidden;
+  $("epaisseurs").hidden = !ouvrir; $("ep-bouton").setAttribute("aria-expanded", String(ouvrir));
+};
+document.addEventListener("pointerdown", (e) => { if (!e.target.closest(".menu")) fermerMenu(); });
 COULEURS.forEach((_, i) => {
   const b = document.createElement("button");
   b.className = "pastille";

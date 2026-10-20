@@ -14,12 +14,19 @@ body { display: flex; flex-direction: column; overflow: hidden; padding-top: env
 #barre button:disabled { opacity: .35; }
 .grp { display: flex; gap: 6px; align-items: center; }
 .sep { width: 1px; align-self: stretch; background: #555; margin: 2px; }
-.outil { gap: 5px; font-size: 20px; padding: 0 10px !important; }
+.outil { gap: 5px; padding: 0 10px !important; }
+.outil svg { width: 26px; height: 26px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+.menu { position: relative; }
+#barre #ep-bouton { gap: 6px; min-width: 64px; }
+#ep-bouton small { font-size: 11px; opacity: .8; }
+.trait-ap { display: block; width: 28px; border-radius: 99px; background: var(--fg); }
+#epaisseurs { position: absolute; top: calc(100% + 4px); left: 0; z-index: 20; background: #333; border: 1px solid #000;
+  border-radius: 10px; padding: 4px; display: flex; flex-direction: column; gap: 4px; box-shadow: 0 4px 12px #0008; }
 .outil i { width: 12px; height: 12px; border-radius: 50%; border: 1px solid #fff8; display: inline-block; }
 .outil:not(.on) i { opacity: .8; }
 #barre .pastille { width: 44px; padding: 0; border-radius: 50%; border: 3px solid #555; }
 #barre .pastille.on { border-color: #fff; }
-#barre .epaisseur { width: 56px; }
+#barre .epaisseur { width: 64px; }
 .epaisseur span { display: block; width: 30px; border-radius: 99px; background: var(--fg); }
 #titre { font-weight: 600; max-width: 14rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 #page-info, #sauvegarde { font-size: 13px; opacity: .85; font-variant-numeric: tabular-nums; }
