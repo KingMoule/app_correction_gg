@@ -6,7 +6,6 @@ main { max-width: 40rem; margin: 2rem auto; }
 section { margin-top: 1.5rem; }
 section input, section select, section button { display: block; margin: .4rem 0; font-size: 1rem; }
 .aide { color: #666; font-size: .9rem; }
-.etudiant a { margin-right: .5rem; }
 .attente-item { border: 1px solid #ccc; border-radius: 8px; padding: .6rem; margin: .5rem 0; }
 
 /* Indices d'IA */
@@ -25,3 +24,25 @@ section input, section select, section button { display: block; margin: .4rem 0;
 #section-lot input[type=checkbox] { display: inline-block; }
 #lot-barre { width: 100%; }
 #lot-erreurs { color: #b3261e; font-size: .9rem; }
+
+/* Navigation repliée */
+main { max-width: 56rem; }
+#arbre details { background: #fff; border: 1px solid #d8d8d8; border-radius: 12px; margin: .4rem 0; }
+#arbre details details { border: 0; border-top: 1px solid #eee; border-radius: 0; margin: 0; }
+#arbre summary { min-height: 48px; display: flex; align-items: center; gap: .6rem; padding: 0 1rem; cursor: pointer; list-style: none; }
+#arbre summary::-webkit-details-marker { display: none; }
+#arbre summary::before { content: "▸"; color: #666; }
+#arbre details[open] > summary::before { content: "▾"; }
+#arbre summary .n { margin-left: auto; color: #666; font-size: .9rem; }
+.corps { padding: 0 1rem .8rem 1.4rem; }
+.rap { display: flex; align-items: center; gap: .5rem; min-height: 52px; border-top: 1px solid #eee; flex-wrap: wrap; }
+.rap .nom { flex: 1 1 10rem; }
+.rap .gros, .gros { display: inline-block; min-height: 44px; line-height: 44px; padding: 0 1rem; background: #b3261e; color: #fff; border-radius: 10px; text-decoration: none; }
+.bk { display: inline-block; font-size: .9rem; min-height: 44px; line-height: 44px; padding: 0 .9rem; margin: .2rem 0; border: 1px solid #d8d8d8; border-radius: 8px; background: #fff; color: #222; text-decoration: none; }
+.pastille { font-size: .8rem; border-radius: 20px; padding: .15rem .6rem; margin-left: .5rem; background: #ffe8b3; }
+.pastille.p-fini { background: #cfead4; }
+.enonce { display: flex; gap: .6rem; align-items: center; flex-wrap: wrap; padding: .3rem .6rem; background: #f1f6ff; border-radius: 8px; margin: .4rem 0; }
+.filtres { display: flex; gap: .4rem; margin: .4rem 0; }
+.filtres button { min-height: 44px; padding: 0 1rem; border: 1px solid #d8d8d8; border-radius: 22px; background: #fff; font-size: 1rem; }
+.filtres button.on { background: #222; color: #fff; }
+[hidden] { display: none !important; }

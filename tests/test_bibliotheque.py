@@ -253,3 +253,25 @@ def test_ecarter_ne_supprime_pas(client, tmp_path):
     assert client.post(f"/api/bibliotheque/attente/{attente['id']}", json={}).status_code == 200
     assert client.get("/api/bibliotheque/attente").json() == []
     assert (tmp_path / "bibliotheque/_ecartes" / f"{attente['id']}.pdf").is_file()
+
+
+def test_statut_termine_et_archive(client):
+    charger_classe(client)
+    importer(client, [("Dube_Rapport.pdf", pdf("Dube Alice"))])
+    arbre = client.get("/api/bibliotheque").json()[0]
+    alice = next(e for e in arbre["etudiants"] if e["nom"] == "Dubé")
+    assert alice["labs"] == ["lab-3"] and alice["termines"] == [] and arbre["labs_archives"] == []
+
+    base = f"/api/bibliotheque/statut/202SNURE/00002/lab-3/{alice['id']}"
+    assert client.put(base, json={"termine": True}).json() == {"termine": True}
+    arbre = client.get("/api/bibliotheque").json()[0]
+    assert next(e for e in arbre["etudiants"] if e["nom"] == "Dubé")["termines"] == ["lab-3"]
+    client.put(base, json={"termine": False})
+    assert next(e for e in client.get("/api/bibliotheque").json()[0]["etudiants"] if e["nom"] == "Dubé")["termines"] == []
+
+    assert client.put("/api/bibliotheque/statut/202SNURE/00002/lab-9/abc", json={"termine": True}).status_code == 404
+    assert client.put("/api/bibliotheque/archive/202SNURE/00002/lab-3", json={"archive": True}).status_code == 200
+    assert client.get("/api/bibliotheque").json()[0]["labs_archives"] == ["lab-3"]
+    client.put("/api/bibliotheque/archive/202SNURE/00002/lab-3", json={"archive": False})
+    assert client.get("/api/bibliotheque").json()[0]["labs_archives"] == []
+    assert client.put("/api/bibliotheque/archive/202SNURE/00002/lab-9", json={"archive": True}).status_code == 404

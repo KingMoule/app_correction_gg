@@ -22,6 +22,7 @@ import threading
 from pathlib import Path
 
 from fastapi import APIRouter, File, HTTPException, UploadFile
+from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 
 from . import bibliotheque, pdf_texte
@@ -331,6 +332,14 @@ async def televerser_enonce(cours: str, lab: str, pdf: UploadFile = File(...)) -
     cible.parent.mkdir(parents=True, exist_ok=True)
     cible.write_bytes(contenu)
     return {"cours": cours, "lab": lab}
+
+
+@router.get("/enonces/{cours}/{lab}")
+def lire_enonce(cours: str, lab: str) -> FileResponse:
+    cible = chemin_enonce(cours, bibliotheque.slug(lab))
+    if not cible.is_file():
+        raise HTTPException(404, "Aucun énoncé pour ce lab.")
+    return FileResponse(cible, media_type="application/pdf")
 
 
 @router.get("/enonces")

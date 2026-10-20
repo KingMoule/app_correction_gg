@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Maquette de la navigation (données fictives)</title>
+<style>
+  :root { --rouge:#b3261e; --gris:#666; --bord:#d8d8d8; --fond:#f6f6f4; }
+  * { box-sizing:border-box; }
+  body { font-family:-apple-system,system-ui,sans-serif; margin:0; background:var(--fond); color:#222; }
+  header { position:sticky; top:0; z-index:5; background:#fff; border-bottom:1px solid var(--bord); display:flex; gap:.25rem; padding:.4rem .6rem; align-items:center; flex-wrap:wrap; }
+  header b { margin-right:.8rem; }
+  nav button { font-size:1rem; min-height:44px; padding:0 .9rem; border:0; background:none; border-radius:8px; }
+  nav button.on { background:var(--rouge); color:#fff; }
+  main { max-width:62rem; margin:0 auto; padding:1rem; }
+  h2 { font-size:1.15rem; margin:1.4rem 0 .5rem; }
+  .carte { background:#fff; border:1px solid var(--bord); border-radius:12px; padding:.8rem 1rem; margin:.5rem 0; }
+  .cartes { display:grid; grid-template-columns:repeat(auto-fit,minmax(15rem,1fr)); gap:.6rem; }
+  .cartes .carte { margin:0; }
+  .gros { display:inline-block; min-height:44px; line-height:44px; padding:0 1.1rem; background:var(--rouge); color:#fff; border-radius:10px; text-decoration:none; font-size:1rem; border:0; }
+  .gris { background:#eee; color:#222; }
+  progress { width:100%; height:10px; }
+  small, .aide { color:var(--gris); }
+  details { background:#fff; border:1px solid var(--bord); border-radius:12px; margin:.4rem 0; }
+  details details { border:0; border-top:1px solid #eee; border-radius:0; margin:0; }
+  summary { min-height:48px; display:flex; align-items:center; gap:.6rem; padding:0 1rem; cursor:pointer; list-style:none; }
+  summary::-webkit-details-marker { display:none; }
+  summary::before { content:"▸"; color:var(--gris); }
+  details[open] > summary::before { content:"▾"; }
+  summary .n { margin-left:auto; color:var(--gris); font-size:.9rem; }
+  .corps { padding:0 1rem .8rem 2rem; }
+  .outils { display:flex; gap:.4rem; flex-wrap:wrap; margin:.4rem 0 .6rem; }
+  .outils span { border:1px solid var(--bord); border-radius:8px; padding:.55rem .8rem; background:#fafafa; font-size:.9rem; }
+  .filtres { display:flex; gap:.4rem; margin:.4rem 0; }
+  .filtres span { border:1px solid var(--bord); border-radius:20px; padding:.5rem 1rem; background:#fff; }
+  .filtres .on { background:#222; color:#fff; }
+  .rap { display:flex; align-items:center; gap:.6rem; min-height:48px; border-top:1px solid #eee; flex-wrap:wrap; }
+  .rap .nom { flex:1 1 11rem; }
+  .pastille { font-size:.8rem; border-radius:20px; padding:.15rem .6rem; background:#eee; }
+  .p-cours { background:#ffe8b3; } .p-fini { background:#cfead4; } .p-nouv { background:#e3e8f5; }
+  .bk { font-size:.9rem; min-height:40px; padding:0 .8rem; border:1px solid var(--bord); border-radius:8px; background:#fff; }
+  .enonce { display:flex; gap:.6rem; align-items:center; flex-wrap:wrap; padding:.5rem .6rem; background:#f1f6ff; border-radius:8px; margin:.4rem 0; }
+  .lecteur { background:#fff; border:1px solid var(--bord); border-radius:12px; overflow:hidden; }
+  .lbarre { display:flex; gap:.4rem; align-items:center; padding:.4rem .6rem; border-bottom:1px solid var(--bord); flex-wrap:wrap; }
+  .page { margin:1rem auto; width:min(26rem,90%); aspect-ratio:8.5/11; background:repeating-linear-gradient(#fff,#fff 18px,#eee 19px); border:1px solid var(--bord); }
+  .titre-maq { background:#222; color:#fff; padding:.5rem 1rem; font-size:.85rem; }
+  .vue { display:none; } .vue.on { display:block; }
+  .note { background:#fff8e1; border:1px solid #ecd58a; border-radius:8px; padding:.5rem .8rem; font-size:.9rem; margin:.6rem 0; }
+</style>
+</head>
+<body>
+<div class="titre-maq">MAQUETTE statique · données fictives · touche les onglets pour voir chaque écran · redimensionne la fenêtre (iPad ≈ 820 px) pour tester</div>
+<header>
+  <b>Correction</b>
+  <nav id="nav">
+    <button data-v="accueil" class="on">Accueil</button>
+    <button data-v="biblio">Bibliothèque</button>
+    <button data-v="importer">Importer</button>
+    <button data-v="outils">Lot et plagiat</button>
+    <button data-v="lecteur">Lecteur</button>
+  </nav>
+</header>
+<main>
+
+<!-- ACCUEIL -->
+<section class="vue on" id="v-accueil">
+  <h2>Continuer</h2>
+  <div class="carte">
+    <b>Tremblay, Alice</b> · 202SNURE · gr. 00002 · Lab 3<br>
+    <small>Ouvert hier, 12 annotations, français analysé</small><br><br>
+    <a class="gros" href="#" data-go="lecteur">Reprendre la correction</a>
+  </div>
+
+  <h2>À corriger</h2>
+  <div class="cartes">
+    <div class="carte"><b>Lab 3</b> · 202SNURE · gr. 00002<br><small>7 / 24 terminés · 3 nouveaux</small><progress value="7" max="24"></progress><br><a class="gros gris" href="#" data-go="biblio">Ouvrir le lab</a></div>
+    <div class="carte"><b>Lab 3</b> · 202SNURE · gr. 00005<br><small>0 / 22 terminés · 22 nouveaux</small><progress value="0" max="22"></progress><br><a class="gros gris" href="#" data-go="biblio">Ouvrir le lab</a></div>
+    <div class="carte"><b>Lab 2</b> · 203SNURE · gr. 00001<br><small>19 / 20 terminés</small><progress value="19" max="20"></progress><br><a class="gros gris" href="#" data-go="biblio">Ouvrir le lab</a></div>
+  </div>
+
+  <h2>Raccourcis</h2>
+  <div class="outils">
+    <span>⬆ Importer des rapports</span><span>👥 Liste de classe</span><span>⚙ Lot (2 labs à analyser)</span><span>🔍 Plagiat</span>
+  </div>
+  <p class="aide">Les labs entièrement terminés quittent « À corriger » et vont dans « Terminés » (bibliothèque).</p>
+</section>
+
+<!-- BIBLIOTHEQUE -->
+<section class="vue" id="v-biblio">
+  <h2>Bibliothèque</h2>
+  <div class="filtres"><span class="on">En cours</span><span>Terminés</span><span>Tout</span></div>
+  <details open>
+    <summary><b>202SNURE</b><span class="n">2 groupes · 46 rapports</span></summary>
+    <details open>
+      <summary>Groupe 00002<span class="n">1 lab en cours</span></summary>
+      <div class="corps">
+        <details open>
+          <summary>Lab 3 <span class="pastille p-cours">7 / 24</span><span class="n">3 nouveaux</span></summary>
+          <div class="corps">
+            <div class="enonce">📄 Énoncé : <b>lab-3.pdf</b> <button class="bk">Voir</button> <button class="bk">Remplacer</button></div>
+            <div class="outils"><span>⚙ Analyser le lab</span><span>🔍 Plagiat du lab</span><span>✔ Marquer le lab terminé</span></div>
+            <div class="filtres"><span class="on">À corriger (17)</span><span>Terminés (7)</span></div>
+            <div class="rap"><span class="nom">Tremblay, Alice</span><span class="pastille p-cours">en cours</span><button class="bk">IA</button><button class="gros" style="min-height:40px;line-height:40px">Corriger</button></div>
+            <div class="rap"><span class="nom">Gagnon, Marc <small>(avec L. Roy)</small></span><span class="pastille p-nouv">nouveau</span><button class="bk">IA</button><button class="gros" style="min-height:40px;line-height:40px">Corriger</button></div>
+            <div class="rap"><span class="nom">Bélanger, Sophie</span><span class="pastille p-nouv">nouveau</span><button class="bk">IA</button><button class="gros" style="min-height:40px;line-height:40px">Corriger</button></div>
+            <small>… 14 autres</small>
+          </div>
+        </details>
+        <details>
+          <summary>Lab 2 <span class="pastille p-fini">terminé</span><span class="n">24 / 24 · archivé</span></summary>
+        </details>
+      </div>
+    </details>
+    <details>
+      <summary>Groupe 00005<span class="n">1 lab en cours</span></summary>
+    </details>
+  </details>
+  <details>
+    <summary><b>203SNURE</b><span class="n">1 groupe · 20 rapports</span></summary>
+  </details>
+  <details>
+    <summary><b>Terminés / archivés</b><span class="n">3 labs</span></summary>
+  </details>
+  <div class="note">Tout est replié par défaut sauf le chemin du dernier rapport ouvert. L'énoncé est visible et remplaçable à côté de son lab.</div>
+</section>
+
+<!-- IMPORTER -->
+<section class="vue" id="v-importer">
+  <h2>Importer</h2>
+  <div class="cartes">
+    <div class="carte"><b>1. Liste de classe</b><br><small>Fichier CSV/Excel Omnivox</small><br><br><a class="gros gris" href="#">Choisir le fichier</a></div>
+    <div class="carte"><b>2. Rapports (PDF)</b><br><small>Cours, groupe (facultatif), lab, PDF. Récapitulatif par groupe ensuite.</small><br><br><a class="gros gris" href="#">Importer des PDF</a></div>
+    <div class="carte"><b>3. Énoncé du lab</b><br><small>Cours + lab; remplace l'ancien. Ignoré par le plagiat.</small><br><br><a class="gros gris" href="#">Téléverser l'énoncé</a></div>
+  </div>
+  <div class="carte"><b>À trancher (2)</b><br><small>Fichiers sans étudiant reconnu : choisir ou écarter (récupérable).</small></div>
+  <div class="note">Le comportement actuel (multi-groupes, DA, coéquipiers, récapitulatif) est conservé; il est seulement regroupé sur un écran.</div>
+</section>
+
+<!-- OUTILS -->
+<section class="vue" id="v-outils">
+  <h2>Lot et plagiat</h2>
+  <div class="cartes">
+    <div class="carte"><b>Analyse par lot (Claude)</b><br><small>Choisir un lab, N rapports (10), lancer; progression et arrêt.</small><br><progress value="4" max="10"></progress><br><small>4 / 10 · en cours</small></div>
+    <div class="carte"><b>Plagiat</b><br><small>Énoncés téléversés : Lab 3 ✔ · Lab 2 ✔ · Lab 4 ✘</small><br><small>12 paires à vérifier</small><br><br><a class="gros gris" href="#">Ouvrir le plagiat</a></div>
+  </div>
+  <div class="note">Les mêmes outils restent aussi accessibles depuis un lab dans la bibliothèque (déjà filtrés sur ce lab).</div>
+</section>
+
+<!-- LECTEUR -->
+<section class="vue" id="v-lecteur">
+  <div class="lecteur">
+    <div class="lbarre">
+      <button class="bk">‹ Lab 3</button>
+      <button class="bk">‹</button><b>Tremblay, Alice</b><small>(4 / 17)</small><button class="bk">›</button>
+      <span style="margin-left:auto" class="pastille p-cours">en cours</span>
+    </div>
+    <div class="lbarre">
+      <button class="bk">✎ Crayon</button><button class="bk">🖍</button><button class="bk">⌫</button><button class="bk">↶</button><button class="bk">↷</button>
+      <span style="margin-left:auto"></span>
+      <button class="bk">Français</button><button class="bk">IA</button><button class="bk">Exporter</button>
+      <button class="gros" style="min-height:40px;line-height:40px">✔ Terminé et suivant</button>
+    </div>
+    <div class="page"></div>
+  </div>
+  <div class="note">Parcours : Corriger → Français/IA si voulu → « Terminé et suivant » (marque terminé et ouvre le prochain à corriger du lab). ‹ › naviguent sans marquer. « ‹ Lab 3 » revient au lab ouvert, déplié.</div>
+</section>
+
+</main>
+<script>
+  const vues = document.querySelectorAll(".vue");
+  function aller(v) {
+    vues.forEach((e) => e.classList.toggle("on", e.id === "v-" + v));
+    document.querySelectorAll("#nav button").forEach((b) => b.classList.toggle("on", b.dataset.v === v));
+    scrollTo(0, 0);
+  }
+  document.querySelectorAll("#nav button").forEach((b) => b.onclick = () => aller(b.dataset.v));
+  document.querySelectorAll("[data-go]").forEach((a) => a.onclick = (e) => { e.preventDefault(); aller(a.dataset.go); });
+</script>
+</body>
+</html>
