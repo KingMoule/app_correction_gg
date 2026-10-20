@@ -59,6 +59,7 @@ Les fichiers des étudiants vont seulement sous `donnees/`.
 - Pas d'authentification : à n'utiliser que sur le Wi-Fi maison.
 
 ## Bibliothèque (étape 1)
+Liste de classe : CSV ou xlsx. CSV lu en UTF-8 (avec ou sans BOM), sinon cp1252; séparateur deviné sur la première ligne (`;`, `,` ou tabulation). Format réel d'Omnivox/LÉA (`ListeEtudiants_cours<N>_gr<N>.csv`) : colonnes « No de DA », « Nom de l'étudiant », « Prénom de l'étudiant », valeurs enrobées `="..."` (enrobage retiré), colonnes de remplissage et lignes vides ignorées. En-têtes de nom reconnus : nom, nom de famille, nom de l'étudiant. Le DA est gardé dans le champ facultatif `da` de chaque étudiant de `classe.json`.
 Rangement : `donnees/bibliotheque/<cours>/<groupe>/classe.json` et `.../<lab>/<étudiant>/rapport.pdf`; les PDF à trancher sont dans `_attente/`.
 Association : le nom de famille (sans accents ni casse) doit figurer dans le nom du fichier; le nom le plus long l'emporte; le prénom départage les homonymes; sinon le fichier va « en attente » (ambigu, aucune correspondance ou rapport déjà importé, jamais écrasé sans choix de Guillaume). Les PDF sans texte sont refusés.
 
