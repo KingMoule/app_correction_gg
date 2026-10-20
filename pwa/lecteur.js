@@ -381,6 +381,8 @@ function ajuster() {
 // restent en points PDF (c'est le zoom CSS de #pile qui s'adapte), donc rien ne se décale.
 let largeurFenetre = 0;
 function adapterALargeur() {
+  // Marge en bas d'une demi-fenêtre : permet de centrer même une faute de la fin de la dernière page.
+  fenetre.style.paddingBottom = Math.max(60, Math.round(fenetre.clientHeight / 2)) + "px";
   const l = fenetre.clientWidth;
   if (!largeurPile || !l) return;
   if (!largeurFenetre) { largeurFenetre = l; return; }

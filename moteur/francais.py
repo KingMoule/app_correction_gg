@@ -110,6 +110,7 @@ class Decisions(BaseModel):
     decisions: dict[str, Literal["acceptee", "refusee"]] = {}  # id de faute -> décision; absent = à trancher
     choix: dict[str, str] = {}  # id de faute -> correction écrite (par défaut : 1re suggestion)
     masquees: list[int] = []  # fautes dont la correction manuscrite est effacée (surlignage seul)
+    decalages: dict[str, tuple[float, float]] = {}  # id de faute -> déplacement (dx, dy) de la correction, en points PDF
 
 
 def ecrire(fichier: Path, contenu: dict) -> None:
@@ -132,7 +133,7 @@ def etat(cours: str, groupe: str, lab: str, etudiant: str) -> dict:
     doc = json.loads(f.read_text(encoding="utf-8")) if f.is_file() else None
     if doc is None:
         return {"analyse": False, "fautes": [], "decisions": {}, "choix": {}, "masquees": [],
-                "nb_acceptees": 0, "penalite": 0.0, "bareme": bareme.model_dump()}
+                "decalages": {}, "nb_acceptees": 0, "penalite": 0.0, "bareme": bareme.model_dump()}
     nb = sum(1 for d in doc["decisions"].values() if d == "acceptee")
     return {"analyse": True, **doc, "nb_acceptees": nb, "penalite": penalite(nb, bareme),
             "bareme": bareme.model_dump()}
@@ -160,7 +161,7 @@ def analyser_rapport(cours: str, groupe: str, lab: str, etudiant: str) -> dict:
                             key=lambda x: (x["debut"], x["fin"]))
             fautes = [{**x, "id": i} for i, x in enumerate(fautes)]
     nouveau = {"version": 1, "fautes": fautes, "decisions": {}, "choix": {}, "masquees": [],
-               "claude": {"ok": erreur is None, "erreur": erreur,
+               "decalages": {}, "claude": {"ok": erreur is None, "erreur": erreur,
                           "ajoutees": sum(1 for x in fautes if x.get("source") == "claude")}}
     if ancien:
         position = {(a["debut"], a["fin"], a["texte"]): str(a["id"]) for a in ancien["fautes"]}
@@ -175,6 +176,8 @@ def analyser_rapport(cours: str, groupe: str, lab: str, etudiant: str) -> dict:
                 nouveau["choix"][nid] = ancien["choix"][vieux]
             if int(vieux) in ancien["masquees"]:
                 nouveau["masquees"].append(fa["id"])
+            if vieux in ancien.get("decalages", {}):
+                nouveau["decalages"][nid] = ancien["decalages"][vieux]
     ecrire(f, nouveau)
     return etat(cours, groupe, lab, etudiant)
 
@@ -186,7 +189,7 @@ def enregistrer_decisions(cours: str, groupe: str, lab: str, etudiant: str, d: D
         raise HTTPException(409, "Rapport pas encore analysé.")
     doc = json.loads(f.read_text(encoding="utf-8"))
     ids = {str(x["id"]) for x in doc["fautes"]}
-    if not (set(d.decisions) | set(d.choix) | {str(m) for m in d.masquees}) <= ids:
+    if not (set(d.decisions) | set(d.choix) | set(d.decalages) | {str(m) for m in d.masquees}) <= ids:
         raise HTTPException(422, "Faute inconnue.")
     doc.update(d.model_dump())
     ecrire(f, doc)

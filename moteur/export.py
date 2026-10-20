@@ -100,7 +100,9 @@ def fautes_acceptees(chemin_francais: Path) -> list[dict]:
         if doc["decisions"].get(sid) != "acceptee":
             continue
         correction = doc["choix"].get(sid) or (f["suggestions"][0] if f["suggestions"] else None)
-        sortie.append({"zones": f["zones"], "correction": None if f["id"] in doc["masquees"] else correction})
+        dx, dy = doc.get("decalages", {}).get(sid, (0, 0))  # correction déplacée à la main (points PDF)
+        sortie.append({"zones": f["zones"], "correction": None if f["id"] in doc["masquees"] else correction,
+                       "decalage": (dx, dy)})
     return sortie
 
 
@@ -134,7 +136,8 @@ def annoter(pdf_source: Path, annotations: Annotations, fautes: list[dict]) -> b
                 if f["correction"] and z and z["page"] == numero:
                     c.setFillColor(HexColor(ROUGE_CORRECTION))
                     c.setFont(POLICE, TAILLE_CORRECTION)
-                    c.drawString(z["x0"], haut - z["y0"] + 1, f["correction"])
+                    dx, dy = f.get("decalage", (0, 0))
+                    c.drawString(z["x0"] + dx, haut - (z["y0"] + dy) + 1, f["correction"])
             c.save()
             tampon.seek(0)
             page.merge_page(PdfReader(tampon).pages[0])
