@@ -17,6 +17,7 @@ moteur/        API et logique (un module par fonction)
   bareme.py    pénalité (points par faute, plafond)
   francais.py  API /api/francais (analyser, bareme)
   anonymat.py  masque les noms d'étudiants avant tout envoi à Claude
+  francais_filtre.py prose seulement pour le français (segmentation, filtre, lexique)
   francais_claude.py passe Claude sur le français (erreurs subtiles après LanguageTool)
   plagiat.py   comparaison locale de tous les rapports + analyse Claude des paires confirmées
   lot.py       analyse par lot (français + indices d'IA sur plusieurs rapports d'un lab)
@@ -53,6 +54,15 @@ Les fichiers des étudiants vont seulement sous `donnees/`.
 - `POST /api/francais/bareme` : pénalité pour un nombre de fautes acceptées.
 - LanguageTool : serveur local requis (Java), `java -cp languagetool-server.jar org.languagetool.server.HTTPServer --port 8081`; adresse via `LANGUAGETOOL_URL`. Sans serveur, l'API répond 503.
 - `/analyser` est sans état : rien n'est conservé. Pour un rapport rangé : voir « Français sur un rapport rangé » plus bas.
+
+### Filtrage : seulement la prose, avec des mots complets (`moteur/francais_filtre.py`)
+- **Segmentation** : chaque ligne du texte extrait est « prose » (au moins 3 mots de 3 lettres ou plus et la moitié des jetons) ou non. Les lignes qui ne sont pas de la prose (calculs, tableaux, légendes courtes), tout ce qui suit un titre « Bibliographie / Références / Sources », et dans une phrase les jetons à chiffre ou symbole (« 3,5 », « mol/L ») passent en `markup` dans le paramètre `data` (annotation) de `/v2/check` : ignoré par LanguageTool mais compté dans les positions, donc les `zones` restent justes. Un nombre se lit « 2 » (`interpretAs`) pour ne pas fausser les accords.
+- **Règles désactivées** (`disabledRules`, `disabledCategories`) : espaces et typographie (`COMMA_PARENTHESIS_WHITESPACE`, `FRENCH_WHITESPACE`, catégorie `TYPOGRAPHY`…), nombres en lettres, et quelques règles qui se déclenchent à tort sur les sauts de ligne du PDF. Gardés : grammaire, accords, confusions, mots répétés, orthographe, ponctuation double, tirets. Décision de Guillaume : la typographie ne compte pas.
+- **Filtre après coup** (orthographe seulement) : sont retirés les jetons à chiffre ou symbole, de 1 à 3 lettres, les unités courantes, les formules (majuscule interne), sigles, noms propres (majuscule hors début de phrase ou de page) et les mots du lexique. Toute faute sur une ligne ignorée ou de texte vide est aussi retirée.
+- **Décalage UTF-16** : LanguageTool compte en UTF-16, Python en points de code; sans conversion, les symboles mathématiques hors du plan de base (𝑥, 𝒎𝑳) décalaient les fautes suivantes et donnaient des fautes au `texte` vide (`languagetool._vers_points`).
+- **Lexique global** (décision de Guillaume) : `<données>/lexique.json`, `GET` / `POST` / `DELETE /api/francais/lexique[/<mot>]`. Dans le lecteur, « Ajouter au lexique » (fiche d'une faute d'orthographe) ajoute le mot et refuse la faute.
+- **Passe Claude** : les lignes ignorées ne lui sont pas envoyées, ses fautes qui les touchent sont écartées, et sa consigne exclut calculs, valeurs, unités, symboles et abréviations techniques.
+- **Mesure** : `python scripts/mesurer_filtrage.py [--exemples N]` ré-analyse les rapports rangés et n'affiche que des comptes par règle, avant et après (sans la passe Claude; exemples à l'écran seulement).
 
 ## Limites connues
 - Connexion en HTTP sur le réseau local : pas de service worker (réservé au HTTPS), donc pas de mode hors ligne. Le moteur doit être allumé pour corriger, ce qui est déjà le cas (voir PLAN.md).

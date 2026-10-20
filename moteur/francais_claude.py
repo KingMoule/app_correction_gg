@@ -10,6 +10,7 @@ format que celles de LanguageTool (mêmes `zones`, décisions, barème et export
 import re
 import threading
 
+from .francais_filtre import prose_pour_claude
 from .claude import (
     ClaudeDelai,
     ClaudeErreur,
@@ -45,7 +46,10 @@ SYSTEME = (
     "erreurs qu'il a manquées (accords à distance, participes passés, homophones, concordance "
     "des temps, mauvais mot, anglicismes, syntaxe, ponctuation fautive). Ignore le style, les "
     "choix de formulation, les symboles, unités et termes techniques ou en anglais, le "
-    "vocabulaire de laboratoire et les noms propres. Pas de faux positifs : en cas de doute, "
+    "vocabulaire de laboratoire et les noms propres. N'évalue jamais les calculs, équations, "
+    "valeurs numériques, unités, symboles, variables, abréviations techniques, tableaux, "
+    "légendes ou références : ne signale que des fautes dans des phrases rédigées, sur des "
+    "mots complets. Pas de faux positifs : en cas de doute, "
     "ne signale rien. `extrait` : le plus petit passage fautif (un à quelques mots), copié mot "
     "pour mot du rapport, assez précis pour apparaître au bon endroit. `correction` : le "
     "texte qui remplace exactement l'extrait. `message` : explication très brève. Ne répète "
@@ -77,11 +81,11 @@ def _chevauche(d: int, f: int, plages: list[tuple[int, int]]) -> bool:
     return any(d < b and a < f for a, b in plages)
 
 
-def fautes_claude(texte: str, existantes: list[dict], structure) -> list[dict]:
+def fautes_claude(texte: str, existantes: list[dict], structure, exclues=()) -> list[dict]:
     """Fautes valides de la réponse de Claude : extrait dans le texte, sans chevauchement."""
     if not isinstance(structure, dict):
         return []
-    plages = [(f["debut"], f["fin"]) for f in existantes]
+    plages = [(f["debut"], f["fin"]) for f in existantes] + list(exclues)
     gardees = []
     for p in structure.get("fautes") or []:
         if not isinstance(p, dict):
@@ -114,9 +118,11 @@ def erreur_claude(e: ClaudeErreur) -> dict:
     return {"code": 502, "message": f"Échec de Claude : {e}"}
 
 
-def passe(texte: str, existantes: list[dict], anonymiseur=None) -> tuple[list[dict], dict | None]:
+def passe(texte: str, existantes: list[dict], anonymiseur=None, seg=None) -> tuple[list[dict], dict | None]:
     """(nouvelles fautes, erreur) : en cas d'échec de Claude, aucune faute et l'erreur décrite.
 
+    Avec `seg` (segmentation de francais_filtre), les lignes de calcul ou de tableau ne
+    partent pas à Claude et ses fautes qui les touchent sont écartées.
     Les noms d'étudiants sont masqués dans tout ce qui part à Claude; les positions des
     fautes sont cherchées dans le texte original."""
     masquer = anonymiseur.masquer if anonymiseur else (lambda t: t)
@@ -129,4 +135,4 @@ def passe(texte: str, existantes: list[dict], anonymiseur=None) -> tuple[list[di
         return [], erreur_claude(e)
     if not isinstance(r.structure, dict):
         return [], {"code": 502, "message": "Réponse de Claude inutilisable."}
-    return fautes_claude(texte, existantes, r.structure), None
+    return fautes_claude(texte, existantes, r.structure, seg.lignes_markup if seg else ()), None
