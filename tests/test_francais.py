@@ -1,3 +1,5 @@
+import json
+import urllib.parse
 from concurrent.futures import Future
 
 import httpx
@@ -27,10 +29,11 @@ def pdf_fictif(tmp_path):
 
 def lt_factice(texte_faute, monkeypatch):
     def handler(request):
-        texte = dict(x.split("=", 1) for x in request.content.decode().split("&"))["text"]
-        import urllib.parse
-
-        texte = urllib.parse.unquote_plus(texte)
+        champs = urllib.parse.parse_qs(request.content.decode())
+        if "data" in champs:
+            texte = "".join(p.get("text", p.get("markup", "")) for p in json.loads(champs["data"][0])["annotation"])
+        else:
+            texte = champs["text"][0]
         d = texte.index(texte_faute)
         return httpx.Response(200, json={"matches": [{
             "offset": d, "length": len(texte_faute), "message": "Accord",
@@ -81,7 +84,7 @@ def test_bareme():
 
 def test_api_analyser(pdf_fictif, monkeypatch):
     client_lt = lt_factice("mesure", monkeypatch)
-    monkeypatch.setattr(languagetool, "verifier", lambda t, langue="fr": _orig(t, client=client_lt))
+    monkeypatch.setattr(languagetool, "verifier", lambda t, langue="fr", client=None, **kw: _orig(t, client=client_lt, **kw))
     c = TestClient(creer_app())
     with open(pdf_fictif, "rb") as f:
         r = c.post("/api/francais/analyser", files={"pdf": ("r.pdf", f, "application/pdf")},
@@ -134,7 +137,7 @@ def rapport_range(client, monkeypatch):
     charger_classe(client)
     importer(client, [("Rapport_DUBE.pdf", pdf("Les etudiants mesure la tension. Il a manger hier."))])
     client_lt = lt_factice("mesure", monkeypatch)
-    monkeypatch.setattr(languagetool, "verifier", lambda t, langue="fr": _orig(t, client=client_lt))
+    monkeypatch.setattr(languagetool, "verifier", lambda t, langue="fr", client=None, **kw: _orig(t, client=client_lt, **kw))
     monkeypatch.setattr(francais_claude, "obtenir_file", lambda: FileFausse())
     return client
 
@@ -236,7 +239,7 @@ def test_noms_d_etudiants_pas_envoyes_a_claude(client, monkeypatch):
     charger_classe(client)
     importer(client, [("Rapport_DUBE.pdf", pdf("Alice Dubé et Marc Gagnon ont mesure la tension."))])
     client_lt = lt_factice("mesure", monkeypatch)
-    monkeypatch.setattr(languagetool, "verifier", lambda t, langue="fr": _orig(t, client=client_lt))
+    monkeypatch.setattr(languagetool, "verifier", lambda t, langue="fr", client=None, **kw: _orig(t, client=client_lt, **kw))
     fausse = FileFausse()
     monkeypatch.setattr(francais_claude, "obtenir_file", lambda: fausse)
     assert client.post(URL_RAPPORT + "/analyser").status_code == 200

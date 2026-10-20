@@ -16,7 +16,7 @@ from typing import Literal
 from fastapi import APIRouter, File, Form, HTTPException, UploadFile
 from pydantic import BaseModel
 
-from . import francais_claude, languagetool, pdf_texte
+from . import francais_claude, francais_filtre, languagetool, pdf_texte
 from .anonymat import Anonymiseur
 from .bareme import Bareme, penalite
 from .bibliotheque import chemin_rapport, racine, segment_sur
@@ -46,13 +46,14 @@ def analyser_fichier(chemin: Path, avec_claude: bool = False, anonymiseur=None) 
     except Exception as e:
         raise HTTPException(400, f"PDF illisible : {e}")
     try:
-        fautes = languagetool.verifier(extrait.texte)
+        seg = francais_filtre.segmenter(extrait.texte)
+        fautes = francais_filtre.fautes_prose(extrait.texte, seg)
     except languagetool.LanguageToolIndisponible as e:
         raise HTTPException(503, str(e))
     liste = [{**asdict(f), "source": "languagetool"} for f in fautes]
     erreur = None
     if avec_claude:
-        ajoutees, erreur = francais_claude.passe(extrait.texte, liste, anonymiseur)
+        ajoutees, erreur = francais_claude.passe(extrait.texte, liste, anonymiseur, seg)
         liste = sorted(liste + ajoutees, key=lambda f: (f["debut"], f["fin"]))
     return extrait, [{"id": i, **f, "zones": extrait.zones(f["debut"], f["fin"])} for i, f in enumerate(liste)], erreur
 
@@ -190,3 +191,32 @@ def enregistrer_decisions(cours: str, groupe: str, lab: str, etudiant: str, d: D
     doc.update(d.model_dump())
     ecrire(f, doc)
     return etat(cours, groupe, lab, etudiant)
+
+
+# --- Lexique global (mots d'orthographe à ignorer) ------------------------------
+
+class MotLexique(BaseModel):
+    mot: str
+
+
+@router.get("/lexique")
+def obtenir_lexique() -> dict:
+    return {"mots": sorted(francais_filtre.lire_lexique())}
+
+
+@router.post("/lexique")
+def ajouter_au_lexique(m: MotLexique) -> dict:
+    """Ajoute un mot : ignoré par les prochaines analyses, de tous les cours."""
+    mot = m.mot.strip().lower()
+    if not mot or len(mot) > 60 or any(c.isspace() for c in mot):
+        raise HTTPException(422, "Un seul mot, sans espace.")
+    mots = francais_filtre.lire_lexique() | {mot}
+    francais_filtre.ecrire_lexique(mots)
+    return {"mots": sorted(mots)}
+
+
+@router.delete("/lexique/{mot}")
+def retirer_du_lexique(mot: str) -> dict:
+    mots = francais_filtre.lire_lexique() - {mot.strip().lower()}
+    francais_filtre.ecrire_lexique(mots)
+    return {"mots": sorted(mots)}
