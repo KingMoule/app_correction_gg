@@ -25,6 +25,7 @@ async function chargerFrancais() {
   const r = await fetch(URL_FRANCAIS);
   if (!r.ok) return;
   fr = await r.json();
+  fr.decalages ??= {};
   afficherTout();
 }
 
@@ -87,22 +88,27 @@ function afficherCouches() {
 // Glisser la correction (mode « Déplacer ») : le décalage est en points PDF, donc indépendant du zoom.
 function brancherDeplacement(c, f, dx0, dy0) {
   let depart = null;
+  // Le décalage est mémorisé et envoyé dès le glissement, sans attendre la fin du geste : sur iPad Safari,
+  // pointerup / pointercancel peuvent ne pas arriver, et la correction revenait alors en place à la sortie du mode.
+  const suivre = (e) => {
+    const dx = dx0 + (e.clientX - depart.x) / zoom, dy = dy0 + (e.clientY - depart.y) / zoom;
+    const premiere = f.zones[0];
+    c.style.left = premiere.x0 + dx + "px"; c.style.top = premiere.y0 - 13 + dy + "px";
+    fr.decalages[f.id] = [Math.round(dx * 10) / 10, Math.round(dy * 10) / 10];
+    sauverDecisions();
+  };
   c.addEventListener("pointerdown", (e) => {
     e.preventDefault(); e.stopPropagation(); c.setPointerCapture(e.pointerId);
     depart = { x: e.clientX, y: e.clientY };
   });
-  c.addEventListener("pointermove", (e) => {
-    if (!depart) return;
-    const dx = dx0 + (e.clientX - depart.x) / zoom, dy = dy0 + (e.clientY - depart.y) / zoom;
-    const premiere = f.zones[0];
-    c.style.left = premiere.x0 + dx + "px"; c.style.top = premiere.y0 - 13 + dy + "px";
-    depart.dx = dx; depart.dy = dy;
-  });
+  c.addEventListener("pointermove", (e) => { if (depart) suivre(e); });
   const fin = () => {
-    const d = depart; depart = null;
-    if (d && d.dx !== undefined) deplacer(f.id, d.dx, d.dy);
+    if (!depart) return;
+    depart = null;
+    const d = fr.decalages[f.id];
+    if (d) deplacer(f.id, d[0], d[1]); // petit décalage : retiré; sinon redessine
   };
-  c.addEventListener("pointerup", fin); c.addEventListener("pointercancel", fin);
+  for (const type of ["pointerup", "pointercancel", "lostpointercapture"]) c.addEventListener(type, fin);
 }
 
 // Faute au milieu de la zone visible du PDF. Les positions viennent du DOM (page de taille fixe,
@@ -162,7 +168,7 @@ function afficherFiche() {
   const fermer = el("button", "Fermer");
   fermer.onclick = fermerFiche;
   const dep = el("button", deplacement ? "Fin du déplacement" : "Déplacer la correction", deplacement ? "on" : "");
-  dep.onclick = () => { deplacement = !deplacement; afficherFiche(); afficherCouches(); };
+  dep.onclick = () => { deplacement = !deplacement; viderDecisions(); afficherFiche(); afficherCouches(); };
   rangee.append(bascule, dep);
   if (fr.decalages?.[f.id]) {
     const remise = el("button", "Remettre en place");
@@ -232,7 +238,7 @@ $("fr-analyser").onclick = async () => {
   try {
     const r = await fetch(URL_FRANCAIS + "/analyser", { method: "POST" });
     if (!r.ok) { etatFr(await erreurFr(r), true); return; }
-    fr = await r.json(); selection = null; deplacement = false; $("detail").hidden = true; afficherTout();
+    fr = await r.json(); fr.decalages ??= {}; selection = null; deplacement = false; $("detail").hidden = true; afficherTout();
   } catch { etatFr("Moteur injoignable.", true); }
   finally { $("fr-analyser").disabled = false; }
 };

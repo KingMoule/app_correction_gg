@@ -220,6 +220,16 @@ def test_decalage_de_la_correction_enregistre_et_garde(rapport_range):
     assert rapport_range.put(URL_RAPPORT, json={"decalages": {"9": [1, 1]}}).status_code == 422
 
 
+def test_ancienne_analyse_sans_decalages(rapport_range, tmp_path):
+    """Un francais.json d'avant les décalages doit renvoyer `decalages` (sinon le lecteur plante au glissement)."""
+    rapport_range.post(URL_RAPPORT + "/analyser")
+    f = tmp_path / "bibliotheque/202SNURE/00002/lab-3/dube-alice/francais.json"
+    doc = json.loads(f.read_text(encoding="utf-8")); del doc["decalages"]
+    f.write_text(json.dumps(doc), encoding="utf-8")
+    assert rapport_range.get(URL_RAPPORT).json()["decalages"] == {}
+    assert rapport_range.put(URL_RAPPORT, json={"decalages": {"0": [5, 6]}}).json()["decalages"] == {"0": [5, 6]}
+
+
 def test_decision_sur_faute_inconnue(rapport_range):
     rapport_range.post(URL_RAPPORT + "/analyser")
     assert rapport_range.put(URL_RAPPORT, json={"decisions": {"9": "acceptee"}}).status_code == 422
