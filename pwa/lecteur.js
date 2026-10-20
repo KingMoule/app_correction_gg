@@ -376,6 +376,20 @@ function ajuster() {
   appliquerZoom(Math.min(2, (fenetre.clientWidth - 8) / largeurPile));
   fenetre.scrollLeft = 0; fenetre.scrollTop = 0;
 }
+// Quand la zone du PDF change de taille (panneau des fautes ouvert/fermé, rotation, fenêtre) :
+// même facteur de zoom relatif, même endroit du rapport en haut de la fenêtre. Les coordonnées
+// restent en points PDF (c'est le zoom CSS de #pile qui s'adapte), donc rien ne se décale.
+let largeurFenetre = 0;
+function adapterALargeur() {
+  const l = fenetre.clientWidth;
+  if (!largeurPile || !l) return;
+  if (!largeurFenetre) { largeurFenetre = l; return; }
+  if (l === largeurFenetre) return;
+  const hautU = (fenetre.scrollTop - 12) / zoom, gaucheU = fenetre.scrollLeft / zoom;
+  appliquerZoom((zoom * l) / largeurFenetre);
+  largeurFenetre = l;
+  fenetre.scrollTop = Math.max(0, hautU * zoom + 12); fenetre.scrollLeft = gaucheU * zoom;
+}
 $("ajuster").onclick = ajuster;
 const ecart = (t) => Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY);
 fenetre.addEventListener("touchstart", (e) => {
@@ -392,7 +406,7 @@ fenetre.addEventListener("touchmove", (e) => {
 }, { passive: false });
 const finPincement = (e) => { if (e.touches.length < 2) pincement = null; };
 fenetre.addEventListener("touchend", finPincement); fenetre.addEventListener("touchcancel", finPincement);
-window.addEventListener("resize", ajuster);
+new ResizeObserver(adapterALargeur).observe(fenetre);
 
 // Page courante (indicateur), selon la page la plus proche du centre de la fenêtre.
 let attenteDefilement = false;
@@ -450,7 +464,7 @@ async function ouvrir() {
   }
   pile.style.width = largeurPile + "px";
   chargerTraits(annotations);
-  ajuster();
+  ajuster(); largeurFenetre = fenetre.clientWidth;
   pages.forEach((pg) => observateur.observe(pg.el));
   $("page-info").textContent = `Page 1 / ${pages.length}`;
   majBoutons();

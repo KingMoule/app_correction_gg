@@ -41,20 +41,6 @@
     </div>
     <span id="page-info"></span>
     <span id="sauvegarde" aria-live="polite"></span>
-    <div id="francais" hidden>
-      <p id="fr-etat"></p>
-      <p id="fr-resume"></p>
-      <div class="fr-actions">
-        <button id="fr-analyser">Analyser le français</button>
-        <button id="fr-tout-accepter">Accepter les fautes à trancher</button>
-      </div>
-      <fieldset>
-        <legend>Barème du cours</legend>
-        <label>Points par faute <input id="fr-points" type="number" min="0" step="0.25"></label>
-        <label>Plafond <input id="fr-plafond" type="number" min="0" step="0.5" placeholder="aucun"></label>
-      </fieldset>
-      <div id="fr-liste"></div>
-    </div>
     <div id="reglages" hidden>
       <label>Trait min <input id="r-wmin" type="range" min="0.2" max="4" step="0.1"> <b></b></label>
       <label>Trait max <input id="r-wmax" type="range" min="1" max="15" step="0.2"> <b></b></label>
@@ -63,8 +49,24 @@
       <label><input id="r-doigt" type="checkbox"> Le doigt dessine aussi</label>
     </div>
   </div>
-  <div id="fenetre"><div id="taille"><div id="pile"></div></div></div>
-  <div id="detail" hidden></div>
+  <div id="corps">
+    <div id="fenetre"><div id="taille"><div id="pile"></div></div></div>
+      <aside id="francais" hidden>
+        <div id="detail" hidden></div>
+        <p id="fr-etat"></p>
+        <p id="fr-resume"></p>
+        <div class="fr-actions">
+          <button id="fr-analyser">Analyser le français</button>
+          <button id="fr-tout-accepter">Accepter les fautes à trancher</button>
+        </div>
+        <fieldset>
+          <legend>Barème du cours</legend>
+          <label>Points par faute <input id="fr-points" type="number" min="0" step="0.25"></label>
+          <label>Plafond <input id="fr-plafond" type="number" min="0" step="0.5" placeholder="aucun"></label>
+        </fieldset>
+        <div id="fr-liste"></div>
+      </aside>
+  </div>
   <p id="message" hidden></p>
   <script src="vendor/pdf.min.js"></script>
   <script src="lecteur.js"></script>

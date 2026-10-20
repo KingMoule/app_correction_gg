@@ -97,7 +97,7 @@ async function ajouterAuLexique(f) {
 }
 
 // ----- fiche d'une faute -----
-function ouvrirFiche(id) { selection = id; afficherFiche(); afficherCouches(); }
+function ouvrirFiche(id) { selection = id; $("francais").hidden = false; afficherFiche(); afficherCouches(); }
 function fermerFiche() { selection = null; $("detail").hidden = true; afficherCouches(); }
 function afficherFiche() {
   const f = fr?.fautes.find((x) => x.id === selection);
