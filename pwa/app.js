@@ -66,16 +66,21 @@ function ligneRapport(c, lab, e) {
   const equipe = e.equipes?.[lab];
   if (equipe?.length) nom.append(texte("small", ` (avec ${equipe.map((x) => `${x.prenom} ${x.nom}`).join(", ")})`));
   const q = new URLSearchParams({ cours: c.cours, groupe: c.groupe, lab, etudiant: e.id, nom: `${e.prenom} ${e.nom}` });
-  const ouvrir = texte("a", fini ? "Revoir" : "Corriger", "gros");
+  const ouvrir = texte("a", "Annoter", "gros");
   ouvrir.href = `lecteur.html?${q}`;
+  ouvrir.title = "Ouvrir le rapport dans l'outil d'annotation";
+  const francais = texte("a", "Français", "bk");
+  q.set("panneau", "francais");
+  francais.href = `lecteur.html?${q}`;
+  francais.title = "Ouvrir le rapport avec le panneau des fautes de français";
   const ia = texte("button", "IA", "bk");
   ia.title = "Indices d'IA";
   ia.onclick = () => window.ouvrirIndicesIA?.(c.cours, c.groupe, lab, e);
-  const statut = texte("button", fini ? "↩ Rouvrir" : "✔ Terminé", "bk");
+  const statut = texte("button", fini ? "↩ Ré-ouvrir" : "✔ Terminé", "bk");
   statut.onclick = async () => {
     if (await api("PUT", `${API}/statut/${c.cours}/${c.groupe}/${lab}/${e.id}`, { termine: !fini })) await charger();
   };
-  ligne.append(nom, ia, statut, ouvrir);
+  ligne.append(nom, ia, statut, francais, ouvrir);
   return ligne;
 }
 
@@ -114,7 +119,7 @@ function blocGroupe(c, lab) {
   const fini = labFini(c, lab);
   const titre = texte("span", `Groupe ${c.groupe}`);
   titre.append(texte("span", fini ? "terminé" : `${faits.length} / ${avec.length}`, `pastille ${fini ? "p-fini" : "p-cours"}`));
-  const archiver = texte("button", c.labs_archives.includes(lab) ? "Rouvrir le lab" : "Marquer le lab terminé", "bk");
+  const archiver = texte("button", c.labs_archives.includes(lab) ? "Ré-ouvrir le lab" : "Marquer le lab terminé", "bk");
   archiver.onclick = async () => {
     if (await api("PUT", `${API}/archive/${c.cours}/${c.groupe}/${lab}`, { archive: !c.labs_archives.includes(lab) })) await charger();
   };

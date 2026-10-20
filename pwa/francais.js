@@ -163,6 +163,7 @@ function afficherTout() {
 }
 
 $("francais-bouton").onclick = () => { $("francais").hidden = !$("francais").hidden; };
+if (params.get("panneau") === "francais") $("francais").hidden = false; // ouvert depuis le bouton « Français » de la bibliothèque
 $("fr-analyser").onclick = async () => {
   $("fr-analyser").disabled = true; etatFr("Analyse en cours…");
   try {
