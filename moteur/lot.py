@@ -132,20 +132,35 @@ def apercu(cours: str, groupe: str, lab: str, refaire: bool = False) -> dict:
     return {"total": len(_rapports(cours, groupe, lab)), "a_analyser": len(_selection(cours, groupe, lab, refaire))}
 
 
-@router.post("/{cours}/{groupe}/{lab}")
-def lancer(cours: str, groupe: str, lab: str, d: DemandeLot = DemandeLot()) -> dict:
-    choisis = _selection(cours, groupe, lab, d.refaire)[: d.n]
-    if not choisis:
-        raise HTTPException(409, "Aucun rapport à analyser dans ce lab.")
+def _demarrer(cours: str, groupe: str, lab: str, choisis: list[tuple[str, bool, bool]], refaire: bool) -> dict:
     with _verrou:
         if _etat["statut"] == "en_cours":
             raise HTTPException(409, "Un lot est déjà en cours.")
         _arret.clear()
         _etat.clear()
         _etat.update(statut="en_cours", cours=cours, groupe=groupe, lab=lab, total=len(choisis), fait=0,
-                     courant=None, erreurs=[], message="", refaire=d.refaire)
+                     courant=None, erreurs=[], message="", refaire=refaire)
     threading.Thread(target=_executer, args=(cours, groupe, lab, choisis), daemon=True, name="lot").start()
     return etat()
+
+
+@router.post("/{cours}/{groupe}/{lab}")
+def lancer(cours: str, groupe: str, lab: str, d: DemandeLot = DemandeLot()) -> dict:
+    choisis = _selection(cours, groupe, lab, d.refaire)[: d.n]
+    if not choisis:
+        raise HTTPException(409, "Aucun rapport à analyser dans ce lab.")
+    return _demarrer(cours, groupe, lab, choisis, d.refaire)
+
+
+@router.post("/{cours}/{groupe}/{lab}/{etudiant}")
+def lancer_un(cours: str, groupe: str, lab: str, etudiant: str) -> dict:
+    """Analyse un seul rapport (ce qui lui manque), avec la même progression que le lot (`GET /api/lot`)."""
+    if etudiant not in _rapports(cours, groupe, lab):
+        raise HTTPException(404, "Rapport introuvable.")
+    fr, ia = a_faire(cours, groupe, lab, etudiant)
+    if not (fr or ia):
+        raise HTTPException(409, "Ce rapport est déjà analysé.")
+    return _demarrer(cours, groupe, lab, [(etudiant, fr, ia)], False)
 
 
 @router.get("")

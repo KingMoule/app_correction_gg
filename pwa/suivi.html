@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="theme-color" content="#b3261e">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="suivi.css">
+  <title>Suivi du lab</title>
+</head>
+<body>
+  <main id="suivi-page">
+    <div class="fil"><a href="/#biblio" id="retour-biblio">‹ Bibliothèque</a> <span id="fil"></span></div>
+    <h1 id="titre"></h1>
+    <div id="resume" class="resume"></div>
+    <div class="filtres" id="filtres">
+      <button data-f="cours">À corriger</button><button data-f="tout">Tous</button>
+      <select id="groupe" aria-label="Groupe"></select>
+      <button data-f="revoir" id="revoir">⚠ À revoir</button>
+      <a class="bk" href="/#outils">⚙ Analyse par lot</a>
+    </div>
+    <p class="avert">Les indices d'IA et de plagiat sont des <b>indices à revérifier</b>, jamais un verdict.</p>
+    <p id="message" class="aide" aria-live="polite"></p>
+    <div class="tab" id="tab"></div>
+  </main>
+  <script src="suivi.js"></script>
+</body>
+</html>

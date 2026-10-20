@@ -176,8 +176,10 @@ function rendreArbre() {
       const faits = groupes.reduce((n, c) => n + c.etudiants.filter((e) => e.termines.includes(lab)).length, 0);
       const titre = texte("span", lab);
       titre.append(texte("span", `${faits} / ${total}`, `pastille ${faits === total ? "p-fini" : ""}`));
+      const suivi = texte("a", "📊 Suivi du lab", "bk principal");
+      suivi.href = `suivi.html?${new URLSearchParams({ cours, lab })}`;
       blocsLabs.push(remplir(bloc(`${cours}/${lab}`, titre, `${groupes.length} groupe(s)`),
-        [blocEnonce(cours, lab),
+        [suivi, blocEnonce(cours, lab),
           window.blocExportLea(cours, lab, classes.filter((c) => c.etudiants.some((e) => e.labs.includes(lab))).map((c) => c.groupe)),
           ...groupes.map((c) => blocGroupe(c, lab))]));
     }
@@ -365,7 +367,9 @@ function rendreAccueil() {
         rendreArbre();
         aller("biblio");
       };
-      carte.append(barre, document.createElement("br"), ouvrir);
+      const suivi = texte("a", "📊 Suivi", "bk");
+      suivi.href = `suivi.html?${new URLSearchParams({ cours: c.cours, lab })}`;
+      carte.append(barre, document.createElement("br"), ouvrir, suivi);
       cartes.append(carte);
     }
   }

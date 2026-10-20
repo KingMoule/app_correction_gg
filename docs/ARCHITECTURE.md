@@ -25,9 +25,10 @@ moteur/        API et logique (un module par fonction)
   annotations.py API /api/annotations (traits du crayon, enregistrés à part du PDF)
   export.py    API /api/export (PDF annoté pour LÉA, créé à la demande)
   polices/     Caveat Bold (OFL), écriture manuscrite des corrections dans le PDF exporté
+  suivi.py     tableau de suivi d'un lab (un seul appel : état de chaque rapport)
   sauvegarde.py sauvegarde (zip daté, rotation) et restauration des données; commande `python -m moteur.sauvegarde`, lancée par demarrer.bat
   __main__.py  commande de lancement
-pwa/           app iPad (index.html + app.js : bibliothèque; lecteur.html/js/css : lecteur et annotation; plagiat.html/js/css : plagiat; lot.js : analyse par lot;
+pwa/           app iPad (index.html + app.js : bibliothèque; lecteur.html/js/css : lecteur et annotation; plagiat.html/js/css : plagiat; lot.js : analyse par lot; suivi.html/js/css : tableau de suivi d'un lab;
                vendor/ : pdf.js, copié dans le dépôt car l'iPad n'a pas forcément Internet)
 scripts/       outils à lancer à la main (ex. test de consommation)
 prototypes/    essais autonomes (ex. crayon), hors moteur
@@ -139,6 +140,15 @@ Décisions de Guillaume (2026-10-20) : ZIP nommé **`Travaux.zip`**, un par grou
 - Navigation : `index.html` est une seule page à quatre vues (`#accueil`, `#biblio`, `#importer`, `#outils`) commutées par `aller()` dans `app.js` (adresse `/#biblio` possible). Le lecteur garde le dernier rapport ouvert dans le `localStorage` (clé `dernier`) pour « Continuer ».
 - Lecteur : `navigation-lecteur.js` lit l'arbre de la bibliothèque, passe d'un rapport à l'autre du même groupe et lab (après avoir enregistré les traits et décisions via `toutEnregistrer()` de `lecteur.js`) et écrit le statut par `PUT /api/bibliotheque/statut/…`.
 - Liens entre écrans : `window.choisirLot(cours, groupe, lab)` (`lot.js`) présélectionne le lab de l'analyse par lot; `plagiat.html?cours=…&lab=…` préremplit l'énoncé; `app.js` signale (`rendreEnoncesManquants`) les labs sans énoncé.
+
+## Tableau de suivi d'un lab (`moteur/suivi.py`, `pwa/suivi.html`)
+Décisions de Guillaume (2026-10-20, toutes les recommandations) : **écran du lab** (`suivi.html?cours=…&lab=…`, bouton « 📊 Suivi du lab » dans la bibliothèque et « Suivi » sur les cartes de l'accueil); ordre **groupe puis nom** (le même que « suivant »); filtres **À corriger / Tous**, **groupe**, **À revoir**; actions de ligne **Ouvrir, Analyser, Terminé**. Maquette : `docs/maquette-suivi.html`.
+- `GET /api/suivi/<cours>/<lab>?groupe=` : **un seul appel** pour tout le lab (un groupe, ou tous les groupes du cours). Ne calcule rien de nouveau : relit `annotations.json`, `francais.json`, `indices_ia.json`, `statut.json`, `equipe.json` à côté de chaque rapport et les décisions de plagiat. Réponse : `total`, `compte` {a_corriger, en_cours, termine, a_revoir}, `archive`, `groupes`, `rapports` triés par groupe puis nom.
+- Un rapport : `annotation` (au moins un trait), `francais` {`etat` non_analyse / a_trancher / tranche, `a_trancher`, `acceptees`, `penalite` (barème du cours)}, `ia` (force faible / moderee / marquee ou absent), `plagiat` {`etat` suspecte / confirmee / ecartee, `avec`} (état le plus sérieux; les paires sous le seuil ne sont pas signalées), `termine`, `note`, `equipe`, `a_revoir`.
+- **État global** : `termine` = bouton « Terminé » (existant); `en_cours` = pas terminé et au moins un trait, une analyse de français ou d'indice d'IA; sinon `a_corriger`. Aucun nouvel état stocké. `a_revoir` = fautes à trancher, indice d'IA « marquée » ou plagiat suspect/confirmé (pas écarté), rapport non terminé. Les indices d'IA et de plagiat sont toujours affichés « à revérifier ».
+- **Analyser un rapport** : `POST /api/lot/<cours>/<groupe>/<lab>/<étudiant>` (`lot.lancer_un`) lance seulement ce qui manque à ce rapport (409 si déjà analysé), avec la progression de l'analyse par lot (`GET /api/lot`, un seul traitement Claude à la fois).
+- **Lecteur** (`pwa/navigation-lecteur.js`) : « ☰ Tableau » (retour au tableau du lab), « ‹ Précédent » (rapport précédent du tableau, terminé ou non), « Rapport suivant › » (prochain rapport **non terminé**, en repartant du début s'il le faut; désactivé s'il n'y en a plus), « Terminé et suivant ». Tout enregistre d'abord (`toutEnregistrer()`). La liste vient de `GET /api/suivi` : elle traverse les groupes, sauf si le tableau était filtré sur un groupe (paramètre d'adresse `fg`; depuis la bibliothèque, le groupe du rapport).
+- Tests : `tests/test_suivi.py` (bibliothèque fictive : 2 groupes, coéquipiers, états variés).
 
 ## Sauvegarde des données
 `moteur/sauvegarde.py` (pas d'API HTTP). Archive zip de `<données>/` sauf `plagiat/textes/`, écrite en `.tmp` dans `CORRECTION_SAUVEGARDES` (défaut `<données>_sauvegardes`), vérifiée (`testzip`), puis renommée; un JSON invalide à la lecture (écriture en cours) est relu. Rotation : 10 dernières + la plus récente des 8 dernières semaines, limitée aux fichiers `sauvegarde_*.zip`. Restauration : extraction dans un dossier temporaire voisin, refus des chemins hors dossier, l'ancien dossier est renommé `_avant_restauration_<date>`, jamais supprimé. Usage : `docs/DEMARRAGE.md`. Tests : `tests/test_sauvegarde.py` (données fictives).
