@@ -208,6 +208,18 @@ def test_nouvelle_analyse_garde_les_decisions(rapport_range):
     assert j["decisions"] == {"0": "refusee"}
 
 
+def test_decalage_de_la_correction_enregistre_et_garde(rapport_range):
+    rapport_range.post(URL_RAPPORT + "/analyser")
+    j = rapport_range.put(URL_RAPPORT, json={"decalages": {"0": [12.5, -30]}}).json()
+    assert j["decalages"] == {"0": [12.5, -30]}
+    assert rapport_range.get(URL_RAPPORT).json()["decalages"] == {"0": [12.5, -30]}
+    # une nouvelle analyse garde le déplacement de la faute inchangée
+    assert rapport_range.post(URL_RAPPORT + "/analyser").json()["decalages"] == {"0": [12.5, -30]}
+    # remise en place : plus de décalage
+    assert rapport_range.put(URL_RAPPORT, json={"decalages": {}}).json()["decalages"] == {}
+    assert rapport_range.put(URL_RAPPORT, json={"decalages": {"9": [1, 1]}}).status_code == 422
+
+
 def test_decision_sur_faute_inconnue(rapport_range):
     rapport_range.post(URL_RAPPORT + "/analyser")
     assert rapport_range.put(URL_RAPPORT, json={"decisions": {"9": "acceptee"}}).status_code == 422

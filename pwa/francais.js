@@ -4,8 +4,9 @@
 
 const URL_FRANCAIS = `/api/francais/rapport/${base}`;
 const URL_BAREME = `/api/francais/bareme/${encodeURIComponent(ref[0] || "")}`;
-let fr = null;        // état renvoyé par le moteur : fautes, decisions, choix, masquees, penalite, bareme
+let fr = null;        // état renvoyé par le moteur : fautes, decisions, choix, masquees, decalages, penalite, bareme
 let selection = null; // id de la faute ouverte dans la fiche
+let deplacement = false; // mode « Déplacer » actif pour la faute ouverte
 
 const el = (tag, texte, classe) => {
   const e = document.createElement(tag);
@@ -33,7 +34,7 @@ async function envoyerDecisions() {
   minuterieFr = null;
   const r = await fetch(URL_FRANCAIS, {
     method: "PUT", headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ decisions: fr.decisions, choix: fr.choix, masquees: fr.masquees }),
+    body: JSON.stringify({ decisions: fr.decisions, choix: fr.choix, masquees: fr.masquees, decalages: fr.decalages }),
   });
   if (!r.ok) { etatFr(await erreurFr(r), true); return; }
   const d = await r.json();
@@ -44,6 +45,10 @@ function sauverDecisions() { clearTimeout(minuterieFr); minuterieFr = setTimeout
 async function viderDecisions() { if (minuterieFr) { clearTimeout(minuterieFr); await envoyerDecisions(); } }
 function decider(id, valeur) {
   if (valeur) fr.decisions[id] = valeur; else delete fr.decisions[id];
+  sauverDecisions(); afficherTout();
+}
+function deplacer(id, dx, dy) {
+  if (Math.abs(dx) < 0.5 && Math.abs(dy) < 0.5) delete fr.decalages[id]; else fr.decalages[id] = [Math.round(dx * 10) / 10, Math.round(dy * 10) / 10];
   sauverDecisions(); afficherTout();
 }
 function choisirCorrection(id, texte) { fr.choix[id] = texte; sauverDecisions(); afficherTout(); }
@@ -71,10 +76,44 @@ function afficherCouches() {
     }
     if (correction && premiere && !fr.masquees.includes(f.id)) {
       const c = el("span", correction, "correction");
-      Object.assign(c.style, { left: premiere.x0 + "px", top: premiere.y0 - 13 + "px" });
+      const [dx, dy] = fr.decalages?.[f.id] ?? [0, 0];
+      Object.assign(c.style, { left: premiere.x0 + dx + "px", top: premiere.y0 - 13 + dy + "px" });
+      if (deplacement && f.id === selection) { c.classList.add("mobile"); brancherDeplacement(c, f, dx, dy); }
       coucheDe(pages[premiere.page - 1]).append(c);
     }
   }
+}
+
+// Glisser la correction (mode « Déplacer ») : le décalage est en points PDF, donc indépendant du zoom.
+function brancherDeplacement(c, f, dx0, dy0) {
+  let depart = null;
+  c.addEventListener("pointerdown", (e) => {
+    e.preventDefault(); e.stopPropagation(); c.setPointerCapture(e.pointerId);
+    depart = { x: e.clientX, y: e.clientY };
+  });
+  c.addEventListener("pointermove", (e) => {
+    if (!depart) return;
+    const dx = dx0 + (e.clientX - depart.x) / zoom, dy = dy0 + (e.clientY - depart.y) / zoom;
+    const premiere = f.zones[0];
+    c.style.left = premiere.x0 + dx + "px"; c.style.top = premiere.y0 - 13 + dy + "px";
+    depart.dx = dx; depart.dy = dy;
+  });
+  const fin = () => {
+    const d = depart; depart = null;
+    if (d && d.dx !== undefined) deplacer(f.id, d.dx, d.dy);
+  };
+  c.addEventListener("pointerup", fin); c.addEventListener("pointercancel", fin);
+}
+
+// Faute au milieu de la zone visible du PDF. Les positions viennent du DOM (page de taille fixe,
+// même si son canvas n'est pas encore rendu) et du zoom courant.
+function centrerFaute(f) {
+  const z = f.zones[0];
+  if (!z) return;
+  const f0 = fenetre.getBoundingClientRect(), p = pages[z.page - 1].el.getBoundingClientRect();
+  const x = p.left - f0.left + fenetre.scrollLeft + ((z.x0 + z.x1) / 2) * zoom;
+  const y = p.top - f0.top + fenetre.scrollTop + ((z.y0 + z.y1) / 2) * zoom;
+  fenetre.scrollTo({ left: Math.max(0, x - fenetre.clientWidth / 2), top: Math.max(0, y - fenetre.clientHeight / 2) });
 }
 
 // Tap sur une faute : ouvre sa fiche (appelé par lecteur.js).
@@ -97,8 +136,8 @@ async function ajouterAuLexique(f) {
 }
 
 // ----- fiche d'une faute -----
-function ouvrirFiche(id) { selection = id; $("francais").hidden = false; afficherFiche(); afficherCouches(); }
-function fermerFiche() { selection = null; $("detail").hidden = true; afficherCouches(); }
+function ouvrirFiche(id) { if (id !== selection) deplacement = false; selection = id; $("francais").hidden = false; afficherFiche(); afficherCouches(); }
+function fermerFiche() { selection = null; deplacement = false; $("detail").hidden = true; afficherCouches(); }
 function afficherFiche() {
   const f = fr?.fautes.find((x) => x.id === selection);
   if (!f) { $("detail").hidden = true; return; }
@@ -122,7 +161,15 @@ function afficherFiche() {
   bascule.onclick = () => masquer(f.id, !cache);
   const fermer = el("button", "Fermer");
   fermer.onclick = fermerFiche;
-  rangee.append(bascule, fermer);
+  const dep = el("button", deplacement ? "Fin du déplacement" : "Déplacer la correction", deplacement ? "on" : "");
+  dep.onclick = () => { deplacement = !deplacement; afficherFiche(); afficherCouches(); };
+  rangee.append(bascule, dep);
+  if (fr.decalages?.[f.id]) {
+    const remise = el("button", "Remettre en place");
+    remise.onclick = () => deplacer(f.id, 0, 0);
+    rangee.append(remise);
+  }
+  rangee.append(fermer);
   if (REGLES_ORTHOGRAPHE.includes(f.regle) && !/\s/.test(f.texte)) {
     const lex = el("button", "Ajouter au lexique");
     lex.onclick = () => ajouterAuLexique(f);
@@ -155,8 +202,8 @@ function afficherListe() {
     texte.append(el("span", `p. ${f.zones[0]?.page ?? "?"} · ${f.source === "claude" ? "[Claude] " : ""}« ${f.texte} »${correctionDe(f) ? " → " + correctionDe(f) : ""}`), el("small", f.message));
     texte.onclick = () => {
       ouvrirFiche(f.id);
-      const z = f.zones[0];
-      if (z) pages[z.page - 1].el.scrollIntoView({ block: "start" });
+      // Attend que la mise en page se stabilise (le panneau peut changer la largeur, donc le zoom).
+      requestAnimationFrame(() => requestAnimationFrame(() => centrerFaute(f)));
     };
     const ok = el("button", "✓", "ok" + (decisionDe(f) === "acceptee" ? " on" : ""));
     ok.onclick = () => decider(f.id, decisionDe(f) === "acceptee" ? undefined : "acceptee");
@@ -185,7 +232,7 @@ $("fr-analyser").onclick = async () => {
   try {
     const r = await fetch(URL_FRANCAIS + "/analyser", { method: "POST" });
     if (!r.ok) { etatFr(await erreurFr(r), true); return; }
-    fr = await r.json(); selection = null; $("detail").hidden = true; afficherTout();
+    fr = await r.json(); selection = null; deplacement = false; $("detail").hidden = true; afficherTout();
   } catch { etatFr("Moteur injoignable.", true); }
   finally { $("fr-analyser").disabled = false; }
 };

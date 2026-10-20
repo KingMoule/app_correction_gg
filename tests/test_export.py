@@ -52,13 +52,13 @@ def test_export_dessine_les_traits_sans_toucher_au_rapport(rapport):
     assert "mesure" in PdfReader(io.BytesIO(r.content)).pages[0].extract_text()  # texte intact
 
 
-def faire_francais(dossier, decisions, masquees=()):
+def faire_francais(dossier, decisions, masquees=(), decalages=None):
     zone = {"page": 1, "x0": 72, "y0": 90, "x1": 140, "y1": 102}
     (dossier / "francais.json").write_text(json.dumps({
         "version": 1,
         "fautes": [{"id": 0, "debut": 0, "fin": 6, "texte": "mesure", "message": "", "regle": "", "categorie": "",
                     "suggestions": ["mesurent"], "zones": [zone]}],
-        "decisions": decisions, "choix": {}, "masquees": list(masquees)}), encoding="utf-8")
+        "decisions": decisions, "choix": {}, "masquees": list(masquees), "decalages": decalages or {}}), encoding="utf-8")
 
 
 def test_seules_les_fautes_acceptees_sont_exportees(rapport):
@@ -79,6 +79,17 @@ def test_correction_manuscrite_effacee(rapport):
     assert pixels_colores(client.get(URL_EXPORT).content, au_dessus)
     faire_francais(dossier, {"0": "acceptee"}, masquees=[0])
     assert not pixels_colores(client.get(URL_EXPORT).content, au_dessus)
+
+
+def test_correction_deplacee_dans_le_pdf_exporte(rapport):
+    client, dossier = rapport
+    origine, deplacee = (72, 78, 140, 90), (72, 138, 140, 150)  # décalage de 60 points vers le bas
+    faire_francais(dossier, {"0": "acceptee"})
+    assert pixels_colores(client.get(URL_EXPORT).content, origine)
+    faire_francais(dossier, {"0": "acceptee"}, decalages={"0": [0, 60]})
+    contenu = client.get(URL_EXPORT).content
+    assert not pixels_colores(contenu, origine) and pixels_colores(contenu, deplacee)
+    assert pixels_colores(contenu, (75, 91, 138, 101))  # le surlignage ne bouge pas
 
 
 def test_corrections_manuscrites_sur_toutes_les_pages(rapport):

@@ -34,10 +34,12 @@ body { display: flex; flex-direction: column; overflow: hidden; padding-top: env
 @font-face { font-family: "Caveat"; font-weight: 700; src: url("vendor/caveat-latin-700-normal.woff2") format("woff2"); }
 /* z-index : les canvas d'une page sont créés à son activation (après la couche); sans lui ils la recouvriraient. */
 .fautes { position: absolute; inset: 0; z-index: 1; pointer-events: none; }
-.zone { position: absolute; background: rgba(229, 57, 53, .22); border-bottom: 2px dashed #c62828; mix-blend-mode: multiply; border-radius: 2px; }
-.zone.acceptee { background: rgba(229, 57, 53, .45); border-bottom: 2px solid #c62828; }
+.zone { position: absolute; background: rgba(229, 57, 53, .22); mix-blend-mode: multiply; border-radius: 2px; }
+.zone.acceptee { background: rgba(229, 57, 53, .45); }
 .zone.choisie { outline: 2px solid #1565c0; }
 .correction { position: absolute; font: 700 14px/1 "Caveat", "Bradley Hand", "Noteworthy", cursive; color: #c62828; white-space: nowrap; }
+/* Mode « Déplacer » : seule la correction de la faute ouverte se saisit (le crayon et le défilement restent libres ailleurs). */
+.correction.mobile { pointer-events: auto; touch-action: none; cursor: grab; outline: 2px dashed #1565c0; outline-offset: 3px; padding: 0 2px; }
 /* Panneau des fautes : à droite du PDF (paysage, PC) ou sous le PDF (portrait étroit); il ne recouvre jamais le PDF. */
 #francais { flex: none; width: min(26rem, 40vw); min-width: 18rem; overflow-y: auto; -webkit-overflow-scrolling: touch;
   background: var(--barre); color: var(--fg); padding: 0 14px 10px; border-left: 1px solid #000; }
