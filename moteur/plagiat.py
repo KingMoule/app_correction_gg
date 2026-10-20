@@ -222,7 +222,13 @@ def comparer_rapports(rapports: list[Rapport]) -> list[dict]:
 
 def _meme_etudiant(x: dict, y: dict) -> bool:
     """Un même étudiant qui réutilise son propre texte d'un lab à l'autre n'est pas visé."""
-    return (x["cours"], x["groupe"], x["etudiant"]) == (y["cours"], y["groupe"], y["etudiant"])
+    if (x["cours"], x["groupe"], x["etudiant"]) == (y["cours"], y["groupe"], y["etudiant"]):
+        return True
+    # Coéquipiers d'un même lab : le texte commun est normal, pas un plagiat.
+    if x["cours"] == y["cours"] and x["lab"] == y["lab"]:
+        return (f"{y['groupe']}/{y['etudiant']}" in x.get("equipe", [])
+                or f"{x['groupe']}/{x['etudiant']}" in y.get("equipe", []))
+    return False
 
 
 # --- Bibliothèque -----------------------------------------------------------
@@ -245,6 +251,9 @@ def charger_rapports() -> tuple[list[Rapport], list[str]]:
         lab, groupe, cours = etudiant_dir.parent.name, etudiant_dir.parent.parent.name, etudiant_dir.parent.parent.parent.name
         ident = {"cours": cours, "groupe": groupe, "lab": lab, "etudiant": etudiant_dir.name,
                  "nom": _nom(cours, groupe, etudiant_dir.name)}
+        fichier_equipe = etudiant_dir / "equipe.json"
+        if fichier_equipe.is_file():
+            ident["equipe"] = [f"{c['groupe']}/{c['id']}" for c in json.loads(fichier_equipe.read_text(encoding="utf-8"))]
         try:
             rapports.append(Rapport(ident, f.read_bytes(), enonces.get((cours, lab))))
         except Exception:
