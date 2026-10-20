@@ -125,13 +125,20 @@ function blocGroupe(c, lab) {
   archiver.onclick = async () => {
     if (await api("PUT", `${API}/archive/${c.cours}/${c.groupe}/${lab}`, { archive: !c.labs_archives.includes(lab) })) await charger();
   };
+  const analyser = texte("button", "⚙ Analyser", "bk");
+  analyser.title = "Analyse par lot (Claude) de ce groupe";
+  analyser.onclick = () => { window.choisirLot?.(c.cours, c.groupe, lab); aller("outils"); };
+  const plagiat = texte("a", "🔍 Plagiat", "bk");
+  plagiat.href = `plagiat.html?${new URLSearchParams({ cours: c.cours, lab })}`;
   const encours = avec.filter((e) => !e.termines.includes(lab)).map((e) => ligneRapport(c, lab, e));
   const termines = faits.map((e) => ligneRapport(c, lab, e));
   const cle = `${c.cours}/${lab}/${c.groupe}`;
+  const outils = texte("div", "", "outils-lab");
+  outils.append(analyser, plagiat, archiver);
   const sousTermines = termines.length
     ? [remplir(bloc(cle + "/termines", texte("span", "Terminés"), String(termines.length)), termines)] : [];
   return remplir(bloc(cle, titre, fini ? "" : `${encours.length} à corriger`),
-    [archiver, ...encours, ...sousTermines]);
+    [outils, ...encours, ...sousTermines]);
 }
 
 function remplir(details, enfants) {
@@ -179,6 +186,7 @@ async function charger() {
   enonces = await (await fetch("/api/plagiat/enonces")).json().catch(() => []);
   rendreArbre();
   rendreAccueil();
+  rendreEnoncesManquants();
   const cours = [...new Set(arbre.map((c) => c.cours))];
   $("choix-cours").replaceChildren(...cours.map((c) => { const o = texte("option", c); o.value = c; return o; }));
   $("choix-cours").onchange = remplirGroupes;
@@ -356,3 +364,21 @@ function rendreAccueil() {
 }
 
 aller(location.hash.slice(1));
+
+function rendreEnoncesManquants() {
+  const manquants = [];
+  for (const cours of new Set(arbre.map((c) => c.cours))) {
+    const labs = new Set(arbre.filter((c) => c.cours === cours).flatMap((c) => c.etudiants.flatMap((e) => e.labs)));
+    for (const lab of [...labs].sort()) if (!enonces.some((x) => x.cours === cours && x.lab === lab)) manquants.push({ cours, lab });
+  }
+  const zone = $("enonces-manquants");
+  zone.replaceChildren();
+  zone.hidden = !manquants.length;
+  if (!manquants.length) return;
+  zone.append(texte("strong", `Énoncé manquant (${manquants.length}) : `), texte("span", "sans énoncé, les passages de l'énoncé comptent comme du plagiat. "));
+  for (const m of manquants) {
+    const a = texte("a", `${m.cours} · ${m.lab}`, "bk");
+    a.href = `plagiat.html?${new URLSearchParams(m)}`;
+    zone.append(a, " ");
+  }
+}

@@ -31,6 +31,12 @@
     apercu();
   };
 
+  // Appelé par la bibliothèque (bouton « Analyser » d'un groupe) : présélectionne ce lab.
+  window.choisirLot = (cours, groupe, lab) => {
+    el("lot-lab").value = JSON.stringify({ cours, groupe, lab });
+    apercu();
+  };
+
   async function apercu() {
     const l = labChoisi();
     el("lot-apercu").textContent = "";
