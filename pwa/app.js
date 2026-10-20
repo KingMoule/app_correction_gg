@@ -132,10 +132,10 @@ function blocGroupe(c, lab) {
   archiver.onclick = async () => {
     if (await api("PUT", `${API}/archive/${c.cours}/${c.groupe}/${lab}`, { archive: !c.labs_archives.includes(lab) })) await charger();
   };
-  const analyser = texte("button", "⚙ Analyser", "bk");
+  const analyser = texte("button", "Analyser", "bk");
   analyser.title = "Analyse par lot (Claude) de ce groupe";
   analyser.onclick = () => { window.choisirLot?.(c.cours, c.groupe, lab); aller("outils"); };
-  const plagiat = texte("a", "🔍 Plagiat", "bk");
+  const plagiat = texte("a", "Plagiat", "bk");
   plagiat.href = `plagiat.html?${new URLSearchParams({ cours: c.cours, lab })}`;
   const encours = avec.filter((e) => !e.termines.includes(lab)).map((e) => ligneRapport(c, lab, e));
   const termines = faits.map((e) => ligneRapport(c, lab, e));
@@ -176,7 +176,7 @@ function rendreArbre() {
       const faits = groupes.reduce((n, c) => n + c.etudiants.filter((e) => e.termines.includes(lab)).length, 0);
       const titre = texte("span", lab);
       titre.append(texte("span", `${faits} / ${total}`, `pastille ${faits === total ? "p-fini" : ""}`));
-      const suivi = texte("a", "📊 Suivi du lab", "bk principal");
+      const suivi = texte("a", "Suivi du lab", "bk principal");
       suivi.href = `suivi.html?${new URLSearchParams({ cours, lab })}`;
       blocsLabs.push(remplir(bloc(`${cours}/${lab}`, titre, `${groupes.length} groupe(s)`),
         [suivi, blocEnonce(cours, lab),
@@ -367,7 +367,7 @@ function rendreAccueil() {
         rendreArbre();
         aller("biblio");
       };
-      const suivi = texte("a", "📊 Suivi", "bk");
+      const suivi = texte("a", "Suivi", "bk");
       suivi.href = `suivi.html?${new URLSearchParams({ cours: c.cours, lab })}`;
       carte.append(barre, document.createElement("br"), ouvrir, suivi);
       cartes.append(carte);
