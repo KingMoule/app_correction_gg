@@ -19,11 +19,13 @@ Adresses par défaut : moteur sur le port **8001**, LanguageTool sur **8081**.
 
 ## À chaque séance
 
-**Ordi** : double-cliquer sur `demarrer.bat` (à la racine du dépôt). Deux fenêtres s'ouvrent : **LanguageTool** et **Moteur**. Les laisser ouvertes pendant la correction. Le moteur affiche l'adresse à utiliser sur l'iPad.
+**Ordi** : double-cliquer sur `demarrer.bat` (à la racine du dépôt). Avant le lancement, il met le dépôt à jour (voir ci-dessous). Deux fenêtres s'ouvrent : **LanguageTool** et **Moteur**. Les laisser ouvertes pendant la correction. Le moteur affiche l'adresse à utiliser sur l'iPad.
 
 **iPad** : même Wi-Fi que l'ordi, ouvrir l'app installée (ou Safari → l'adresse affichée).
 
 **Fin** : fermer les deux fenêtres.
+
+**Mise à jour automatique** : au démarrage, `demarrer.bat` fait `git pull --ff-only` seulement si le dépôt est sur `main` sans modification locale. Sinon (autre branche, fichiers modifiés, pas d'Internet, erreur git), il l'écrit et démarre quand même avec la version actuelle; il ne fait jamais de reset ni de stash. Si `pyproject.toml` a changé, il relance `python -m pip install -e .`. Il affiche la version obtenue (`git log -1 --oneline`). Comme `demarrer.bat` fait partie du dépôt, il se copie dans `%TEMP%\demarrer_copie.bat` et exécute la copie (cmd lit un .bat par décalage : un `git pull` qui le modifierait en cours de route fausserait la suite). Pour l'essayer sans lancer Java ni le moteur : `set DEMARRER_ESSAI=1`.
 
 Sans `demarrer.bat`, à la main (deux terminaux) :
 ```
@@ -35,6 +37,8 @@ python -m moteur --port 8001
 ```
 
 ## Dépannage
+
+- **« Mise à jour sautée »** : le message dit pourquoi (branche autre que `main`, modifications locales). Le moteur démarre avec la version actuelle; remettre le clone sur `main` propre pour retrouver la mise à jour.
 
 - **« java » introuvable** : après l'installation de Java, les anciennes fenêtres ne le voient pas. Fermer le terminal et en ouvrir un nouveau (ou relancer `demarrer.bat`).
 - **Port déjà utilisé** : le moteur le dit et s'arrête. Un autre programme occupe le port (par exemple un autre `server.py` sur 8000). Changer de port : `python -m moteur --port 8002`, ou `MOTEUR_PORT` dans `demarrer.bat`. L'adresse iPad change aussi. Pour LanguageTool, changer `LT_PORT` et définir `LANGUAGETOOL_URL` (ex. `http://localhost:8082`).
