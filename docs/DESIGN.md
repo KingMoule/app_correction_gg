@@ -2,7 +2,7 @@
 
 Objectif : une app plus belle et plus sobre, **sans changer le comportement ni les API**, sans compilation (CSS et JS simples). Maquette à ouvrir dans un navigateur : [`maquette-design.html`](maquette-design.html) (3 écrans, avant / après, 2 directions, format iPad).
 
-État : **proposition**, en attente des choix de Guillaume (section « Décisions à prendre »).
+État : **choix faits** (section 5); application en cours, une PR par groupe d'écrans.
 
 ## 1. Constats sur l'app actuelle
 
@@ -105,12 +105,14 @@ Ouvrir [`maquette-design.html`](maquette-design.html) : boutons en haut pour cha
 ![Suivi, sobre](design/maquette/suivi-sobre.png)
 ![Lecteur, chaleureuse](design/maquette/lecteur-chaleureuse.png)
 
-## 5. Décisions à prendre (une à une)
+## 5. Décisions de Guillaume (2026-10-20)
 
-1. **Direction** : sobre et neutre (recommandée) ou chaleureuse et éducative.
-2. **Couleur d'accent** : bleu indigo `#2f55d4` (recommandé avec « sobre »), sarcelle `#0f6f66` (avec « chaleureuse »), ou autre.
-3. **Mode sombre** : non pour l'instant (recommandé : le lecteur est déjà sombre, le reste suit le fond clair) ou suivre le réglage de l'iPad.
-4. **Densité** : confortable (lignes de 60 px, recommandé pour le tactile) ou compacte (48 px, plus de rapports à l'écran).
+1. **Direction** : chaleureuse et éducative.
+2. **Accent** : sarcelle `#0f6f66` (fort `#0a554e`, doux `#dcf0ec`).
+3. **Mode sombre** : non (fond clair; le lecteur reste sombre). Les jetons permettront de l'ajouter plus tard.
+4. **Densité** : compacte, lignes de **48 px** (cibles de 44 px gardées à l'intérieur).
+
+Les jetons à appliquer sont donc ceux marqués ◆ ci-dessus, avec `--ligne: 48px`.
 
 ## 6. Plan d'application (après accord)
 
