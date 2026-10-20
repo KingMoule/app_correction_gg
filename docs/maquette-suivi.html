@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Maquette du tableau de suivi (données fictives)</title>
+<style>
+  :root { --rouge:#b3261e; --gris:#666; --bord:#d8d8d8; --fond:#f6f6f4; }
+  * { box-sizing:border-box; }
+  body { font-family:-apple-system,system-ui,sans-serif; margin:0; background:var(--fond); color:#222; }
+  .titre-maq { background:#222; color:#fff; padding:.5rem 1rem; font-size:.85rem; }
+  header { background:#fff; border-bottom:1px solid var(--bord); display:flex; gap:.25rem; padding:.4rem .6rem; align-items:center; flex-wrap:wrap; }
+  header b { margin-right:.8rem; }
+  header button { font-size:1rem; min-height:44px; padding:0 .9rem; border:0; background:none; border-radius:8px; }
+  header button.on { background:var(--rouge); color:#fff; }
+  main { max-width:72rem; margin:0 auto; padding:.8rem 1rem 2rem; }
+  h1 { font-size:1.25rem; margin:.4rem 0; }
+  .vue { display:none; } .vue.on { display:block; }
+  .fil { color:var(--gris); font-size:.95rem; display:flex; gap:.5rem; align-items:center; flex-wrap:wrap; }
+  .fil a { color:var(--rouge); min-height:44px; display:inline-flex; align-items:center; text-decoration:none; }
+  .resume { display:flex; gap:.5rem; flex-wrap:wrap; margin:.5rem 0; }
+  .resume span { background:#fff; border:1px solid var(--bord); border-radius:10px; padding:.4rem .8rem; font-size:.95rem; }
+  .filtres { display:flex; gap:.4rem; flex-wrap:wrap; margin:.5rem 0; align-items:center; }
+  .filtres button, .filtres select { min-height:44px; padding:0 1rem; border:1px solid var(--bord); border-radius:22px; background:#fff; font-size:1rem; }
+  .filtres button.on { background:#222; color:#fff; }
+  .avert { background:#fff8e1; border:1px solid #ecd58a; border-radius:8px; padding:.5rem .8rem; font-size:.9rem; margin:.5rem 0; }
+  /* tableau en grille : 1 ligne = 1 rapport */
+  .tab { background:#fff; border:1px solid var(--bord); border-radius:12px; overflow:hidden; }
+  .ligne { display:grid; grid-template-columns: 13rem 4.2rem 6.5rem 9rem 8rem 8rem 1fr; gap:.4rem .6rem; align-items:center; padding:.5rem .8rem; border-top:1px solid #eee; min-height:56px; }
+  .ligne.tete { background:#fafafa; font-size:.85rem; color:var(--gris); border-top:0; min-height:40px; }
+  .ligne .nom a { color:#222; text-decoration:none; font-weight:600; display:block; min-height:44px; line-height:1.2; padding:.35rem 0; }
+  .ligne .nom small { display:block; color:var(--gris); font-weight:400; }
+  .ligne.groupe { background:#f1f1ee; font-weight:600; min-height:44px; display:block; }
+  .pastille { font-size:.82rem; border-radius:20px; padding:.2rem .65rem; background:#eee; display:inline-block; }
+  .p-cours { background:#ffe8b3; } .p-fini { background:#cfead4; } .p-nouv { background:#e3e8f5; } .p-alerte { background:#f8d2cf; } .p-neutre { background:#eee; }
+  .act { display:flex; gap:.4rem; justify-content:flex-end; }
+  .act button, .act a { min-height:44px; min-width:44px; padding:0 .8rem; border:1px solid var(--bord); border-radius:8px; background:#fff; font-size:.95rem; display:inline-flex; align-items:center; text-decoration:none; color:#222; }
+  .act .gros { background:var(--rouge); color:#fff; border-color:var(--rouge); }
+  .ligne.fini { opacity:.62; }
+  .lib { display:none; font-size:.8rem; color:var(--gris); }
+  /* portrait : chaque rapport devient une carte à 2 zones */
+  @media (max-width: 900px) {
+    .ligne.tete { display:none; }
+    .ligne { grid-template-columns: repeat(4, 1fr); padding:.6rem .8rem; }
+    .ligne > div:nth-child(2) { display:none !important; }
+    .ligne .act .pastille { margin-right:auto; align-self:center; }
+    .ligne .nom { grid-column: 1 / -1; }
+    .lib { display:block; }
+    .ligne > div:not(.nom):not(.act) { display:flex; flex-direction:column; gap:.15rem; align-items:flex-start; }
+    .act { grid-column: 1 / -1; justify-content:flex-end; flex-wrap:wrap; }
+  }
+  .lecteur { background:#fff; border:1px solid var(--bord); border-radius:12px; overflow:hidden; }
+  .lbarre { display:flex; gap:.4rem; align-items:center; padding:.4rem .6rem; border-bottom:1px solid var(--bord); flex-wrap:wrap; }
+  .lbarre button { min-height:44px; min-width:44px; padding:0 .8rem; border:1px solid var(--bord); border-radius:8px; background:#fff; font-size:1rem; }
+  .lbarre .gros { background:var(--rouge); color:#fff; border-color:var(--rouge); }
+  .lbarre .sp { flex:1; }
+  .page { margin:1rem auto; width:min(24rem,90%); aspect-ratio:8.5/11; background:repeating-linear-gradient(#fff,#fff 18px,#eee 19px); border:1px solid var(--bord); }
+</style>
+</head>
+<body>
+<div class="titre-maq">MAQUETTE · données fictives · onglets « Tableau » (dès 900 px : tableau; en dessous : cartes) et « Lecteur ». Choix de Guillaume : écran du lab, ordre par groupe puis nom, filtres À corriger / groupe / À revoir, actions Ouvrir · Analyser · Terminé.</div>
+<header>
+  <b>Correction</b>
+  <button class="on" data-v="tableau">Tableau</button>
+  <button data-v="lecteur">Lecteur</button>
+</header>
+<main>
+<div class="vue on" id="v-tableau">
+  <div class="fil"><a href="#">Bibliothèque</a> › <span>202SNURE</span> › <b>Lab 3</b></div>
+  <h1>Suivi du Lab 3 · 202SNURE</h1>
+  <div class="resume">
+    <span><b>8</b> rapports</span><span><b>3</b> à corriger</span><span><b>2</b> en cours</span><span><b>3</b> terminés</span><span>⚠ <b>2</b> à revoir</span>
+  </div>
+  <div class="filtres">
+    <button class="on">À corriger</button><button>Tous</button>
+    <select aria-label="Groupe"><option>Tous les groupes</option><option>Groupe 00001</option><option>Groupe 00002</option></select>
+    <button>⚠ À revoir</button>
+    <span style="flex:1"></span>
+    <button>Analyser les non analysés…</button>
+  </div>
+  <div class="avert">Les indices d'IA et de plagiat sont des <b>indices à revérifier</b>, jamais un verdict.</div>
+
+  <div class="tab">
+    <div class="ligne tete"><div>Étudiant</div><div>Groupe</div><div>Annotation</div><div>Français</div><div>Indice d'IA</div><div>Plagiat</div><div>État</div></div>
+
+    <div class="ligne groupe">Groupe 00001 · 4 rapports</div>
+
+    <div class="ligne">
+      <div class="nom"><a href="#">Bélanger, Camille<small>avec Samuel Roy</small></a></div>
+      <div><span class="lib">Groupe</span>00001</div>
+      <div><span class="lib">Annotation</span><span class="pastille p-neutre">pas commencée</span></div>
+      <div><span class="lib">Français</span><span class="pastille p-neutre">non analysé</span></div>
+      <div><span class="lib">Indice d'IA</span><span class="pastille p-neutre">non analysé</span></div>
+      <div><span class="lib">Plagiat</span>—</div>
+      <div class="act"><span class="pastille p-nouv" style="margin-right:auto">à corriger</span><button>🔍 Analyser</button><a class="gros" href="#">Ouvrir</a></div>
+    </div>
+
+    <div class="ligne">
+      <div class="nom"><a href="#">Côté, Mathis</a></div>
+      <div><span class="lib">Groupe</span>00001</div>
+      <div><span class="lib">Annotation</span><span class="pastille p-fini">commencée</span></div>
+      <div><span class="lib">Français</span><span class="pastille p-cours">5 à trancher</span><small>2 acceptées · −1 pt</small></div>
+      <div><span class="lib">Indice d'IA</span><span class="pastille p-alerte">marquée</span><small>à revérifier</small></div>
+      <div><span class="lib">Plagiat</span><span class="pastille p-alerte">paire suspecte</span><small>avec Gagnon (à confirmer)</small></div>
+      <div class="act"><span class="pastille p-cours" style="margin-right:auto">en cours</span><button>✔ Terminé</button><a class="gros" href="#">Ouvrir</a></div>
+    </div>
+
+    <div class="ligne">
+      <div class="nom"><a href="#">Gagnon, Léa<small>avec Zoé Tremblay</small></a></div>
+      <div><span class="lib">Groupe</span>00001</div>
+      <div><span class="lib">Annotation</span><span class="pastille p-fini">commencée</span></div>
+      <div><span class="lib">Français</span><span class="pastille p-fini">tranché</span><small>4 acceptées · −2 pt</small></div>
+      <div><span class="lib">Indice d'IA</span><span class="pastille p-cours">modérée</span><small>à revérifier</small></div>
+      <div><span class="lib">Plagiat</span><span class="pastille p-alerte">confirmée</span><small>coïncidence/copie : verdict Claude</small></div>
+      <div class="act"><span class="pastille p-cours" style="margin-right:auto">en cours</span><button>✔ Terminé</button><a class="gros" href="#">Ouvrir</a></div>
+    </div>
+
+    <div class="ligne fini">
+      <div class="nom"><a href="#">Pelletier, Noah</a></div>
+      <div><span class="lib">Groupe</span>00001</div>
+      <div><span class="lib">Annotation</span><span class="pastille p-fini">commencée</span></div>
+      <div><span class="lib">Français</span><span class="pastille p-fini">tranché</span><small>1 acceptée · −0,5 pt</small></div>
+      <div><span class="lib">Indice d'IA</span><span class="pastille p-fini">faible</span></div>
+      <div><span class="lib">Plagiat</span><span class="pastille p-neutre">écartée</span></div>
+      <div class="act"><span class="pastille p-fini" style="margin-right:auto">terminé · 17,5</span><button>↩ Ré-ouvrir</button><a class="gros" href="#">Ouvrir</a></div>
+    </div>
+  </div>
+  <p class="aide" style="color:var(--gris);font-size:.9rem">Les rapports terminés restent visibles (estompés) avec « Tous ». « Ouvrir » garde l'ordre du tableau pour « Suivant ».</p>
+</div>
+
+<div class="vue" id="v-lecteur">
+  <div class="lecteur">
+    <div class="lbarre">
+      <button title="Retour au tableau">☰ Tableau</button>
+      <button title="Précédent">‹ Précédent</button>
+      <b>Côté, Mathis</b> <span class="pastille p-cours">à corriger</span>
+      <span style="color:var(--gris)">3 / 8 · Lab 3</span>
+      <span class="sp"></span>
+      <button>✔ Terminé</button>
+      <button class="gros" title="Enregistre, puis ouvre le prochain rapport non terminé, dans l'ordre du tableau">Rapport suivant ›</button>
+      <button class="gros" style="background:#222;border-color:#222">✔ Terminé et suivant</button>
+    </div>
+    <div class="page"></div>
+  </div>
+  <p style="color:var(--gris);font-size:.9rem">« Rapport suivant » : prochain rapport <b>non terminé</b> du même lab, dans l'ordre du tableau (filtre de groupe respecté), après enregistrement. « Précédent » : rapport précédent, terminé ou non. Dernier rapport : « Rapport suivant » désactivé avec « Retour au tableau ».</p>
+</div>
+</main>
+<script>
+  document.querySelectorAll("header button").forEach((b) => b.onclick = () => {
+    document.querySelectorAll("header button").forEach((x) => x.classList.toggle("on", x === b));
+    document.querySelectorAll(".vue").forEach((v) => v.classList.toggle("on", v.id === "v-" + b.dataset.v));
+  });
+  document.querySelectorAll(".filtres button").forEach((b) => b.onclick = () => {
+    if (b.textContent.includes("À corriger") || b.textContent === "Tous") b.parentNode.querySelectorAll("button").forEach((x) => { if (["À corriger", "Tous"].includes(x.textContent)) x.classList.toggle("on", x === b); });
+  });
+</script>
+</body>
+</html>
