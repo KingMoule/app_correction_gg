@@ -4,10 +4,12 @@ async function verifierMoteur() {
   try {
     const r = await fetch("/api/etat");
     const d = await r.json();
-    el.textContent = `Moteur connecté (v${d.version})`;
+    el.textContent = "● Moteur connecté";
+    el.title = `v${d.version}`;
     el.className = "ok";
   } catch {
-    el.textContent = "Moteur injoignable : l'ordi est-il allumé et sur le même Wi-Fi ?";
+    el.textContent = "● Moteur injoignable";
+    el.title = "L'ordi est-il allumé et sur le même Wi-Fi ?";
     el.className = "erreur";
   }
 }
@@ -176,6 +178,7 @@ async function charger() {
   arbre = await (await fetch(API)).json();
   enonces = await (await fetch("/api/plagiat/enonces")).json().catch(() => []);
   rendreArbre();
+  rendreAccueil();
   const cours = [...new Set(arbre.map((c) => c.cours))];
   $("choix-cours").replaceChildren(...cours.map((c) => { const o = texte("option", c); o.value = c; return o; }));
   $("choix-cours").onchange = remplirGroupes;
@@ -198,6 +201,8 @@ function remplirGroupes() {
 async function chargerAttente() {
   const liste = await (await fetch(`${API}/attente`)).json();
   $("section-attente").hidden = !liste.length;
+  $("badge-attente").hidden = !liste.length;
+  $("badge-attente").textContent = liste.length;
   const zone = $("attente");
   zone.replaceChildren();
   const raisons = {
@@ -295,3 +300,59 @@ function afficherRecap(d) {
 }
 
 charger().catch(() => {});
+
+// --- Navigation entre les vues et accueil ---
+const VUES = ["accueil", "biblio", "importer", "outils"];
+
+function aller(vue) {
+  if (!VUES.includes(vue)) vue = "accueil";
+  for (const v of VUES) $("v-" + v).hidden = v !== vue;
+  document.querySelectorAll("#nav button").forEach((b) => b.classList.toggle("on", b.dataset.v === vue));
+  if (location.hash !== "#" + vue) history.replaceState(null, "", "#" + vue);
+  scrollTo(0, 0);
+}
+document.querySelectorAll("#nav button").forEach((b) => { b.onclick = () => aller(b.dataset.v); });
+document.querySelectorAll("[data-go]").forEach((b) => { b.onclick = () => aller(b.dataset.go); });
+window.onhashchange = () => aller(location.hash.slice(1));
+
+function rendreAccueil() {
+  let dernier = null;
+  try { dernier = JSON.parse(localStorage.getItem("dernier")); } catch { /* aucun rapport ouvert */ }
+  const zone = $("continuer");
+  zone.replaceChildren();
+  if (dernier?.url) {
+    const carte = texte("div", "", "carte");
+    carte.append(texte("b", dernier.nom || "Dernier rapport"), texte("small", ` · ${dernier.cours} · ${dernier.lab} · groupe ${dernier.groupe}`));
+    const lien = texte("a", "Reprendre la correction", "gros");
+    lien.href = dernier.url;
+    carte.append(document.createElement("br"), document.createElement("br"), lien);
+    zone.append(texte("h2", "Continuer"), carte);
+  }
+  const cartes = $("a-corriger");
+  cartes.replaceChildren();
+  for (const c of arbre) {
+    const labs = [...new Set(c.etudiants.flatMap((e) => e.labs))].sort();
+    for (const lab of labs) {
+      if (labFini(c, lab)) continue;
+      const total = c.etudiants.filter((e) => e.labs.includes(lab)).length;
+      const faits = c.etudiants.filter((e) => e.termines.includes(lab)).length;
+      const carte = texte("div", "", "carte");
+      carte.append(texte("b", lab), texte("small", ` · ${c.cours} · groupe ${c.groupe}`), document.createElement("br"),
+        texte("small", `${faits} / ${total} terminés`), document.createElement("br"));
+      const barre = document.createElement("progress");
+      barre.max = total; barre.value = faits;
+      const ouvrir = texte("button", "Ouvrir le lab", "bk");
+      ouvrir.onclick = () => {
+        for (const cle of [c.cours, `${c.cours}/${lab}`, `${c.cours}/${lab}/${c.groupe}`]) stockage.ecrire("ouvert:" + cle, "1");
+        stockage.ecrire("filtre", "cours");
+        rendreArbre();
+        aller("biblio");
+      };
+      carte.append(barre, document.createElement("br"), ouvrir);
+      cartes.append(carte);
+    }
+  }
+  if (!cartes.children.length) cartes.append(texte("p", arbre.length ? "Rien à corriger : tout est terminé." : "Aucune classe importée : commence par « Importer ».", "aide"));
+}
+
+aller(location.hash.slice(1));

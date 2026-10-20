@@ -12,10 +12,30 @@
   <title>Correction de labs</title>
 </head>
 <body>
+  <header id="barre-nav">
+    <b>Correction</b>
+    <nav id="nav">
+      <button data-v="accueil">Accueil</button>
+      <button data-v="biblio">Bibliothèque</button>
+      <button data-v="importer">Importer <span id="badge-attente" class="badge" hidden></span></button>
+      <button data-v="outils">Lot et plagiat</button>
+    </nav>
+    <span id="etat" class="etat">Connexion au moteur…</span>
+  </header>
   <main>
-    <h1>Correction de labs</h1>
-    <p id="etat">Connexion au moteur…</p>
+    <section class="vue" id="v-accueil">
+      <div id="continuer"></div>
+      <h2>À corriger</h2>
+      <div id="a-corriger" class="cartes"></div>
+      <h2>Raccourcis</h2>
+      <div class="raccourcis">
+        <button data-go="importer">⬆ Importer des rapports</button>
+        <button data-go="outils">⚙ Analyse par lot</button>
+        <button data-go="outils">🔍 Plagiat</button>
+      </div>
+    </section>
 
+    <div class="vue" id="v-biblio">
     <section id="bibliotheque">
       <h2>Bibliothèque</h2>
       <div id="filtres" class="filtres">
@@ -24,6 +44,18 @@
       <div id="arbre"><p>Aucune classe importée.</p></div>
     </section>
 
+    <section id="section-ia" hidden>
+      <h2>Indices d'IA</h2>
+      <p id="ia-titre"></p>
+      <p class="aide" id="ia-avertissement">Indice à revérifier, jamais un verdict.</p>
+      <button id="ia-analyser">Analyser le style avec Claude</button>
+      <button id="ia-pangram">Copier le texte et ouvrir Pangram</button>
+      <p id="ia-etat" aria-live="polite"></p>
+      <div id="ia-resultat"></div>
+    </section>
+    </div>
+
+    <div class="vue" id="v-importer">
     <section>
       <h2>Liste de classe</h2>
       <p class="aide">Fichier Excel ou CSV nommé <code>ListeEtudiants_cours…_gr…</code>.</p>
@@ -41,11 +73,13 @@
       <p id="resultat-import" aria-live="polite"></p>
     </section>
 
-    <section>
-      <h2>Plagiat</h2>
-      <p><a href="plagiat.html">Comparer les rapports de la bibliothèque</a></p>
+    <section id="section-attente" hidden>
+      <h2>À trancher</h2>
+      <div id="attente"></div>
     </section>
+    </div>
 
+    <div class="vue" id="v-outils">
     <section id="section-lot">
       <h2>Analyse par lot (Claude)</h2>
       <p class="aide">Français (passe Claude) et indices d'IA sur les rapports d'un lab pas encore analysés. Compte dans la limite de ton forfait : environ 2 % de la session de 5 h par rapport avec Sonnet.</p>
@@ -60,20 +94,12 @@
       <ul id="lot-erreurs"></ul>
     </section>
 
-    <section id="section-ia" hidden>
-      <h2>Indices d'IA</h2>
-      <p id="ia-titre"></p>
-      <p class="aide" id="ia-avertissement">Indice à revérifier, jamais un verdict.</p>
-      <button id="ia-analyser">Analyser le style avec Claude</button>
-      <button id="ia-pangram">Copier le texte et ouvrir Pangram</button>
-      <p id="ia-etat" aria-live="polite"></p>
-      <div id="ia-resultat"></div>
+    <section>
+      <h2>Plagiat</h2>
+      <p><a href="plagiat.html">Comparer les rapports de la bibliothèque</a></p>
     </section>
 
-    <section id="section-attente" hidden>
-      <h2>À trancher</h2>
-      <div id="attente"></div>
-    </section>
+    </div>
   </main>
   <script src="app.js"></script>
   <script src="indices-ia.js"></script>
