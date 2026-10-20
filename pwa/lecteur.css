@@ -5,14 +5,22 @@ body { display: flex; flex-direction: column; overflow: hidden; padding-top: env
 [hidden] { display: none !important; }
 
 #barre { flex: none; z-index: 10; position: relative; background: var(--barre); color: var(--fg);
-  padding: 8px 10px; display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center; }
-#barre button, #barre .bouton { background: #3a3a3a; color: var(--fg); border: 2px solid transparent; border-radius: 8px;
-  padding: 8px 12px; font: inherit; text-decoration: none; }
+  padding: 6px 10px; display: flex; flex-direction: column; gap: 6px; }
+.ligne { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center; }
+#outils { background: #2c2c2c; margin: 0 -10px -6px; padding: 6px 10px; border-top: 1px solid #000; }
+#barre button, #barre .bouton { background: #3a3a3a; color: var(--fg); border: 2px solid transparent; border-radius: 10px;
+  min-width: 44px; min-height: 44px; padding: 0 12px; font: inherit; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; }
 #barre button.on { border-color: var(--accent); background: #2b4057; }
 #barre button:disabled { opacity: .35; }
 .grp { display: flex; gap: 6px; align-items: center; }
-.pastille { width: 34px; height: 34px; border-radius: 50%; padding: 0 !important; border: 3px solid #555 !important; }
-.pastille.on { border-color: #fff !important; }
+.sep { width: 1px; align-self: stretch; background: #555; margin: 2px; }
+.outil { gap: 8px; }
+.outil i { width: 12px; height: 12px; border-radius: 50%; border: 1px solid #fff8; display: inline-block; }
+.outil:not(.on) i { opacity: .8; }
+#barre .pastille { width: 44px; padding: 0; border-radius: 50%; border: 3px solid #555; }
+#barre .pastille.on { border-color: #fff; }
+#barre .epaisseur { width: 56px; }
+.epaisseur span { display: block; width: 30px; border-radius: 99px; background: var(--fg); }
 #titre { font-weight: 600; max-width: 14rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 #page-info, #sauvegarde { font-size: 13px; opacity: .85; font-variant-numeric: tabular-nums; }
 #sauvegarde.erreur { color: #ff8a80; opacity: 1; }

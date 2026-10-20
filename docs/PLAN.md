@@ -74,6 +74,15 @@ Reprise dans un nouveau compte Claude : le dépôt contient tout le contexte; il
 - **Entrées** : le doigt défile et zoome, seul le crayon dessine (le poignet ne laisse pas de traces). Double tape du Pencil pour passer crayon/gomme, si Safari le permet (sinon bouton dans la barre d'outils).
   - **Test du prototype (2026-10-19)** : le double tape n'est pas transmis par Safari, il est abandonné. Bascule crayon/gomme par un bouton dans la barre d'outils. **Décision : on reste en PWA** (app native Swift écartée : Mac + programme développeur ≈ 99 $ US/an à revérifier, réécriture de l'annotateur, gain limité au double tape). Fluidité et pression jugées bonnes sur l'iPad.
 
+## Barre d'annotation (Guillaume, 2026-10-20, toutes les recommandations retenues)
+
+- Barre **fixe en haut sur 2 lignes** (navigation / outils), pas de barre flottante.
+- **3 épaisseurs prédéfinies** par outil au lieu des curseurs min/max (courbe de pression, taille de gomme et « le doigt dessine » restent dans Réglages).
+- **Gomme à deux modes** : trait entier (défaut) ou partielle.
+- **Surligneur redressé** quand on tient le crayon immobile en fin de trait.
+- Réglage **par outil** (couleur, épaisseur) gardé sur l'appareil; le dernier outil de trait est rouvert. Cibles tactiles de 44 px.
+- Maquette : `docs/maquette-annotation.html`. Format `annotations.json` inchangé. [fait, PR à relire]
+
 ## À préciser au début de chaque étape
 
 - Étape 1 : emplacement du dossier de la bibliothèque, nom des cours/labs, taille type d'un rapport.

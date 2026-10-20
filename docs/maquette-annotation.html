@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="fr"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Maquette — barre d'annotation (données fictives)</title>
+<style>
+:root{--barre:#222;--fg:#eee;--accent:#4da3ff}
+*{box-sizing:border-box}
+body{margin:0;background:#777;font:15px -apple-system,system-ui,sans-serif;height:100vh;display:flex;flex-direction:column}
+#barre{background:var(--barre);color:var(--fg);padding:6px 10px;display:flex;flex-direction:column;gap:6px}
+.ligne{display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center}
+.grp{display:flex;gap:6px;align-items:center}
+.sep{width:1px;align-self:stretch;background:#555;margin:2px 2px}
+button{background:#3a3a3a;color:var(--fg);border:2px solid transparent;border-radius:10px;min-width:44px;min-height:44px;padding:0 12px;font:inherit}
+button.on{border-color:var(--accent);background:#2b4057}
+button:disabled{opacity:.35}
+.outil{display:flex;align-items:center;gap:8px}
+.outil i{width:12px;height:12px;border-radius:50%;display:inline-block;border:1px solid #fff8}
+.pastille{width:44px;padding:0;border-radius:50%;border:3px solid #555}
+.pastille.on{border-color:#fff}
+.ep{width:56px;display:flex;align-items:center;justify-content:center}
+.ep span{display:block;border-radius:99px;background:#eee;width:30px}
+#ligne2{background:#2c2c2c;margin:0 -10px -6px;padding:6px 10px;border-top:1px solid #000}
+#pdf{flex:1;overflow:auto;padding:12px}
+.page{background:#fff;margin:0 auto 12px;width:min(595px,90%);aspect-ratio:595/842;box-shadow:0 2px 12px #0008;padding:40px;color:#333;position:relative}
+.page h2{margin:0 0 10px;font:600 20px serif}
+.page p{font:14px/1.7 serif}
+.hl{background:#ffee5899}
+.trait{position:absolute;left:40px;right:120px;height:3px;background:#d32f2f;border-radius:3px;bottom:100px;transform:rotate(-1.2deg)}
+#note{position:fixed;left:10px;bottom:10px;background:#000c;color:#fff;padding:6px 10px;border-radius:8px;font-size:13px}
+</style></head><body>
+<div id="barre">
+  <div class="ligne">
+    <div class="grp"><button>‹ Bibliothèque</button><b>Équipe 3 · Lab 2</b></div>
+    <div class="grp"><button>‹</button><span>2 / 24</span><button>›</button><button>✔ Terminé</button><button style="background:#2e7d32">✔ Terminé et suivant</button></div>
+    <div class="grp"><button>Français</button><button>Exporter le PDF</button><button id="reg">Réglages</button></div>
+  </div>
+  <div class="ligne" id="ligne2">
+    <div class="grp" id="outils"></div>
+    <div class="sep"></div>
+    <div class="grp" id="options"></div>
+    <div class="sep"></div>
+    <div class="grp"><button>↶</button><button disabled>↷</button></div>
+    <div class="sep"></div>
+    <div class="grp"><button title="Bascule crayon / gomme">⇄</button><button>Ajuster</button></div>
+  </div>
+</div>
+<div id="pdf"><div class="page"><h2>2. Résultats</h2>
+<p>La masse volumique de l'échantillon est de 2,70 g/cm³. <span class="hl">Cette valeur concorde avec celle de l'aluminium</span>, ce qui confirme l'identification du métal. L'incertitude provient surtout de la lecture du ménisque.</p>
+<p>Les mesures ont été répétées cinq fois afin de réduire l'erreur aléatoire.</p><div class="trait"></div></div></div>
+<div id="note">Maquette : les boutons changent l'état, rien n'est enregistré. Données fictives.</div>
+<script>
+const CRAYON=["#d32f2f","#1565c0","#2e7d32","#111","#ef6c00"], SURL=["#ff5252","#40c4ff","#69f0ae","#ffee58","#ffab40"];
+const st={outil:"crayon",crayon:{c:0,e:1},surligneur:{c:3,e:1},gomme:{mode:"trait"}};
+function rendre(){
+  const o=document.getElementById("outils"); o.innerHTML="";
+  for(const [k,nom,ico] of [["crayon","Crayon","✎"],["surligneur","Surligneur","🖍"],["gomme","Gomme","⌫"]]){
+    const b=document.createElement("button");b.className="outil"+(st.outil===k?" on":"");
+    const col=k==="gomme"?"":`<i style="background:${(k==="crayon"?CRAYON:SURL)[st[k].c]}"></i>`;
+    b.innerHTML=`${ico} ${nom} ${col}`;b.onclick=()=>{st.outil=k;rendre()};o.append(b);
+  }
+  const p=document.getElementById("options"); p.innerHTML="";
+  if(st.outil==="gomme"){
+    for(const [m,n] of [["trait","Trait entier"],["partielle","Partielle"]]){
+      const b=document.createElement("button");b.textContent=n;b.className=st.gomme.mode===m?"on":"";b.onclick=()=>{st.gomme.mode=m;rendre()};p.append(b);
+    }
+  } else {
+    const t=st[st.outil];
+    [2,4,7].forEach((h,i)=>{const b=document.createElement("button");b.className="ep"+(t.e===i?" on":"");b.setAttribute("aria-label","Épaisseur "+(i+1));
+      b.innerHTML=`<span style="height:${st.outil==="surligneur"?h*2:h}px"></span>`;b.onclick=()=>{t.e=i;rendre()};p.append(b)});
+    const s=document.createElement("span");s.style.width="8px";p.append(s);
+    (st.outil==="crayon"?CRAYON:SURL).forEach((c,i)=>{const b=document.createElement("button");b.className="pastille"+(t.c===i?" on":"");b.style.background=c;b.onclick=()=>{t.c=i;rendre()};p.append(b)});
+  }
+}
+rendre();
+</script></body></html>
