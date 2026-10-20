@@ -79,6 +79,40 @@ def test_liste_csv(client):
     assert r.json()["etudiants"][0]["id"] == "dube-alice"
 
 
+def test_liste_omnivox_cp1252(client):
+    """Format réel d'Omnivox/LÉA : cp1252, « ; », valeurs `="..."`, colonnes vides. Noms fictifs."""
+    lignes = [
+        "No de DA;Nom de l'étudiant;Prénom de l'étudiant;      ;      ;",
+        '="1234567";="Tremblay";="Émilie"; ; ;',
+        '="7654321";="Gagnon-Côté";="Jean Philippe"; ; ;',
+        '="1111111";="De La Fontaine";="Raphaël"; ; ;',
+        " ; ; ; ; ;",
+    ]
+    texte = "\r\n".join(lignes) + "\r\n"
+    contenu = texte.encode("cp1252")
+    with pytest.raises(UnicodeDecodeError):
+        contenu.decode("utf-8")
+    r = client.post("/api/bibliotheque/classes", files={"fichier": (NOM_LISTE.replace("xlsx", "csv"), contenu)})
+    assert r.status_code == 200, r.text
+    assert r.json()["etudiants"] == [
+        {"id": "tremblay-emilie", "nom": "Tremblay", "prenom": "Émilie", "da": "1234567"},
+        {"id": "gagnon-cote-jean-philippe", "nom": "Gagnon-Côté", "prenom": "Jean Philippe", "da": "7654321"},
+        {"id": "de-la-fontaine-raphael", "nom": "De La Fontaine", "prenom": "Raphaël", "da": "1111111"},
+    ]
+
+
+def test_liste_xlsx_enrobage_et_da(client):
+    wb = Workbook()
+    wb.active.append(["No de DA", "Nom de l'étudiant", "Prénom de l'étudiant"])
+    wb.active.append(['="1234567"', '="Dubé"', '="Alice"'])
+    for cellule in wb.active[2]:
+        cellule.data_type = "s"  # texte (et non formule), comme la valeur calculée d'Excel
+    tampon = io.BytesIO()
+    wb.save(tampon)
+    r = client.post("/api/bibliotheque/classes", files={"fichier": (NOM_LISTE, tampon.getvalue())})
+    assert r.json()["etudiants"] == [{"id": "dube-alice", "nom": "Dubé", "prenom": "Alice", "da": "1234567"}]
+
+
 def test_association_automatique_et_rangement(client, tmp_path):
     charger_classe(client)
     res = importer(client, [("Rapport_DUBE_lab3.pdf", pdf()), ("tremblay-roy.pdf", pdf())])

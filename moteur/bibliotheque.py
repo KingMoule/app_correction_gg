@@ -62,33 +62,54 @@ def lire_cours_groupe(nom_fichier: str) -> tuple[str, str]:
     return m["cours"].upper(), m["groupe"]
 
 
+ENROBAGE = re.compile(r'^="(.*)"$', re.S)
+ENTETES_NOM = {"nom", "nom de famille", "nom famille", "nom de l etudiant", "nom etudiant"}
+ENTETES_DA = {"da", "no de da", "no da", "numero de da", "numero da"}
+
+
+def nettoyer_cellule(valeur: str) -> str:
+    """Retire les espaces et l'enrobage `="..."` des exports Omnivox."""
+    valeur = valeur.strip()
+    m = ENROBAGE.match(valeur)
+    return m[1].strip() if m else valeur
+
+
+def decoder_csv(contenu: bytes) -> str:
+    try:
+        return contenu.decode("utf-8-sig")
+    except UnicodeDecodeError:
+        return contenu.decode("cp1252", errors="replace")
+
+
 def lignes_du_fichier(nom: str, contenu: bytes) -> list[list[str]]:
     if nom.lower().endswith((".xlsx", ".xlsm")):
         from openpyxl import load_workbook
 
         feuille = load_workbook(io.BytesIO(contenu), read_only=True, data_only=True).active
-        return [["" if c is None else str(c).strip() for c in ligne] for ligne in feuille.iter_rows(values_only=True)]
-    if nom.lower().endswith(".csv"):
-        try:
-            texte = contenu.decode("utf-8-sig")
-        except UnicodeDecodeError:
-            texte = contenu.decode("latin-1")
-        try:
-            dialecte = csv.Sniffer().sniff(texte[:2000], delimiters=";,\t")
-        except csv.Error:
-            dialecte = csv.excel
-        return [[c.strip() for c in ligne] for ligne in csv.reader(io.StringIO(texte), dialecte)]
-    raise HTTPException(400, "Format non pris en charge : fichier Excel (.xlsx) ou CSV.")
+        lignes = [["" if c is None else str(c) for c in ligne] for ligne in feuille.iter_rows(values_only=True)]
+    elif nom.lower().endswith(".csv"):
+        texte = decoder_csv(contenu)
+        premiere = texte.lstrip().split(chr(10), 1)[0]
+        delimiteur = max(";,\t", key=premiere.count) if any(d in premiere for d in ";,\t") else ";"
+        lignes = list(csv.reader(io.StringIO(texte), delimiter=delimiteur))
+    else:
+        raise HTTPException(400, "Format non pris en charge : fichier Excel (.xlsx) ou CSV.")
+    lignes = [[nettoyer_cellule(c) for c in ligne] for ligne in lignes]
+    return [ligne for ligne in lignes if any(ligne)]
 
 
 def extraire_etudiants(lignes: list[list[str]]) -> list[dict]:
-    """Repère la ligne d'en-tête (colonnes nom et prénom) puis lit les étudiants."""
+    """Repère la ligne d'en-tête (colonnes nom et prénom) puis lit les étudiants.
+
+    Le « No de DA » est gardé (champ `da`) s'il est présent; colonnes et lignes vides ignorées.
+    """
     for i, ligne in enumerate(lignes[:15]):
         noms = [normaliser(c) for c in ligne]
         col_prenom = next((j for j, n in enumerate(noms) if n.startswith("prenom")), None)
-        col_nom = next((j for j, n in enumerate(noms) if n in ("nom", "nom de famille", "nom famille")), None)
+        col_nom = next((j for j, n in enumerate(noms) if n in ENTETES_NOM), None)
         if col_prenom is None or col_nom is None:
             continue
+        col_da = next((j for j, n in enumerate(noms) if n in ENTETES_DA), None)
         etudiants, vus = [], {}
         for ligne in lignes[i + 1:]:
             nom = ligne[col_nom] if col_nom < len(ligne) else ""
@@ -98,7 +119,11 @@ def extraire_etudiants(lignes: list[list[str]]) -> list[dict]:
             base = slug(f"{nom} {prenom}") or "etudiant"
             vus[base] = vus.get(base, 0) + 1
             ident = base if vus[base] == 1 else f"{base}-{vus[base]}"
-            etudiants.append({"id": ident, "nom": nom.strip(), "prenom": prenom.strip()})
+            etudiant = {"id": ident, "nom": nom.strip(), "prenom": prenom.strip()}
+            da = ligne[col_da].strip() if col_da is not None and col_da < len(ligne) else ""
+            if da:
+                etudiant["da"] = da
+            etudiants.append(etudiant)
         return etudiants
     raise HTTPException(400, "Colonnes « Nom » et « Prénom » introuvables dans les premières lignes.")
 
