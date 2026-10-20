@@ -161,3 +161,95 @@ def test_chemin_dangereux_refuse(client):
     r = client.post("/api/bibliotheque/import", data={"cours": "..", "groupe": "x", "lab": "l"},
                     files=[("fichiers", ("a.pdf", pdf(), "application/pdf"))])
     assert r.status_code == 400
+
+
+# --- DA, noms composés, multi-groupes, coéquipiers (données fictives) ---------
+
+def liste_csv(lignes, groupe):
+    texte = "No de DA;Nom de l'étudiant;Prénom de l'étudiant\r\n" + "\r\n".join(
+        f'="{da}";="{nom}";="{prenom}"' for da, nom, prenom in lignes)
+    return (f"ListeEtudiants_cours202SNURE_gr{groupe}.csv", texte.encode("cp1252"))
+
+
+def deux_groupes(client):
+    for groupe, lignes in [
+        ("00001", [("1000001", "Bele-Gombos", "Anna"), ("1000002", "Martin", "Luc")]),
+        ("00002", [("2000001", "Dubé", "Alice"), ("2000002", "Martin", "Zoé")]),
+    ]:
+        nom, contenu = liste_csv(lignes, groupe)
+        assert client.post("/api/bibliotheque/classes", files={"fichier": (nom, contenu)}).status_code == 200
+
+
+def importer_cours(client, noms_pdf, groupe=""):
+    return client.post(
+        "/api/bibliotheque/import",
+        data={"cours": "202SNURE", "groupe": groupe, "lab": "Lab 1"},
+        files=[("fichiers", (n, c, "application/pdf")) for n, c in noms_pdf],
+    ).json()
+
+
+def test_candidats_nom_compose_sans_separateurs():
+    from moteur.bibliotheque import candidats
+    el = [{"id": "a", "nom": "Bele-Gombos", "prenom": "Anna"}, {"id": "b", "nom": "Roy", "prenom": "X"}]
+    assert [e["id"] for e in candidats("BeleGombos_2576245_Rapport.pdf", el)] == ["a"]
+    assert [e["id"] for e in candidats("Bele-Gombos_Rapport.pdf", el)] == ["a"]
+    assert candidats("Royer_Rapport.pdf", el) == []  # « roy » ne se colle pas dans « royer »
+
+
+def test_da_prioritaire_sur_le_nom():
+    from moteur.bibliotheque import extraire_da, associer
+    assert extraire_da("fictif_2626310_Rapport_partiel_1_-__Remis_le_2026-09-18_17h43m16s.pdf") == "2626310"
+    el = [{"id": "a", "nom": "Martin", "prenom": "Luc", "da": "1000002"},
+          {"id": "b", "nom": "Martin", "prenom": "Zoé", "da": "2000002"}]
+    trouves, da = associer("Martin_2000002_Rapport.pdf", el)
+    assert [e["id"] for e in trouves] == ["b"] and da == "2000002"
+    trouves, _ = associer("Martin_9999999_Rapport.pdf", el)  # DA inconnu : repli sur le nom (ambigu)
+    assert len(trouves) == 2
+
+
+def test_import_multigroupes_et_recap(client, tmp_path):
+    deux_groupes(client)
+    res = importer_cours(client, [
+        ("BeleGombos_1000001_Rapport.pdf", pdf()),
+        ("Dube_2000001_Rapport.pdf", pdf()),
+        ("Martin_2000002_Rapport.pdf", pdf()),
+        ("Martin_Rapport.pdf", pdf()),          # homonymes, sans DA : ambigu
+        ("Inconnu_3333333_Rapport.pdf", pdf()),  # DA inconnu, nom inconnu
+        ("scan.pdf", pdf(None)),
+    ])
+    assert res["par_groupe"] == {"00001": 1, "00002": 2}
+    assert {a["raison"] for a in res["en_attente"]} == {"ambigu", "da_inconnu"}
+    assert len(res["refuses"]) == 1
+    assert (tmp_path / "bibliotheque/202SNURE/00001/lab-1/bele-gombos-anna/rapport.pdf").is_file()
+    assert (tmp_path / "bibliotheque/202SNURE/00002/lab-1/martin-zoe/rapport.pdf").is_file()
+    ambigu = next(a for a in res["en_attente"] if a["raison"] == "ambigu")
+    r = client.post(f"/api/bibliotheque/attente/{ambigu['id']}", json={"etudiant": "martin-luc", "groupe": "00001"})
+    assert r.status_code == 200
+    assert (tmp_path / "bibliotheque/202SNURE/00001/lab-1/martin-luc/rapport.pdf").is_file()
+
+
+def test_groupe_restreint_limite_la_recherche(client):
+    deux_groupes(client)
+    res = importer_cours(client, [("Dube_2000001_Rapport.pdf", pdf())], groupe="00001")
+    assert not res["ranges"] and res["en_attente"][0]["raison"] == "da_inconnu"
+
+
+def test_coequipiers_reperes_et_plagiat_ignore(client):
+    deux_groupes(client)
+    page = "Rapport de lab\nPar Alice Dubé et Anna Bele-Gombos"
+    res = importer_cours(client, [("Dube_2000001_Rapport.pdf", pdf(page))])
+    equipe = res["ranges"][0]["equipe"]
+    assert [(c["groupe"], c["id"]) for c in equipe] == [("00001", "bele-gombos-anna")]
+    assert client.get("/api/bibliotheque").json()[1]["etudiants"][0]["equipes"]["lab-1"][0]["id"] == "bele-gombos-anna"
+    from moteur.plagiat import _meme_etudiant
+    x = {"cours": "C", "groupe": "00002", "etudiant": "dube-alice", "lab": "l", "equipe": ["00001/bele-gombos-anna"]}
+    y = {"cours": "C", "groupe": "00001", "etudiant": "bele-gombos-anna", "lab": "l"}
+    assert _meme_etudiant(x, y) and _meme_etudiant(y, x)
+
+
+def test_ecarter_ne_supprime_pas(client, tmp_path):
+    charger_classe(client)
+    attente = importer(client, [("Inconnu.pdf", pdf())])["en_attente"][0]
+    assert client.post(f"/api/bibliotheque/attente/{attente['id']}", json={}).status_code == 200
+    assert client.get("/api/bibliotheque/attente").json() == []
+    assert (tmp_path / "bibliotheque/_ecartes" / f"{attente['id']}.pdf").is_file()

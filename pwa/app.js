@@ -46,6 +46,8 @@ async function charger() {
         const q = new URLSearchParams({ cours: c.cours, groupe: c.groupe, lab, etudiant: e.id, nom: `${e.prenom} ${e.nom}` });
         a.href = `lecteur.html?${q}`;
         ligne.append(a);
+        const equipe = e.equipes?.[lab];
+        if (equipe?.length) ligne.append(texte("small", ` (avec ${equipe.map((x) => `${x.prenom} ${x.nom}`).join(", ")})`));
         const ia = texte("button", "IA", "bouton-ia");
         ia.title = "Indices d'IA";
         ia.onclick = () => window.ouvrirIndicesIA?.(c.cours, c.groupe, lab, e);
@@ -55,13 +57,23 @@ async function charger() {
     }
     zone.append(bloc);
   }
-  $("choix-classe").replaceChildren(...arbre.map((c, i) => {
-    const o = texte("option", `${c.cours} · groupe ${c.groupe}`);
-    o.value = i;
-    return o;
-  }));
+  const cours = [...new Set(arbre.map((c) => c.cours))];
+  $("choix-cours").replaceChildren(...cours.map((c) => { const o = texte("option", c); o.value = c; return o; }));
+  $("choix-cours").onchange = remplirGroupes;
+  remplirGroupes();
   window.rafraichirLot?.(arbre);
   await chargerAttente();
+}
+
+function remplirGroupes() {
+  const tous = texte("option", "Tous les groupes");
+  tous.value = "";
+  const groupes = arbre.filter((c) => c.cours === $("choix-cours").value).map((c) => {
+    const o = texte("option", `Groupe ${c.groupe}`);
+    o.value = c.groupe;
+    return o;
+  });
+  $("choix-groupe").replaceChildren(tous, ...groupes);
 }
 
 async function chargerAttente() {
@@ -73,36 +85,41 @@ async function chargerAttente() {
     ambigu: "Plusieurs étudiants possibles",
     aucune_correspondance: "Aucun nom reconnu",
     deja_importe: "Rapport déjà importé pour ce lab (le remplacer ?)",
+    da_inconnu: "N° de DA absent des listes de classe, aucun nom reconnu",
   };
   for (const item of liste) {
-    const classe = arbre.find((c) => c.cours === item.cours && c.groupe === item.groupe);
+    const classes = arbre.filter((c) => c.cours === item.cours && (!item.groupe || c.groupe === item.groupe));
     const bloc = texte("div", "", "attente-item");
-    bloc.append(texte("strong", item.fichier), texte("p", `${raisons[item.raison]} · ${item.lab}`));
+    bloc.append(texte("strong", item.fichier), texte("p", `${raisons[item.raison]} · ${item.cours} · ${item.lab}${item.da ? ` · DA ${item.da}` : ""}`));
     const choix = document.createElement("select");
     const vide = texte("option", "Choisir un étudiant…");
     vide.value = "";
     choix.append(vide);
-    const proposes = item.candidats.length ? item.candidats : (classe?.etudiants ?? []);
+    const proposes = item.candidats.length ? item.candidats
+      : classes.flatMap((c) => c.etudiants.map((e) => ({ ...e, groupe: c.groupe })));
     for (const e of proposes) {
-      const o = texte("option", `${e.nom}, ${e.prenom}`);
-      o.value = e.id;
+      const o = texte("option", `${e.nom}, ${e.prenom} (groupe ${e.groupe})`);
+      o.value = JSON.stringify([e.id, e.groupe]);
       choix.append(o);
     }
     const ok = texte("button", "Ranger");
-    ok.onclick = () => trancher(item.id, choix.value);
+    ok.onclick = () => trancher(item.id, choix.value ? JSON.parse(choix.value) : "");
     const non = texte("button", "Écarter");
-    non.onclick = () => trancher(item.id, null);
+    non.onclick = () => {
+      if (confirm("Écarter ce fichier ? Il sera mis de côté dans le dossier _ecartes (récupérable).")) trancher(item.id, null);
+    };
     bloc.append(choix, ok, non);
     zone.append(bloc);
   }
 }
 
-async function trancher(id, etudiant) {
-  if (etudiant === "") return;
+async function trancher(id, choix) {
+  if (choix === "") return;
+  const [etudiant, groupe] = choix ?? [null, null];
   await fetch(`${API}/attente/${id}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ etudiant }),
+    body: JSON.stringify({ etudiant, groupe }),
   });
   await charger();
 }
@@ -119,26 +136,43 @@ $("fichier-classe").onchange = async (ev) => {
 };
 
 $("importer").onclick = async () => {
-  const c = arbre[$("choix-classe").value];
+  const cours = $("choix-cours").value;
   const fichiers = $("fichiers-pdf").files;
-  if (!c || !$("lab").value.trim() || !fichiers.length) {
-    $("resultat-import").textContent = "Choisir la classe, indiquer le lab et sélectionner des PDF.";
+  if (!cours || !$("lab").value.trim() || !fichiers.length) {
+    $("resultat-import").textContent = "Choisir le cours, indiquer le lab et sélectionner des PDF.";
     return;
   }
   const form = new FormData();
-  form.append("cours", c.cours);
-  form.append("groupe", c.groupe);
+  form.append("cours", cours);
+  form.append("groupe", $("choix-groupe").value);
   form.append("lab", $("lab").value.trim());
   for (const f of fichiers) form.append("fichiers", f);
   $("resultat-import").textContent = "Import en cours…";
   const r = await fetch(`${API}/import`, { method: "POST", body: form });
   if (!r.ok) { $("resultat-import").textContent = await erreurApi(r); return; }
-  const d = await r.json();
-  $("resultat-import").textContent =
-    `${d.ranges.length} rangé(s), ${d.en_attente.length} à trancher, ${d.refuses.length} refusé(s)` +
-    (d.refuses.length ? ` : ${d.refuses.map((x) => `${x.fichier} (${x.raison})`).join(", ")}` : "");
+  afficherRecap(await r.json());
   $("fichiers-pdf").value = "";
   await charger();
 };
+
+const RAISONS = {
+  ambigu: "plusieurs étudiants possibles",
+  aucune_correspondance: "aucun nom reconnu",
+  da_inconnu: "DA absent des listes",
+  deja_importe: "déjà importé pour ce lab",
+};
+
+function afficherRecap(d) {
+  const zone = $("resultat-import");
+  zone.replaceChildren(texte("strong", `${d.ranges.length} rangé(s), ${d.en_attente.length} à trancher, ${d.refuses.length} refusé(s)`));
+  const liste = document.createElement("ul");
+  for (const [g, n] of Object.entries(d.par_groupe)) liste.append(texte("li", `Groupe ${g} : ${n} rangé(s)`));
+  for (const x of d.en_attente) liste.append(texte("li", `À trancher : ${x.fichier} (${RAISONS[x.raison] ?? x.raison})`));
+  for (const x of d.refuses) liste.append(texte("li", `Refusé : ${x.fichier} (${x.raison})`));
+  for (const x of d.ranges.filter((y) => y.equipe.length)) {
+    liste.append(texte("li", `${x.etudiant.prenom} ${x.etudiant.nom} avec ${x.equipe.map((c) => `${c.prenom} ${c.nom}`).join(", ")}`));
+  }
+  zone.append(liste);
+}
 
 charger().catch(() => {});

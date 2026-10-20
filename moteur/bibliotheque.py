@@ -3,7 +3,9 @@
 Rangement sous `<données>/bibliotheque/` :
     <cours>/<groupe>/classe.json                    liste de classe
     <cours>/<groupe>/<lab>/<étudiant>/rapport.pdf   rapport rangé
+    <cours>/<groupe>/<lab>/<étudiant>/equipe.json   coéquipiers repérés sur la page titre
     _attente/<id>.pdf + <id>.json                   PDF à trancher par Guillaume
+    _ecartes/<id>.pdf + <id>.json                   PDF écartés (récupérables, jamais supprimés)
 """
 
 import csv
@@ -154,23 +156,67 @@ async def importer_classe(fichier: UploadFile = File(...)) -> dict:
 
 # --- Association d'un PDF à un étudiant -------------------------------------
 
-def candidats(nom_fichier: str, etudiants: list[dict]) -> list[dict]:
+MOTIF_DA = re.compile(r"(?<![0-9])([0-9]{6,9})(?![0-9])")
+LONGUEUR_MIN_COMPACT = 4  # en dessous, « roy » ne doit pas se coller dans un autre mot
+
+
+def extraire_da(nom_fichier: str) -> str | None:
+    """N° de DA dans le nom du fichier LÉA (« nom_2626310_Rapport… »), 6 à 9 chiffres."""
+    m = MOTIF_DA.search(Path(nom_fichier).stem)
+    return m[1] if m else None
+
+
+def candidats_par_nom(nom_fichier: str, etudiants: list[dict]) -> list[dict]:
     """Étudiants dont le nom de famille figure dans le nom du fichier.
 
     Si plusieurs noms correspondent, on garde les plus longs (« Tremblay-Roy »
     l'emporte sur « Roy »). Le prénom départage seulement les homonymes.
+    Sans résultat, on compare sans séparateurs (« Bele-Gombos » ~ « BeleGombos »).
     """
-    cible = f" {normaliser(Path(nom_fichier).stem)} "
+    texte = normaliser(Path(nom_fichier).stem)
+    cible = f" {texte} "
+    jetons = set(texte.split())
+
+    def compact(e: dict) -> str:
+        return normaliser(e["nom"]).replace(" ", "")
+
     trouves = [e for e in etudiants if f" {normaliser(e['nom'])} " in cible]
     if not trouves:
+        trouves = [e for e in etudiants if len(compact(e)) >= LONGUEUR_MIN_COMPACT and compact(e) in jetons]
+    if not trouves:
         return []
-    plus_long = max(len(normaliser(e["nom"])) for e in trouves)
-    trouves = [e for e in trouves if len(normaliser(e["nom"])) == plus_long]
+    plus_long = max(len(compact(e)) for e in trouves)
+    trouves = [e for e in trouves if len(compact(e)) == plus_long]
     if len(trouves) > 1:
         par_prenom = [e for e in trouves if e["prenom"] and f" {normaliser(e['prenom'])} " in cible]
         if len(par_prenom) == 1:
             return par_prenom
     return trouves
+
+
+def associer(nom_fichier: str, etudiants: list[dict]) -> tuple[list[dict], str | None]:
+    """(étudiants possibles, DA lu dans le nom). Le DA gagne; sinon le nom de famille."""
+    da = extraire_da(nom_fichier)
+    if da:
+        par_da = [e for e in etudiants if e.get("da") == da]
+        if par_da:
+            return par_da, da
+    return candidats_par_nom(nom_fichier, etudiants), da
+
+
+def candidats(nom_fichier: str, etudiants: list[dict]) -> list[dict]:
+    return associer(nom_fichier, etudiants)[0]
+
+
+def etudiants_du_cours(cours: str, groupe: str | None = None) -> list[dict]:
+    """Étudiants de tous les groupes du cours (ou d'un seul), chacun avec son `groupe`."""
+    segment_sur(cours, "cours")
+    sortie = []
+    for f in sorted((racine() / cours).glob("*/classe.json")):
+        if groupe and f.parent.name != groupe:
+            continue
+        sortie += [{**e, "groupe": f.parent.name} for e in json.loads(f.read_text(encoding="utf-8"))["etudiants"]]
+    return sortie
 
 
 def a_du_texte(contenu: bytes) -> bool:
@@ -180,48 +226,84 @@ def a_du_texte(contenu: bytes) -> bool:
         return False
 
 
+def coequipiers(contenu: bytes, etudiants: list[dict], exclu: dict | None) -> list[dict]:
+    """Étudiants du cours dont le nom ET le prénom figurent sur la première page."""
+    try:
+        page = normaliser(PdfReader(io.BytesIO(contenu)).pages[0].extract_text() or "")
+    except Exception:
+        return []
+    page = f" {page} "
+    trouves = []
+    for e in etudiants:
+        if exclu and (e["groupe"], e["id"]) == (exclu["groupe"], exclu["id"]):
+            continue
+        nom, prenom = normaliser(e["nom"]), normaliser(e["prenom"])
+        if nom and prenom and f" {nom} " in page and f" {prenom} " in page:
+            trouves.append({k: e[k] for k in ("id", "groupe", "nom", "prenom")})
+    return trouves
+
+
 def chemin_rapport(cours: str, groupe: str, lab: str, etudiant: str) -> Path:
     return dossier_groupe(cours, groupe) / segment_sur(lab, "lab") / etudiant / "rapport.pdf"
 
 
-def ranger(contenu: bytes, cours: str, groupe: str, lab: str, etudiant: str) -> str:
+def ranger(contenu: bytes, cours: str, groupe: str, lab: str, etudiant: str, equipe: list[dict] | None = None) -> str:
     cible = chemin_rapport(cours, groupe, lab, etudiant)
     cible.parent.mkdir(parents=True, exist_ok=True)
     cible.write_bytes(contenu)
+    fichier_equipe = cible.parent / "equipe.json"
+    if equipe:
+        fichier_equipe.write_text(json.dumps(equipe, ensure_ascii=False), encoding="utf-8")
+    elif fichier_equipe.exists():
+        fichier_equipe.unlink()  # nouveau rapport : l'ancienne équipe ne s'applique plus
     return f"{cours}/{groupe}/{lab}/{etudiant}"
 
 
 @router.post("/import")
 async def importer_lot(
     cours: str = Form(...),
-    groupe: str = Form(...),
     lab: str = Form(...),
+    groupe: str = Form(""),
     fichiers: list[UploadFile] = File(...),
 ) -> dict:
-    """Importe un lot de PDF : range ceux qui correspondent à un seul étudiant,
-    met les autres en attente, refuse les PDF sans texte."""
+    """Importe un lot de PDF. Sans `groupe`, chaque PDF va au groupe de son étudiant
+    (le DA est unique dans le cours). Range ceux qui correspondent à un seul étudiant,
+    met les autres en attente (avec la raison), refuse les PDF sans texte."""
     lab = slug(lab)
-    classe = charger_classe(cours, groupe)
-    resultat = {"ranges": [], "en_attente": [], "refuses": []}
+    groupe = groupe.strip() or None
+    if groupe:
+        charger_classe(cours, groupe)  # 404 si la liste est absente
+    etudiants = etudiants_du_cours(cours, groupe)
+    if not etudiants:
+        raise HTTPException(404, f"Aucune liste de classe pour {cours}.")
+    resultat = {"ranges": [], "en_attente": [], "refuses": [], "par_groupe": {}}
     for f in fichiers:
         nom = f.filename or "sans-nom.pdf"
         contenu = await f.read()
         if not contenu.startswith(b"%PDF") or not a_du_texte(contenu):
             resultat["refuses"].append({"fichier": nom, "raison": "PDF illisible ou sans texte (scan)"})
             continue
-        trouves = candidats(nom, classe["etudiants"])
-        deja = len(trouves) == 1 and chemin_rapport(cours, groupe, lab, trouves[0]["id"]).exists()
+        trouves, da = associer(nom, etudiants)
+        deja = len(trouves) == 1 and chemin_rapport(cours, trouves[0]["groupe"], lab, trouves[0]["id"]).exists()
         if len(trouves) == 1 and not deja:
-            ranger(contenu, cours, groupe, lab, trouves[0]["id"])
-            resultat["ranges"].append({"fichier": nom, "etudiant": trouves[0]})
+            e = trouves[0]
+            equipe = coequipiers(contenu, etudiants, e)
+            ranger(contenu, cours, e["groupe"], lab, e["id"], equipe)
+            resultat["ranges"].append({"fichier": nom, "etudiant": e, "groupe": e["groupe"], "equipe": equipe})
+            resultat["par_groupe"][e["groupe"]] = resultat["par_groupe"].get(e["groupe"], 0) + 1
             continue
-        raison = "deja_importe" if deja else ("ambigu" if trouves else "aucune_correspondance")
+        if deja:
+            raison = "deja_importe"
+        elif trouves:
+            raison = "ambigu"
+        else:
+            raison = "da_inconnu" if da else "aucune_correspondance"
         ident = uuid.uuid4().hex[:12]
         dossier = racine() / "_attente"
         dossier.mkdir(exist_ok=True)
         (dossier / f"{ident}.pdf").write_bytes(contenu)
         meta = {"id": ident, "fichier": nom, "cours": cours, "groupe": groupe, "lab": lab,
-                "raison": raison, "candidats": trouves}
+                "raison": raison, "da": da, "candidats": trouves}
         (dossier / f"{ident}.json").write_text(json.dumps(meta, ensure_ascii=False), encoding="utf-8")
         resultat["en_attente"].append(meta)
     return resultat
@@ -237,24 +319,35 @@ def lister_attente() -> list[dict]:
 
 class Choix(BaseModel):
     etudiant: str | None = None  # id de l'étudiant; vide = écarter le fichier
+    groupe: str | None = None    # groupe de l'étudiant (sinon celui du lot)
 
 
 @router.post("/attente/{ident}")
 def trancher(ident: str, choix: Choix) -> dict:
-    """Guillaume choisit l'étudiant (écrase un rapport déjà rangé) ou écarte le fichier."""
+    """Guillaume choisit l'étudiant (écrase un rapport déjà rangé) ou écarte le fichier.
+
+    Un fichier écarté est déplacé dans `_ecartes/` (récupérable), jamais supprimé."""
     segment_sur(ident, "id")
     dossier = racine() / "_attente"
     meta_f, pdf_f = dossier / f"{ident}.json", dossier / f"{ident}.pdf"
     if not meta_f.is_file():
         raise HTTPException(404, "Fichier en attente introuvable.")
     meta = json.loads(meta_f.read_text(encoding="utf-8"))
+    contenu = pdf_f.read_bytes()
     if choix.etudiant:
-        classe = charger_classe(meta["cours"], meta["groupe"])
-        if choix.etudiant not in {e["id"] for e in classe["etudiants"]}:
+        groupe = choix.groupe or meta.get("groupe")
+        tous = etudiants_du_cours(meta["cours"])
+        e = next((x for x in tous if x["id"] == choix.etudiant and x["groupe"] == groupe), None)
+        if not e:
             raise HTTPException(400, "Étudiant absent de la liste de classe.")
-        ranger(pdf_f.read_bytes(), meta["cours"], meta["groupe"], meta["lab"], choix.etudiant)
+        ranger(contenu, meta["cours"], e["groupe"], meta["lab"], e["id"], coequipiers(contenu, tous, e))
+        pdf_f.unlink()
+    else:
+        ecartes = racine() / "_ecartes"
+        ecartes.mkdir(exist_ok=True)
+        pdf_f.replace(ecartes / f"{ident}.pdf")
+        (ecartes / f"{ident}.json").write_text(json.dumps(meta, ensure_ascii=False), encoding="utf-8")
     meta_f.unlink()
-    pdf_f.unlink()
     return {"ok": True}
 
 
@@ -267,7 +360,12 @@ def arbre() -> list[dict]:
     for f in sorted(racine().glob("*/*/classe.json")):
         classe = json.loads(f.read_text(encoding="utf-8"))
         for e in classe["etudiants"]:
-            e["labs"] = sorted(p.parent.parent.name for p in f.parent.glob(f"*/{e['id']}/rapport.pdf"))
+            rapports = sorted(f.parent.glob(f"*/{e['id']}/rapport.pdf"))
+            e["labs"] = [p.parent.parent.name for p in rapports]
+            equipes = {p.parent.parent.name: json.loads((p.parent / "equipe.json").read_text(encoding="utf-8"))
+                       for p in rapports if (p.parent / "equipe.json").is_file()}
+            if equipes:
+                e["equipes"] = equipes
         sortie.append(classe)
     return sortie
 
