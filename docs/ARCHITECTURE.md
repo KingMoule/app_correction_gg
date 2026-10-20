@@ -37,10 +37,10 @@ docs/          plan (état et reste à faire), workflow, architecture, liaison C
 ## Lancer
 ```
 pip install -e ".[test]"   # une seule fois
-python -m moteur           # affiche l'adresse à ouvrir sur l'iPad
+python -m moteur           # port 8001; affiche l'adresse à ouvrir sur l'iPad
 pytest                     # tests
 ```
-Sur l'iPad (même Wi-Fi) : ouvrir l'adresse affichée dans Safari, puis Partager → « Sur l'écran d'accueil ». Option `--local` : accès depuis l'ordi seulement. Le dossier de données se change avec la variable `CORRECTION_DONNEES`.
+Sur l'iPad (même Wi-Fi) : ouvrir l'adresse affichée dans Safari, puis Partager → « Sur l'écran d'accueil ». Windows : `demarrer.bat` lance tout (guide : `docs/DEMARRAGE.md`). Option `--port` si le port est pris; option `--local` : accès depuis l'ordi seulement. Le dossier de données se change avec la variable `CORRECTION_DONNEES`.
 
 ## Ajouter une fonction
 1. Créer `moteur/<fonction>.py` avec un `APIRouter` (préfixe `/api/<fonction>`).

@@ -4,6 +4,7 @@ Outils pour corriger les rapports de laboratoire : bibliothèque de rapports (co
 
 Un moteur Python (FastAPI) tourne sur l'ordi; l'iPad utilise une app web installable (PWA) sur le même Wi-Fi.
 
-- Lancer : `pip install -e ".[test]"` puis `python -m moteur` (tests : `pytest`).
+- Démarrage sous Windows (ordi + iPad) : `docs/DEMARRAGE.md` (double-clic sur `demarrer.bat`).
+- Lancer à la main : `pip install -e ".[test]"` puis `python -m moteur` (tests : `pytest`).
 - Plan et état : `docs/PLAN.md`. Structure : `docs/ARCHITECTURE.md`. Façon de travailler : `CLAUDE.md`.
 - Aucun rapport d'étudiant dans le dépôt (données sous `donnees/`, exclu par `.gitignore`).

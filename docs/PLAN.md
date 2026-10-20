@@ -4,12 +4,12 @@ Objectif : une seule app pour corriger les rapports de lab (français, annotatio
 
 ## État au 2026-10-19 (à lire en premier)
 
-Tout est fusionné dans `main` jusqu'à la PR #18 (bibliothèque, lecteur et annotation, fautes de français, export du PDF annoté, plagiat, indices d'IA, passe Claude sur le français, mesure de consommation, compatibilité Windows). Reste à faire :
+Tout est fusionné dans `main` jusqu'à la PR #19 (bibliothèque, lecteur et annotation, fautes de français, export du PDF annoté, plagiat, indices d'IA, passe Claude sur le français, mesure de consommation, compatibilité Windows, analyse par lot). Reste à faire :
 
 - [x] **Passe Claude sur le français** (étape 2) : faite et fusionnée (PR #17). Après LanguageTool, `claude -p` repère les erreurs subtiles; mêmes zones et décisions que LanguageTool. Consommation mesurée (ligne ci-dessous).
 - [ ] **Essais de Guillaume sur l'iPad** : crayon dans l'app (le prototype seul est validé), tap sur une faute pour sa fiche, export du PDF depuis l'app installée sur l'écran d'accueil.
 - [x] **Mesure faite (2026-10-19)** : 1 rapport (français + indices d'IA) = **3 % de la limite de session (5 h)**, limite de la semaine inchangée (pas de hausse visible). Conditions : modèle **Opus 5.5**, rapport de 3 pages. Estimation : avec une marge de 20 % de la session, environ 6 rapports par lot **avec Opus**. **Sonnet** (même rapport, 3 pages) = **2 % de la session**, semaine inchangée : environ 10 rapports par lot avec la même marge de 20 %. Les % affichés sont entiers : mesure approximative (±1 point). Option : mesurer `haiku`, ou refaire sur 3 à 5 rapports pour affiner.
-- [~] **Analyse par lot** (cette PR) : fait côté moteur et écran (`moteur/lot.py`, `pwa/lot.js`) : au plus N rapports d'un lab (10 par défaut), arrêt propre sur limite d'usage, bouton Arrêter, case « Refaire aussi les analysés » (décision de Guillaume : par défaut, les rapports déjà analysés sont ignorés). Modèle par défaut du moteur : Sonnet. Reste : l'essayer sur de vrais rapports. Plagiat par lot : pas de changement (déjà une paire à la fois, après confirmation).
+- [~] **Analyse par lot** (fusionnée, PR #19) : fait côté moteur et écran (`moteur/lot.py`, `pwa/lot.js`) : au plus N rapports d'un lab (10 par défaut), arrêt propre sur limite d'usage, bouton Arrêter, case « Refaire aussi les analysés » (décision de Guillaume : par défaut, les rapports déjà analysés sont ignorés). Modèle par défaut du moteur : Sonnet. Reste : l'essayer sur de vrais rapports. Plagiat par lot : pas de changement (déjà une paire à la fois, après confirmation).
 - [ ] Rendu surligné du plagiat sur le PDF (étape 3, optionnel).
 
 Reprise dans un nouveau compte Claude : le dépôt contient tout le contexte; il n'y a pas d'historique de fils. Lire `CLAUDE.md`, ce fichier, puis `docs/ARCHITECTURE.md`.
