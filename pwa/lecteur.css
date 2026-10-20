@@ -14,7 +14,7 @@ body { display: flex; flex-direction: column; overflow: hidden; padding-top: env
 #barre button:disabled { opacity: .35; }
 .grp { display: flex; gap: 6px; align-items: center; }
 .sep { width: 1px; align-self: stretch; background: #555; margin: 2px; }
-.outil { gap: 8px; }
+.outil { gap: 5px; font-size: 20px; padding: 0 10px !important; }
 .outil i { width: 12px; height: 12px; border-radius: 50%; border: 1px solid #fff8; display: inline-block; }
 .outil:not(.on) i { opacity: .8; }
 #barre .pastille { width: 44px; padding: 0; border-radius: 50%; border: 3px solid #555; }
