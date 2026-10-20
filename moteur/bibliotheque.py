@@ -20,7 +20,7 @@ from pathlib import Path
 
 from fastapi import APIRouter, File, Form, HTTPException, UploadFile
 from fastapi.responses import FileResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from pypdf import PdfReader
 
 from .config import dossier_donnees
@@ -221,6 +221,12 @@ def etudiants_du_cours(cours: str, groupe: str | None = None) -> list[dict]:
     return sortie
 
 
+def classes_du_cours(cours: str) -> list[dict]:
+    """Les `classe.json` du cours (un par groupe)."""
+    segment_sur(cours, "cours")
+    return [json.loads(f.read_text(encoding="utf-8")) for f in sorted((racine() / cours).glob("*/classe.json"))]
+
+
 def a_du_texte(contenu: bytes) -> bool:
     try:
         return any((p.extract_text() or "").strip() for p in PdfReader(io.BytesIO(contenu)).pages)
@@ -249,10 +255,13 @@ def chemin_rapport(cours: str, groupe: str, lab: str, etudiant: str) -> Path:
     return dossier_groupe(cours, groupe) / segment_sur(lab, "lab") / etudiant / "rapport.pdf"
 
 
-def ranger(contenu: bytes, cours: str, groupe: str, lab: str, etudiant: str, equipe: list[dict] | None = None) -> str:
+def ranger(contenu: bytes, cours: str, groupe: str, lab: str, etudiant: str, equipe: list[dict] | None = None,
+           origine: str | None = None) -> str:
     cible = chemin_rapport(cours, groupe, lab, etudiant)
     cible.parent.mkdir(parents=True, exist_ok=True)
     cible.write_bytes(contenu)
+    if origine:  # nom du PDF téléchargé de LÉA, repris pour nommer la copie corrigée
+        (cible.parent / "origine.json").write_text(json.dumps({"fichier": origine}, ensure_ascii=False), encoding="utf-8")
     fichier_equipe = cible.parent / "equipe.json"
     if equipe:
         fichier_equipe.write_text(json.dumps(equipe, ensure_ascii=False), encoding="utf-8")
@@ -290,7 +299,7 @@ async def importer_lot(
         if len(trouves) == 1 and not deja:
             e = trouves[0]
             equipe = coequipiers(contenu, etudiants, e)
-            ranger(contenu, cours, e["groupe"], lab, e["id"], equipe)
+            ranger(contenu, cours, e["groupe"], lab, e["id"], equipe, nom)
             resultat["ranges"].append({"fichier": nom, "etudiant": e, "groupe": e["groupe"], "equipe": equipe})
             resultat["par_groupe"][e["groupe"]] = resultat["par_groupe"].get(e["groupe"], 0) + 1
             continue
@@ -342,7 +351,7 @@ def trancher(ident: str, choix: Choix) -> dict:
         e = next((x for x in tous if x["id"] == choix.etudiant and x["groupe"] == groupe), None)
         if not e:
             raise HTTPException(400, "Étudiant absent de la liste de classe.")
-        ranger(contenu, meta["cours"], e["groupe"], meta["lab"], e["id"], coequipiers(contenu, tous, e))
+        ranger(contenu, meta["cours"], e["groupe"], meta["lab"], e["id"], coequipiers(contenu, tous, e), meta.get("fichier"))
         pdf_f.unlink()
     else:
         ecartes = racine() / "_ecartes"
@@ -369,6 +378,9 @@ def arbre() -> list[dict]:
             if equipes:
                 e["equipes"] = equipes
             e["termines"] = [p.parent.parent.name for p in rapports if _termine(p.parent)]
+            notes = {p.parent.parent.name: n for p in rapports if (n := lire_note(p.parent))}
+            if notes:
+                e["notes"] = notes
         classe["labs_archives"] = sorted(a.parent.name for a in f.parent.glob("*/archive.json") if _lire_drapeau(a, "archive"))
         sortie.append(classe)
     return sortie
@@ -385,8 +397,17 @@ def _termine(dossier_rapport: Path) -> bool:
     return _lire_drapeau(dossier_rapport / "statut.json", "termine")
 
 
+def lire_note(dossier_rapport: Path) -> str:
+    """Note saisie à « Terminé » (texte libre, ex. « 17/20 »), vide si aucune."""
+    try:
+        return str(json.loads((dossier_rapport / "statut.json").read_text(encoding="utf-8")).get("note") or "")
+    except (OSError, ValueError, AttributeError):
+        return ""
+
+
 class Termine(BaseModel):
     termine: bool
+    note: str | None = Field(None, max_length=40)  # absent = garder la note déjà saisie
 
 
 class Archive(BaseModel):
@@ -400,8 +421,9 @@ def changer_statut(cours: str, groupe: str, lab: str, etudiant: str, corps: Term
     dossier = chemin_rapport(cours, groupe, lab, etudiant).parent
     if not (dossier / "rapport.pdf").is_file():
         raise HTTPException(404, "Rapport introuvable.")
-    (dossier / "statut.json").write_text(json.dumps({"termine": corps.termine}), encoding="utf-8")
-    return {"termine": corps.termine}
+    note = lire_note(dossier) if corps.note is None else corps.note.strip()
+    (dossier / "statut.json").write_text(json.dumps({"termine": corps.termine, "note": note}, ensure_ascii=False), encoding="utf-8")
+    return {"termine": corps.termine, "note": note}
 
 
 @router.put("/archive/{cours}/{groupe}/{lab}")

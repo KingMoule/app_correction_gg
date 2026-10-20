@@ -80,8 +80,15 @@ function ligneRapport(c, lab, e) {
   ia.onclick = () => window.ouvrirIndicesIA?.(c.cours, c.groupe, lab, e);
   const statut = texte("button", fini ? "↩ Ré-ouvrir" : "✔ Terminé", "bk");
   statut.onclick = async () => {
-    if (await api("PUT", `${API}/statut/${c.cours}/${c.groupe}/${lab}/${e.id}`, { termine: !fini })) await charger();
+    let corps = { termine: !fini };
+    if (!fini) { // note du rapport, demandée à « Terminé » (vide = pas de note); Annuler = ne rien faire
+      const note = prompt("Note du rapport (ex. 17,5), facultatif :", e.notes?.[lab] ?? "");
+      if (note === null) return;
+      corps = { termine: true, note: note.trim() };
+    }
+    if (await api("PUT", `${API}/statut/${c.cours}/${c.groupe}/${lab}/${e.id}`, corps)) await charger();
   };
+  if (e.notes?.[lab]) nom.append(texte("small", ` · note ${e.notes[lab]}`));
   ligne.append(nom, ia, statut, francais, ouvrir);
   return ligne;
 }
@@ -170,7 +177,9 @@ function rendreArbre() {
       const titre = texte("span", lab);
       titre.append(texte("span", `${faits} / ${total}`, `pastille ${faits === total ? "p-fini" : ""}`));
       blocsLabs.push(remplir(bloc(`${cours}/${lab}`, titre, `${groupes.length} groupe(s)`),
-        [blocEnonce(cours, lab), ...groupes.map((c) => blocGroupe(c, lab))]));
+        [blocEnonce(cours, lab),
+          window.blocExportLea(cours, lab, classes.filter((c) => c.etudiants.some((e) => e.labs.includes(lab))).map((c) => c.groupe)),
+          ...groupes.map((c) => blocGroupe(c, lab))]));
     }
     zone.append(remplir(bloc(cours, texte("b", cours), `${labs.length} lab(s) · ${classes.length} groupe(s)`),
       blocsLabs.length ? blocsLabs : [texte("p", "Aucun lab dans cette vue.", "aide")]));

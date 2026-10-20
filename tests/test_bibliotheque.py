@@ -263,7 +263,7 @@ def test_statut_termine_et_archive(client):
     assert alice["labs"] == ["lab-3"] and alice["termines"] == [] and arbre["labs_archives"] == []
 
     base = f"/api/bibliotheque/statut/202SNURE/00002/lab-3/{alice['id']}"
-    assert client.put(base, json={"termine": True}).json() == {"termine": True}
+    assert client.put(base, json={"termine": True}).json() == {"termine": True, "note": ""}
     arbre = client.get("/api/bibliotheque").json()[0]
     assert next(e for e in arbre["etudiants"] if e["nom"] == "Dubé")["termines"] == ["lab-3"]
     client.put(base, json={"termine": False})

@@ -65,5 +65,12 @@ main { margin-top: 1rem; padding: 0 1rem 1rem; }
 .raccourcis { display: flex; flex-wrap: wrap; gap: .4rem; }
 .raccourcis button { display: inline-block; min-height: 44px; padding: 0 1rem; border: 1px solid #d8d8d8; border-radius: 10px; background: #fff; font-size: 1rem; }
 
+.export-lea { padding: .4rem .6rem; background: #f3f8f1; }
+.export-lea select, .export-lea .inacheves { min-height: 44px; display: inline-flex; align-items: center; gap: .3rem; font-size: .9rem; }
+.export-lea .suivi-export { flex-basis: 100%; }
+.export-lea .suivi-export progress { width: 100%; height: 14px; }
+.export-lea .suivi-export .erreur { color: #b3261e; }
+.bk.principal { background: #b3261e; border-color: #b3261e; color: #fff; }
+.bk:disabled { opacity: .5; }
 .outils-lab { display: flex; flex-wrap: wrap; gap: .35rem; margin: .3rem 0; }
 .note { background: #fff8e1; border: 1px solid #ecd58a; border-radius: 8px; padding: .5rem .8rem; font-size: .9rem; }

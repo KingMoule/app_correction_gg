@@ -39,12 +39,19 @@
 
   const marquer = async (valeur) => {
     await window.toutEnregistrer();
+    const corps = { termine: valeur };
+    if (valeur) { // note du rapport (vide = pas de note); Annuler = ne rien faire
+      const note = prompt("Note du rapport (ex. 17,5), facultatif :", courant?.notes?.[lab] ?? "");
+      if (note === null) return false;
+      corps.note = note.trim();
+    }
     const r = await fetch(`${API_BIB}/statut/${[cours, groupe, lab, etudiant].map(encodeURIComponent).join("/")}`, {
-      method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ termine: valeur }),
+      method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(corps),
     });
     if (!r.ok) { alert("Impossible d'enregistrer le statut."); return false; }
     termine = valeur;
     courant.termines = valeur ? [lab] : [];
+    if (valeur) courant.notes = { ...courant.notes, [lab]: corps.note };
     afficher();
     return true;
   };
