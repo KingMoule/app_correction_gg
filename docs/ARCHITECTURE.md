@@ -25,6 +25,7 @@ moteur/        API et logique (un module par fonction)
   annotations.py API /api/annotations (traits du crayon, enregistrés à part du PDF)
   export.py    API /api/export (PDF annoté pour LÉA, créé à la demande)
   polices/     Caveat Bold (OFL), écriture manuscrite des corrections dans le PDF exporté
+  sauvegarde.py sauvegarde (zip daté, rotation) et restauration des données; commande `python -m moteur.sauvegarde`, lancée par demarrer.bat
   __main__.py  commande de lancement
 pwa/           app iPad (index.html + app.js : bibliothèque; lecteur.html/js/css : lecteur et annotation; plagiat.html/js/css : plagiat; lot.js : analyse par lot;
                vendor/ : pdf.js, copié dans le dépôt car l'iPad n'a pas forcément Internet)
@@ -138,3 +139,6 @@ Décisions de Guillaume (2026-10-20) : ZIP nommé **`Travaux.zip`**, un par grou
 - Navigation : `index.html` est une seule page à quatre vues (`#accueil`, `#biblio`, `#importer`, `#outils`) commutées par `aller()` dans `app.js` (adresse `/#biblio` possible). Le lecteur garde le dernier rapport ouvert dans le `localStorage` (clé `dernier`) pour « Continuer ».
 - Lecteur : `navigation-lecteur.js` lit l'arbre de la bibliothèque, passe d'un rapport à l'autre du même groupe et lab (après avoir enregistré les traits et décisions via `toutEnregistrer()` de `lecteur.js`) et écrit le statut par `PUT /api/bibliotheque/statut/…`.
 - Liens entre écrans : `window.choisirLot(cours, groupe, lab)` (`lot.js`) présélectionne le lab de l'analyse par lot; `plagiat.html?cours=…&lab=…` préremplit l'énoncé; `app.js` signale (`rendreEnoncesManquants`) les labs sans énoncé.
+
+## Sauvegarde des données
+`moteur/sauvegarde.py` (pas d'API HTTP). Archive zip de `<données>/` sauf `plagiat/textes/`, écrite en `.tmp` dans `CORRECTION_SAUVEGARDES` (défaut `<données>_sauvegardes`), vérifiée (`testzip`), puis renommée; un JSON invalide à la lecture (écriture en cours) est relu. Rotation : 10 dernières + la plus récente des 8 dernières semaines, limitée aux fichiers `sauvegarde_*.zip`. Restauration : extraction dans un dossier temporaire voisin, refus des chemins hors dossier, l'ancien dossier est renommé `_avant_restauration_<date>`, jamais supprimé. Usage : `docs/DEMARRAGE.md`. Tests : `tests/test_sauvegarde.py` (données fictives).
