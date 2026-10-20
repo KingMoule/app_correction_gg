@@ -32,7 +32,8 @@ body { display: flex; flex-direction: column; overflow: hidden; padding-top: env
 
 /* Fautes de français */
 @font-face { font-family: "Caveat"; font-weight: 700; src: url("vendor/caveat-latin-700-normal.woff2") format("woff2"); }
-.fautes { position: absolute; inset: 0; pointer-events: none; }
+/* z-index : les canvas d'une page sont créés à son activation (après la couche); sans lui ils la recouvriraient. */
+.fautes { position: absolute; inset: 0; z-index: 1; pointer-events: none; }
 .zone { position: absolute; background: rgba(229, 57, 53, .22); border-bottom: 2px dashed #c62828; mix-blend-mode: multiply; border-radius: 2px; }
 .zone.acceptee { background: rgba(229, 57, 53, .45); border-bottom: 2px solid #c62828; }
 .zone.choisie { outline: 2px solid #1565c0; }

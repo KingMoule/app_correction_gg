@@ -6,6 +6,7 @@ import json
 import pdfplumber
 import pytest
 from pypdf import PdfReader
+from reportlab.pdfgen import canvas
 
 from tests.test_annotations import TRAIT, URL
 from tests.test_bibliotheque import charger_classe, client, importer, pdf  # noqa: F401
@@ -22,10 +23,10 @@ def rapport(client, tmp_path):
     return client, tmp_path / "bibliotheque/202SNURE/00002/lab-3/dube-alice"
 
 
-def pixels_colores(contenu: bytes, rect):
-    """Pixels non blancs de la page 1 dans rect (points PDF, origine en haut à gauche)."""
+def pixels_colores(contenu: bytes, rect, page: int = 1):
+    """Pixels non blancs de la page `page` dans rect (points PDF, origine en haut à gauche)."""
     with pdfplumber.open(io.BytesIO(contenu)) as p:
-        image = p.pages[0].to_image(resolution=72).original.convert("RGB")
+        image = p.pages[page - 1].to_image(resolution=72).original.convert("RGB")
     x0, y0, x1, y1 = rect
     return [image.getpixel((x, y)) for x in range(x0, x1) for y in range(y0, y1) if image.getpixel((x, y)) != (255, 255, 255)]
 
@@ -78,6 +79,26 @@ def test_correction_manuscrite_effacee(rapport):
     assert pixels_colores(client.get(URL_EXPORT).content, au_dessus)
     faire_francais(dossier, {"0": "acceptee"}, masquees=[0])
     assert not pixels_colores(client.get(URL_EXPORT).content, au_dessus)
+
+
+def test_corrections_manuscrites_sur_toutes_les_pages(rapport):
+    client, dossier = rapport
+    tampon = io.BytesIO()
+    c = canvas.Canvas(tampon)
+    for n in (1, 2, 3):
+        c.drawString(72, 700, f"Page {n} : les etudiants mesure la tension.")
+        c.showPage()
+    c.save()
+    (dossier / "rapport.pdf").write_bytes(tampon.getvalue())
+    fautes = [{"id": n - 1, "debut": 0, "fin": 6, "texte": "mesure", "message": "", "regle": "", "categorie": "",
+               "suggestions": ["mesurent"], "zones": [{"page": n, "x0": 72, "y0": 90, "x1": 140, "y1": 102}]} for n in (1, 2, 3)]
+    (dossier / "francais.json").write_text(json.dumps({
+        "version": 1, "fautes": fautes, "decisions": {"0": "acceptee", "1": "acceptee", "2": "acceptee"},
+        "choix": {}, "masquees": []}), encoding="utf-8")
+    contenu = client.get(URL_EXPORT).content
+    for n in (1, 2, 3):
+        assert pixels_colores(contenu, (75, 91, 138, 101), n), f"surlignage absent, page {n}"
+        assert pixels_colores(contenu, (72, 78, 140, 90), n), f"correction manuscrite absente, page {n}"
 
 
 def test_export_rapport_inconnu(rapport):
