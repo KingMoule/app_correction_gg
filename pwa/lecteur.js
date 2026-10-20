@@ -13,13 +13,33 @@ const URL_EXPORT = `/api/export/${base}`;
 
 const COULEURS = ["#d32f2f", "#1565c0", "#2e7d32", "#111111", "#ef6c00"];
 const SURLIGNEURS = ["#ff5252", "#40c4ff", "#69f0ae", "#ffee58", "#ffab40"];
-const LARGEUR_SURLIGNEUR = 11;
 const ESPACE = 12; // espace entre les pages, en px
+// 3 épaisseurs par outil : crayon = largeurs min/max en points PDF (la pression joue entre les deux), surligneur = largeur fixe.
+const EPAISSEURS = {
+  crayon: [{ min: 0.4, max: 2.2 }, { min: 0.6, max: 3.8 }, { min: 1, max: 6.5 }],
+  surligneur: [{ min: 7, max: 7 }, { min: 11, max: 11 }, { min: 16, max: 16 }],
+};
+const PALETTES = { crayon: COULEURS, surligneur: SURLIGNEURS };
+const DELAI_DROIT = 550; // ms d'immobilité en fin de trait pour redresser le surligneur
 
-const reglages = { outil: "crayon", couleur: 0, wmin: 0.6, wmax: 3.8, courbe: 1, gomme: 6, doigt: false };
-try { Object.assign(reglages, JSON.parse(localStorage.getItem("reglages-lecteur") || "{}"), { outil: "crayon" }); } catch { /* stockage indisponible */ }
+// Réglage par outil, gardé sur l'appareil. Au chargement : le dernier outil de trait (jamais la gomme).
+const reglages = {
+  outil: "crayon", courbe: 1, gomme: 6, gommeMode: "trait", doigt: false,
+  crayon: { couleur: 0, epaisseur: 1 }, surligneur: { couleur: 3, epaisseur: 1 },
+};
+try {
+  const m = JSON.parse(localStorage.getItem("reglages-lecteur") || "{}");
+  for (const k of ["courbe", "gomme", "doigt"]) if (typeof m[k] === typeof reglages[k]) reglages[k] = m[k];
+  if (m.gommeMode === "trait" || m.gommeMode === "partielle") reglages.gommeMode = m.gommeMode;
+  for (const o of ["crayon", "surligneur"]) {
+    const t = m[o] || {};
+    if (Number.isInteger(t.couleur) && t.couleur >= 0 && t.couleur < 5) reglages[o].couleur = t.couleur;
+    if (Number.isInteger(t.epaisseur) && t.epaisseur >= 0 && t.epaisseur < 3) reglages[o].epaisseur = t.epaisseur;
+  }
+  if (m.outil === "surligneur") reglages.outil = "surligneur";
+} catch { /* stockage indisponible */ }
 const garderReglages = () => {
-  try { localStorage.setItem("reglages-lecteur", JSON.stringify({ ...reglages, outil: undefined })); } catch { /* idem */ }
+  try { localStorage.setItem("reglages-lecteur", JSON.stringify(reglages)); } catch { /* idem */ }
 };
 
 let pages = []; // { numero, w, h, pdf, el, traits, actif, R, bg, hl, ink }
@@ -29,53 +49,74 @@ let zoom = 1;
 function message(texte) { const m = $("message"); m.textContent = texte; m.hidden = !texte; }
 
 // ----- barre d'outils -----
-function couleurActive() { return reglages.outil === "surligneur" ? SURLIGNEURS[reglages.couleur] : COULEURS[reglages.couleur]; }
-function majPastilles() {
+const reglageTrait = () => reglages[reglages.outil === "surligneur" ? "surligneur" : "crayon"];
+function couleurDe(o) { return PALETTES[o][reglages[o].couleur]; }
+function majBarre() {
+  const o = reglages.outil, gomme = o === "gomme";
+  for (const k of ["crayon", "surligneur", "gomme"]) $("o-" + k).classList.toggle("on", k === o);
+  for (const k of ["crayon", "surligneur"]) $("o-" + k).querySelector("i").style.background = couleurDe(k);
+  $("options-trait").hidden = gomme; $("options-gomme").hidden = !gomme;
+  fermerMenu();
+  $("g-trait").classList.toggle("on", reglages.gommeMode === "trait");
+  $("g-partielle").classList.toggle("on", reglages.gommeMode === "partielle");
+  if (gomme) return;
+  const t = reglages[o];
+  const hauteur = (i) => Math.max(2, EPAISSEURS[o][i].max * (o === "surligneur" ? 0.7 : 1.4)) + "px";
+  [...$("epaisseurs").children].forEach((b, i) => {
+    b.classList.toggle("on", i === t.epaisseur);
+    b.firstChild.style.height = hauteur(i);
+  });
+  $("ep-bouton").querySelector(".trait-ap").style.height = hauteur(t.epaisseur);
   [...$("couleurs").children].forEach((b, i) => {
-    b.style.background = reglages.outil === "surligneur" ? SURLIGNEURS[i] : COULEURS[i];
-    b.classList.toggle("on", i === reglages.couleur);
+    b.style.background = PALETTES[o][i];
+    b.classList.toggle("on", i === t.couleur);
   });
 }
+for (let i = 0; i < 3; i++) {
+  const b = document.createElement("button");
+  b.className = "epaisseur"; b.setAttribute("aria-label", `Épaisseur ${i + 1}`);
+  b.append(document.createElement("span"));
+  b.onclick = () => { reglageTrait().epaisseur = i; fermerMenu(); majBarre(); garderReglages(); };
+  $("epaisseurs").append(b);
+}
+function fermerMenu() { $("epaisseurs").hidden = true; $("ep-bouton").setAttribute("aria-expanded", "false"); }
+$("ep-bouton").onclick = () => {
+  const ouvrir = $("epaisseurs").hidden;
+  $("epaisseurs").hidden = !ouvrir; $("ep-bouton").setAttribute("aria-expanded", String(ouvrir));
+};
+document.addEventListener("pointerdown", (e) => { if (!e.target.closest(".menu")) fermerMenu(); });
 COULEURS.forEach((_, i) => {
   const b = document.createElement("button");
   b.className = "pastille";
   b.setAttribute("aria-label", `Couleur ${i + 1}`);
-  b.onclick = () => { reglages.couleur = i; majPastilles(); garderReglages(); };
+  b.onclick = () => { reglageTrait().couleur = i; majBarre(); garderReglages(); };
   $("couleurs").append(b);
 });
 function choisirOutil(o) {
   reglages.outil = o;
-  for (const k of ["crayon", "surligneur", "gomme"]) $("o-" + k).classList.toggle("on", k === o);
-  majPastilles();
+  majBarre();
+  if (o !== "gomme") garderReglages();
 }
 $("o-crayon").onclick = () => choisirOutil("crayon");
 $("o-surligneur").onclick = () => choisirOutil("surligneur");
 $("o-gomme").onclick = () => choisirOutil("gomme");
+$("g-trait").onclick = () => { reglages.gommeMode = "trait"; majBarre(); garderReglages(); };
+$("g-partielle").onclick = () => { reglages.gommeMode = "partielle"; majBarre(); garderReglages(); };
 let dernierOutil = "crayon";
 $("bascule").onclick = () => {
   if (reglages.outil === "gomme") choisirOutil(dernierOutil);
   else { dernierOutil = reglages.outil; choisirOutil("gomme"); }
 };
 $("reglages-bouton").onclick = () => { $("reglages").hidden = !$("reglages").hidden; };
-for (const [id, cle] of [["r-wmin", "wmin"], ["r-wmax", "wmax"], ["r-courbe", "courbe"], ["r-gomme", "gomme"]]) {
+for (const [id, cle] of [["r-courbe", "courbe"], ["r-gomme", "gomme"]]) {
   const el = $(id), sortie = el.parentElement.querySelector("b");
   el.value = reglages[cle];
-  const maj = () => {
-    reglages[cle] = +el.value;
-    if (reglages.wmin > reglages.wmax) {
-      if (cle === "wmin") reglages.wmax = reglages.wmin; else reglages.wmin = reglages.wmax;
-      $("r-wmin").value = reglages.wmin; $("r-wmax").value = reglages.wmax;
-      $("r-wmin").parentElement.querySelector("b").textContent = reglages.wmin.toFixed(1);
-      $("r-wmax").parentElement.querySelector("b").textContent = reglages.wmax.toFixed(1);
-    }
-    sortie.textContent = (+el.value).toFixed(1);
-    garderReglages();
-  };
-  el.oninput = maj; sortie.textContent = (+el.value).toFixed(1);
+  el.oninput = () => { reglages[cle] = +el.value; sortie.textContent = (+el.value).toFixed(1); garderReglages(); };
+  sortie.textContent = (+el.value).toFixed(1);
 }
 $("r-doigt").checked = reglages.doigt;
 $("r-doigt").onchange = (e) => { reglages.doigt = e.target.checked; garderReglages(); };
-choisirOutil("crayon");
+majBarre();
 
 // ----- rendu des traits -----
 function largeur(s, p) {
@@ -164,6 +205,18 @@ function position(e, pg) {
   return { x: ((e.clientX - r.left) * pg.w) / r.width, y: ((e.clientY - r.top) * pg.h) / r.height };
 }
 
+// Surligneur : crayon immobile en fin de trait -> le trait devient une ligne droite du départ à la position du crayon.
+function armerRedressement(d, p) {
+  if (d.s.outil !== "surligneur") return;
+  d.ref = p; clearTimeout(d.minuterie);
+  d.minuterie = setTimeout(() => {
+    if (d.s.pts.length < 3) return;
+    d.droit = true;
+    d.s.pts = [d.s.pts[0], { ...d.s.pts[d.s.pts.length - 1], p: 0.5 }];
+    redessiner(d.pg);
+  }, DELAI_DROIT);
+}
+
 function brancherSaisie(pg) {
   const ink = pg.ink;
   ink.addEventListener("pointerdown", (e) => {
@@ -174,15 +227,15 @@ function brancherSaisie(pg) {
       const d = { pg, gomme: true, retires: [], ajoutes: [] };
       enCours.set(e.pointerId, d); gommerVers(d, p); return;
     }
-    const surligneur = reglages.outil === "surligneur";
+    const o = reglages.outil, ep = EPAISSEURS[o][reglages[o].epaisseur];
     const s = {
-      outil: reglages.outil, couleur: couleurActive(), courbe: reglages.courbe, pts: [p],
-      largeur_min: surligneur ? LARGEUR_SURLIGNEUR : reglages.wmin,
-      largeur_max: surligneur ? LARGEUR_SURLIGNEUR : reglages.wmax,
+      outil: o, couleur: couleurDe(o), courbe: o === "surligneur" ? 1 : reglages.courbe, pts: [p],
+      largeur_min: ep.min, largeur_max: ep.max,
     };
-    const d = { pg, s, trace: 0 };
+    const d = { pg, s, trace: 0, droit: false, minuterie: null };
     enCours.set(e.pointerId, d);
     pg.traits.push(s); tracerEnDirect(pg, d);
+    armerRedressement(d, p);
   }, { passive: false });
 
   ink.addEventListener("pointermove", (e) => {
@@ -193,18 +246,22 @@ function brancherSaisie(pg) {
     for (const ev of groupes.length ? groupes : [e]) {
       const p = position(ev, pg);
       if (d.gomme) { gommerVers(d, p); continue; }
+      if (d.droit) { d.s.pts = [d.s.pts[0], { ...p, p: 0.5 }]; continue; } // trait redressé : le bout suit le crayon
       const dernier = d.s.pts[d.s.pts.length - 1];
       if (Math.hypot(p.x - dernier.x, p.y - dernier.y) < 0.3) continue;
       p.p = dernierP = dernierP * 0.5 + pression(ev) * 0.5; // lisse la pression
       d.s.pts.push(p);
+      if (Math.hypot(p.x - d.ref.x, p.y - d.ref.y) > 3) armerRedressement(d, p);
     }
-    if (!d.gomme) tracerEnDirect(pg, d);
+    if (d.gomme) return;
+    if (d.droit) redessiner(pg); else tracerEnDirect(pg, d);
   }, { passive: false });
 
   const fin = (e) => {
     const d = enCours.get(e.pointerId);
     if (!d) return;
     enCours.delete(e.pointerId);
+    clearTimeout(d.minuterie);
     if (d.gomme) {
       if (d.retires.length || d.ajoutes.length) empiler({ type: "gomme", pg, retires: d.retires, ajoutes: d.ajoutes });
     } else {
@@ -260,8 +317,9 @@ function gommerEn(d, p) {
     if (!atteint) { reste.push(s); continue; }
     touche = true;
     const dense = densifier(pts, 1.5), morceaux = [];
+    const entier = reglages.gommeMode === "trait";
     let courant = [];
-    for (const q of dense) {
+    for (const q of entier ? [] : dense) {
       if (Math.hypot(q.x - p.x, q.y - p.y) < rr) { if (courant.length) morceaux.push(courant); courant = []; } else courant.push(q);
     }
     if (courant.length) morceaux.push(courant);
