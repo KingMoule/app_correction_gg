@@ -36,6 +36,30 @@ java -cp languagetool-server.jar org.languagetool.server.HTTPServer --port 8081
 python -m moteur --port 8001
 ```
 
+## Sauvegarde et restauration
+
+**Automatique** : à chaque lancement, `demarrer.bat` crée (avant de démarrer le moteur, donc sans fichier à moitié écrit) une archive `sauvegarde_AAAAMMJJ-HHMMSS.zip` de tout le dossier de données, sauf `plagiat/textes/` (cache recalculé tout seul). Les PDF d'origine, annotations, décisions, résultats Claude, lexique et barèmes y sont. Il affiche « Dernière sauvegarde : … ». Si la sauvegarde échoue (dossier inaccessible), il l'écrit en clair et démarre quand même.
+
+**Où** : `C:\correction_donnees_sauvegardes` par défaut (à côté des données, hors OneDrive). Pour protéger d'une panne du disque, pointer vers un autre disque ou une clé USB :
+```
+setx CORRECTION_SAUVEGARDES D:\correction_sauvegardes
+```
+(puis nouvelle fenêtre de terminal). Aucune copie dans un nuage : décision à prendre par Guillaume selon les règles du collège.
+
+**Combien** : les 10 dernières archives, plus la plus récente de chacune des 8 dernières semaines. La rotation ne supprime que d'anciennes `sauvegarde_*.zip` du dossier de sauvegardes, jamais rien dans les données.
+
+**À la main** (dans le dossier du dépôt) :
+```
+python -m moteur.sauvegarde sauvegarder
+python -m moteur.sauvegarde lister
+```
+
+**Restaurer** (fermer d'abord la fenêtre Moteur) :
+```
+python -m moteur.sauvegarde restaurer
+```
+Remet la plus récente archive dans le dossier de données. S'il n'est pas vide, la commande demande confirmation, puis le **renomme** en `correction_donnees_avant_restauration_<date>` (rien n'est supprimé). Pour une autre archive : `restaurer <chemin du zip>`. Pour inspecter sans toucher aux données : `restaurer --cible C:\essai_restauration`. `--oui` saute la question.
+
 ## Dépannage
 
 - **« Mise à jour sautée »** : le message dit pourquoi (branche autre que `main`, modifications locales). Le moteur démarre avec la version actuelle; remettre le clone sur `main` propre pour retrouver la mise à jour.
