@@ -135,6 +135,7 @@ def etat(cours: str, groupe: str, lab: str, etudiant: str) -> dict:
         return {"analyse": False, "fautes": [], "decisions": {}, "choix": {}, "masquees": [],
                 "decalages": {}, "nb_acceptees": 0, "penalite": 0.0, "bareme": bareme.model_dump()}
     nb = sum(1 for d in doc["decisions"].values() if d == "acceptee")
+    doc.setdefault("decalages", {})  # analyses faites avant l'ajout des décalages
     return {"analyse": True, **doc, "nb_acceptees": nb, "penalite": penalite(nb, bareme),
             "bareme": bareme.model_dump()}
 
