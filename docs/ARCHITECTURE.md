@@ -113,3 +113,4 @@ Coéquipiers : à l'import, les étudiants du cours dont le nom ET le prénom fi
 - `GET /api/plagiat/enonces/<cours>/<lab>` renvoie le PDF de l'énoncé (404 s'il n'y en a pas); le même chemin en POST le remplace.
 - Écran : arbre `<details>` replié cours → lab (énoncé ici) → groupe → rapports, état ouvert/fermé et filtre gardés dans le `localStorage` de l'appareil.
 - Navigation : `index.html` est une seule page à quatre vues (`#accueil`, `#biblio`, `#importer`, `#outils`) commutées par `aller()` dans `app.js` (adresse `/#biblio` possible). Le lecteur garde le dernier rapport ouvert dans le `localStorage` (clé `dernier`) pour « Continuer ».
+- Lecteur : `navigation-lecteur.js` lit l'arbre de la bibliothèque, passe d'un rapport à l'autre du même groupe et lab (après avoir enregistré les traits et décisions via `toutEnregistrer()` de `lecteur.js`) et écrit le statut par `PUT /api/bibliotheque/statut/…`.

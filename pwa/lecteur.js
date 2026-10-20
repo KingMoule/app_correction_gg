@@ -296,15 +296,19 @@ function appliquer(a, sens) { // sens : +1 refaire, -1 défaire
   redessiner(pg); majBoutons(); marquerModifie();
   pg.el.scrollIntoView({ block: "nearest" });
 }
-// Export : attendre que les dernières modifications soient enregistrées avant de télécharger.
-$("exporter").onclick = async (e) => {
-  e.preventDefault();
+// Attendre que les dernières modifications (traits, décisions de français) soient enregistrées.
+async function toutEnregistrer() {
   for (let i = 0; i < 3 && (modifie || envoi); i++) {
     clearTimeout(minuterie);
     await enregistrer();
     while (envoi) await new Promise((r) => setTimeout(r, 100));
   }
   if (window.viderDecisions) await window.viderDecisions();
+}
+window.toutEnregistrer = toutEnregistrer;
+$("exporter").onclick = async (e) => {
+  e.preventDefault();
+  await toutEnregistrer();
   location.href = URL_EXPORT;
 };
 $("annuler").onclick = () => { const a = histoire.annuler.pop(); if (a) { appliquer(a, -1); histoire.retablir.push(a); majBoutons(); } };

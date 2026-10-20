@@ -95,5 +95,5 @@ Constat : listes toujours dépliées et interminables, pas de distinction en cou
 **Découpe en PR** :
 1. [x] **Bibliothèque** : arbre replié **cours → lab → groupe → rapports** (décision de Guillaume : l'énoncé s'applique au lab, donc le lab est au-dessus du groupe; état gardé par appareil), filtres En cours / Terminés / Tout, bouton Terminé par rapport, archive de lab, énoncé visible, consultable et remplaçable à côté de son lab. Moteur : `PUT /api/bibliotheque/statut/…`, `PUT /api/bibliotheque/archive/…`, `GET /api/plagiat/enonces/{cours}/{lab}`.
 2. [x] **Barre de navigation et accueil** : onglets Accueil / Bibliothèque / Importer / Lot et plagiat (pastille « À trancher » sur Importer), « Continuer » (dernier rapport ouvert, gardé sur l'appareil), « À corriger » (labs en cours avec avancement; « Ouvrir le lab » déplie le chemin dans la bibliothèque). Aucun changement du moteur.
-3. [ ] **Lecteur** : « Terminé et suivant », flèches ‹ ›, retour au lab déplié, statut visible.
+3. [x] **Lecteur** : « Terminé et suivant » (marque terminé, ouvre le prochain à corriger du lab, en repartant du début s'il le faut), « Terminé » / « Ré-ouvrir », flèches ‹ ›, position (2 / 24) et statut visibles, retour à la bibliothèque dépliée sur le lab. Aucun changement du moteur.
 4. [ ] **Plagiat et lot** : lab présélectionné depuis la bibliothèque, énoncés manquants signalés.
