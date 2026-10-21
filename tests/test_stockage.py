@@ -152,7 +152,7 @@ def test_lexique_sans_perte_en_parallele(client):
 
 
 def test_put_annotations_concurrents_sans_erreur(rapport):
-    """4 fils × 30 PUT d'annotations pendant des GET : aucune erreur 500 (E1)."""
+    """4 fils × 30 PUT d'annotations pendant des GET : aucune erreur 500 (E1); révision périmée = 409."""
     client, _ = rapport
     trait = {"outil": "crayon", "couleur": "#d32f2f", "largeur_min": 0.6, "largeur_max": 3.8,
              "courbe": 1, "points": [[1, 2, 0.5]]}
@@ -160,11 +160,11 @@ def test_put_annotations_concurrents_sans_erreur(rapport):
 
     def travail(n):
         for i in range(30):
-            statuts.append(client.put(ANNOT, json={"version": 1, "pages": {"1": [trait] * (n + 1)}}).status_code)
+            statuts.append(client.put(ANNOT, json={"version": 1, "revision": 0, "pages": {"1": [trait] * (n + 1)}}).status_code)
             statuts.append(client.get(ANNOT).status_code)
 
     assert lancer(4, travail) == []
-    assert len(statuts) == 240 and set(statuts) == {200}
+    assert len(statuts) == 240 and set(statuts) <= {200, 409} and 200 in statuts
 
 
 def test_statut_et_note_concurrents(rapport):
@@ -188,7 +188,7 @@ def abimer(f: Path) -> None:
 def test_annotations_tronquees(rapport):
     client, d = rapport
     abimer(d / "annotations.json")
-    assert client.get(ANNOT).json() == {"version": 1, "pages": {}}
+    assert client.get(ANNOT).json() == {"version": 2, "revision": 0, "pages": {}, "supprimes": []}
 
 
 def test_francais_tronque(rapport):
