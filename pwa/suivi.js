@@ -62,6 +62,9 @@
     await charger();
   };
 
+  // « 2026-10-20T14:32:05 » -> « 2026-10-20 à 14 h 32 »
+  const dateFr = (iso) => (iso ? iso.slice(0, 10) + " à " + iso.slice(11, 13) + " h " + iso.slice(14, 16) : "");
+
   const ligne = (r) => {
     const l = el("div", "", "ligne" + (r.termine ? " fini" : ""));
     const nom = el("div", "", "nom");
@@ -72,8 +75,10 @@
     l.append(nom,
       cellule("Annotation", r.annotation ? "commencée" : "pas commencée", r.annotation ? "p-fini" : "p-neutre"),
       fr.etat === "non_analyse" ? cellule("Français", "non analysé", "p-neutre")
-        : cellule("Français", fr.etat === "tranche" ? "tranché" : `${fr.a_trancher} à trancher`, fr.etat === "tranche" ? "p-fini" : "p-cours",
-          `${fr.acceptees} acceptée(s) · −${fr.penalite} pt`),
+        : fr.etat === "tranche" && fr.claude_manquant
+          ? cellule("Français", "Claude manquant", "p-alerte", `${fr.acceptees} acceptée(s) · −${fr.penalite} pt · relancer l'analyse`)
+          : cellule("Français", fr.etat === "tranche" ? "tranché" : `${fr.a_trancher} à trancher`, fr.etat === "tranche" ? "p-fini" : "p-cours",
+            `${fr.acceptees} acceptée(s) · −${fr.penalite} pt`),
       r.ia ? cellule("Indice d'IA", F[r.ia] || r.ia, r.ia === "marquee" ? "p-alerte" : r.ia === "moderee" ? "p-cours" : "p-fini", "à revérifier")
         : cellule("Indice d'IA", "non analysé", "p-neutre"));
     const p = r.plagiat;
@@ -101,6 +106,12 @@
     $("resume").replaceChildren(...[[donnees.total, "rapports"], [c.a_corriger, "à corriger"], [c.en_cours, "en cours"],
       [c.termine, "terminés"], [c.a_revoir, "⚠ à revoir"]].map(([n, t]) => { const s = el("span", ` ${t}`); s.prepend(el("b", String(n ?? 0))); return s; }));
     if (donnees.archive) $("resume").append(el("span", "lab archivé"));
+    const ex = donnees.export || {}, quand = dateFr(ex.date);
+    const bandeau = $("export");
+    bandeau.className = "aide" + (ex.statut === "perime" ? " export-perime" : "");
+    bandeau.textContent = ex.statut === "jamais" ? "Export pour LÉA : jamais exporté."
+      : ex.statut === "perime" ? `⚠ Export pour LÉA PÉRIMÉ : ${ex.modifies} rapport(s) modifié(s) depuis le dernier export (${quand}). Refaire l'export.`
+      : `Export pour LÉA à jour (${quand})` + (ex.non_exportes ? `, ${ex.non_exportes} rapport(s) pas encore exporté(s).` : ".");
     const sel = $("groupe");
     sel.replaceChildren(...[["", "Tous les groupes"], ...donnees.groupes.map((g) => [g, `Groupe ${g}`])].map(([v, t]) => { const o = el("option", t); o.value = v; return o; }));
     sel.value = groupe;

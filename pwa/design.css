@@ -26,6 +26,7 @@ a { color: var(--accent-fort); }
 .ok { color: var(--ok); }
 .erreur { color: var(--danger); }
 .aide { color: var(--texte-2); font-size: 14px; }
+.aide.export-perime { color: var(--danger); font-weight: 600; }
 [hidden] { display: none !important; }
 
 /* Boutons : .bk (secondaire), .bk.principal ou .gros (principal), .bk:disabled */

@@ -11,13 +11,14 @@ import io
 import re
 import threading
 import zipfile
+from datetime import datetime
 from pathlib import Path
 
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import Response
 from pydantic import BaseModel
 
-from . import bibliotheque, plagiat, stockage
+from . import bibliotheque, config, plagiat, stockage
 from .annotations import lire
 from .bareme import penalite
 from .export import annoter, fautes_acceptees
@@ -25,8 +26,11 @@ from .francais import lire_bareme
 
 router = APIRouter(prefix="/api/export-lot")
 
-NOM_ZIP = "Travaux.zip"
-ETATS = {"corrige": "Corrigé", "a_trancher": "À trancher", "non_analyse": "Non analysé", "non_remis": "Non remis"}
+NOM_ZIP = "Travaux"  # + horodatage + « .zip » (voir `nom_zip`)
+ETATS = {"corrige": "Corrigé", "claude_manquant": "Claude manquant", "a_trancher": "À trancher",
+         "non_analyse": "Non analysé", "non_remis": "Non remis"}
+# Fichiers dont le changement rend un export périmé (rapport remplacé, réanalyse, décision, trait, note…)
+FICHIERS_SURVEILLES = ("rapport.pdf", "francais.json", "annotations.json", "statut.json", "equipe.json", "indices_ia.json")
 COLONNES = ["DA", "Nom", "Prénom", "Groupe", "Équipe", "Fautes acceptées", "Pénalité français", "Note", "Terminé",
             "État", "Indice d'IA (à revérifier)", "Plagiat confirmé (à revérifier)"]
 FORCES_IA = {"faible": "faible", "moderee": "modérée", "marquee": "marquée"}
@@ -38,14 +42,85 @@ def _json(fichier: Path):
     return stockage.lire_json(fichier)
 
 
+def claude_fait(doc: dict | None) -> bool:
+    """La passe Claude du français a-t-elle réussi ? Absente (ancien fichier) ou échouée = non."""
+    return bool(doc and (doc.get("claude") or {}).get("ok"))
+
+
 def etat_francais(doc: dict | None) -> tuple[str, int]:
-    """(état, nombre de fautes acceptées) d'après `francais.json`."""
+    """(état, nombre de fautes acceptées) d'après `francais.json`.
+
+    Tout tranché mais sans passe Claude réussie = « claude_manquant » : ce n'est pas un rapport complet.
+    """
     if doc is None:
         return "non_analyse", 0
     decisions = doc.get("decisions", {})
     nb = sum(1 for d in decisions.values() if d == "acceptee")
     a_trancher = any(str(f["id"]) not in decisions for f in doc.get("fautes", []))
-    return ("a_trancher" if a_trancher else "corrige"), nb
+    if a_trancher:
+        return "a_trancher", nb
+    return ("corrige" if claude_fait(doc) else "claude_manquant"), nb
+
+
+def signature(dossier: Path) -> dict[str, str]:
+    """Empreinte (date de modification + taille) des fichiers qui changent le contenu de l'export."""
+    sortie = {}
+    for nom in FICHIERS_SURVEILLES:
+        try:
+            st = (dossier / nom).stat()
+        except OSError:
+            continue
+        sortie[nom] = f"{st.st_mtime_ns}:{st.st_size}"
+    return sortie
+
+
+def horodatage(maintenant: datetime | None = None) -> str:
+    """Date et heure locales pour un nom de fichier : `2026-10-20_14h32` (pas de « : » sous Windows)."""
+    return (maintenant or datetime.now()).strftime("%Y-%m-%d_%Hh%M")
+
+
+def nom_zip(stamp: str) -> str:
+    return f"{NOM_ZIP}_{stamp}.zip"
+
+
+def _fichier_exports() -> Path:
+    return config.dossier_donnees() / "exports.json"  # hors de la bibliothèque : elle reste intacte
+
+
+def _cle_lab(cours: str, lab: str) -> str:
+    return f"{cours}/{lab}"
+
+
+def noter_export(cours: str, lab: str, rapports: list[dict], iso: str) -> None:
+    """Retient, rapport par rapport, ce qui vient de partir (date + empreinte prise AVANT la construction)."""
+    chemin = _fichier_exports()
+    with stockage.verrou(chemin.parent):
+        tout = stockage.lire_json(chemin, {}) or {}
+        lab_doc = tout.setdefault(_cle_lab(cours, lab), {})
+        for r in rapports:
+            lab_doc[f"{r['groupe']}/{r['etudiant']['id']}"] = {"date": iso, "sig": r["sig"]}
+        stockage.ecrire_json(chemin, tout, indent=1)
+
+
+def etat_export(cours: str, lab: str, dossiers: dict[str, Path]) -> dict:
+    """État du dernier export pour les rapports donnés (`{"groupe/étudiant": dossier}`).
+
+    `jamais` : aucun n'a été exporté; `perime` : au moins un a changé depuis (décision, trait, réanalyse,
+    rapport remplacé, note…); `a_jour` sinon. `non_exportes` = rapports jamais partis (export partiel).
+    """
+    notes = (stockage.lire_json(_fichier_exports(), {}) or {}).get(_cle_lab(cours, lab), {})
+    dates, modifies, non_exportes = [], [], 0
+    for cle, dossier in dossiers.items():
+        n = notes.get(cle)
+        if not n:
+            non_exportes += 1
+            continue
+        dates.append(n["date"])
+        if signature(dossier) != n["sig"]:
+            modifies.append(cle)
+    statut = "jamais" if not dates else ("perime" if modifies else "a_jour")
+    return {"statut": statut, "date": max(dates) if dates else None, "modifies": len(modifies),
+            "non_exportes": non_exportes}
 
 
 def _plagiat_confirme() -> list[tuple[dict, dict, dict]]:
@@ -93,6 +168,7 @@ def collecter(cours: str, lab: str, groupe: str | None) -> list[dict]:
                 "ia": FORCES_IA.get(ia, ""),
                 "plagiat": _texte_plagiat(cours, c["groupe"], lab, e["id"], paires),
                 "origine": (_json(dossier / "origine.json") or {}).get("fichier"),
+                "sig": signature(dossier),
             })
     rapports.sort(key=lambda r: (r["groupe"], bibliotheque.normaliser(r["etudiant"]["nom"]),
                                  bibliotheque.normaliser(r["etudiant"]["prenom"])))
@@ -146,6 +222,10 @@ def lignes_tableau(cours: str, lab: str, groupe: str | None, inacheves: bool) ->
     return lignes
 
 
+def nom_tableau(cours: str, lab: str, stamp: str) -> str:
+    return re.sub(r"[^A-Za-z0-9_-]", "_", f"Recapitulatif_{cours}_{lab}_{stamp}") + ".csv"
+
+
 def tableau_csv(cours: str, lab: str, groupe: str | None, inacheves: bool) -> bytes:
     """CSV pour Excel français : séparateur « ; », UTF-8 avec BOM (accents lisibles), virgule décimale."""
     tampon = io.StringIO()
@@ -194,6 +274,7 @@ def construire_zip(cours: str, lab: str, rapports: list[dict], progression=None)
 _verrou = threading.Lock()
 _etat: dict = {"statut": "inactif"}
 _zip: bytes = b""
+_nom_zip = NOM_ZIP + ".zip"
 
 
 class Demande(BaseModel):
@@ -201,11 +282,12 @@ class Demande(BaseModel):
     inacheves: bool = True     # inclure les rapports à trancher / non analysés
 
 
-def _executer(cours: str, lab: str, rapports: list[dict]) -> None:
+def _executer(cours: str, lab: str, rapports: list[dict], iso: str) -> None:
     global _zip
     try:
         contenu = construire_zip(cours, lab, rapports,
                                  lambda fait, courant: _maj(fait=fait, courant=courant))
+        noter_export(cours, lab, rapports, iso)
         with _verrou:
             _zip = contenu
             _etat.update(statut="pret", fait=len(rapports), courant=None, taille=len(contenu))
@@ -220,7 +302,7 @@ def _maj(**champs) -> None:
 
 
 def _compter(rapports: list[dict]) -> dict:
-    n = {"total": len(rapports), "corrige": 0, "a_trancher": 0, "non_analyse": 0}
+    n = {"total": len(rapports), "corrige": 0, "claude_manquant": 0, "a_trancher": 0, "non_analyse": 0}
     for r in rapports:
         n[r["etat"]] += 1
     return n
@@ -230,12 +312,14 @@ def _compter(rapports: list[dict]) -> dict:
 def apercu(cours: str, lab: str, groupe: str | None = None) -> dict:
     """Combien de rapports partiraient, et combien sont inachevés."""
     rapports = collecter(cours, lab, groupe or None)
-    return {**_compter(rapports), "groupes": sorted({r["groupe"] for r in rapports})}
+    dossiers = {f"{r['groupe']}/{r['etudiant']['id']}": r["dossier"] for r in rapports}
+    return {**_compter(rapports), "groupes": sorted({r["groupe"] for r in rapports}),
+            "export": etat_export(cours, lab, dossiers)}
 
 
 @router.post("/{cours}/{lab}")
 def lancer(cours: str, lab: str, d: Demande) -> dict:
-    global _zip
+    global _zip, _nom_zip
     rapports = retenir(collecter(cours, lab, d.groupe or None), d.inacheves)
     if not rapports:
         raise HTTPException(404, "Aucun rapport à exporter pour ce choix.")
@@ -243,10 +327,13 @@ def lancer(cours: str, lab: str, d: Demande) -> dict:
         if _etat["statut"] == "en_cours":
             raise HTTPException(409, "Un export est déjà en cours.")
         _zip = b""  # libère le ZIP précédent
+        maintenant = datetime.now()
+        _nom_zip = nom_zip(horodatage(maintenant))
         _etat.clear()
         _etat.update(statut="en_cours", cours=cours, lab=lab, groupe=d.groupe or None, fait=0, total=len(rapports),
+                     nom=_nom_zip, date=maintenant.isoformat(timespec="seconds"),
                      courant=None, groupes=sorted({r["groupe"] for r in rapports}), inacheves=_compter(rapports))
-    threading.Thread(target=_executer, args=(cours, lab, rapports), daemon=True).start()
+    threading.Thread(target=_executer, args=(cours, lab, rapports, _etat["date"]), daemon=True).start()
     return dict(_etat)
 
 
@@ -256,19 +343,22 @@ def etat() -> dict:
         return dict(_etat)
 
 
-@router.get("/travaux")
-def telecharger_zip() -> Response:
+@router.get("/travaux/{cours}/{lab}")
+def telecharger_zip(cours: str, lab: str, groupe: str | None = None) -> Response:
+    """Le ZIP prêt, à condition qu'il soit bien celui de ce cours, ce lab et ce groupe (jamais un autre par erreur)."""
     with _verrou:
         if _etat["statut"] != "pret" or not _zip:
             raise HTTPException(404, "Aucun export prêt.")
-        contenu = _zip
+        if (_etat.get("cours"), _etat.get("lab"), _etat.get("groupe")) != (cours, lab, groupe or None):
+            raise HTTPException(404, "Le ZIP prêt est celui d'un autre lab ou groupe : refais l'export.")
+        contenu, nom = _zip, _nom_zip
     return Response(contenu, media_type="application/zip",
-                    headers={"Content-Disposition": f'attachment; filename="{NOM_ZIP}"'})
+                    headers={"Content-Disposition": f'attachment; filename="{nom}"'})
 
 
 @router.get("/tableau/{cours}/{lab}")
 def telecharger_tableau(cours: str, lab: str, groupe: str | None = None, inacheves: bool = True) -> Response:
     contenu = tableau_csv(cours, lab, groupe or None, inacheves)
-    nom = re.sub(r"[^A-Za-z0-9_-]", "_", f"Recapitulatif_{cours}_{lab}")
+    nom = nom_tableau(cours, lab, horodatage())
     return Response(contenu, media_type="text/csv; charset=utf-8",
-                    headers={"Content-Disposition": f'attachment; filename="{nom}.csv"'})
+                    headers={"Content-Disposition": f'attachment; filename="{nom}"'})

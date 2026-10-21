@@ -24,7 +24,7 @@ def test_suivi_un_seul_appel_pour_tout_le_lab(lab):
     alice, zoe, luc = r["dube-alice"], r["martin-zoe"], r["martin-luc"]
     assert alice["equipe"] == ["Anna Bele-Gombos"]
     assert alice["etat"] == "termine" and alice["note"] == "17,5"
-    assert alice["francais"] == {"etat": "tranche", "a_trancher": 0, "acceptees": 2, "penalite": 1.5}
+    assert alice["francais"] == {"etat": "tranche", "a_trancher": 0, "acceptees": 2, "penalite": 1.5, "claude_manquant": False}
     assert alice["plagiat"]["etat"] == "confirmee" and alice["plagiat"]["avec"] == ["Luc Martin"]
     assert zoe["francais"]["etat"] == "a_trancher" and zoe["francais"]["a_trancher"] == 2
     assert zoe["etat"] == "en_cours" and zoe["a_revoir"] and not zoe["annotation"]
