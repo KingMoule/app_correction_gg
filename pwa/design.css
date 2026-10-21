@@ -69,7 +69,7 @@ svg.ic { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-wid
 .pastille.p-alerte { background: var(--danger-fond); color: var(--danger); }
 .pastille.p-nouv { background: var(--info-fond); color: var(--info); }
 .pastille.p-neutre { background: var(--neutre-fond); color: var(--texte-2); }
-.badge { background: var(--danger-fond); color: var(--danger); }
+.badge { background: var(--neutre-fond); color: var(--texte-2); }
 .ia-force { background: var(--neutre-fond); color: var(--texte-2); }
 .ia-force.moderee { background: var(--attention-fond); color: var(--attention); }
 .ia-force.marquee { background: var(--danger-fond); color: var(--danger); }
