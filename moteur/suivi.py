@@ -21,11 +21,10 @@ ETATS_PLAGIAT = {"a_confirmer": "suspecte", "en_cours": "suspecte", "erreur": "s
 
 def _plagiat_par_rapport(cours: str, lab: str) -> dict[tuple[str, str], dict]:
     """{(groupe, étudiant): {etat, avec}} : l'état le plus sérieux des paires du rapport."""
-    decisions = plagiat._lire("decisions.json", {})
     gravite = ["ecartee", "suspecte", "confirmee"]
     sortie: dict[tuple[str, str], dict] = {}
-    for p in plagiat._lire("paires.json", []):
-        etat = ETATS_PLAGIAT.get(plagiat._statut(p["cle"], p["score"], decisions))
+    for p in plagiat.etat_des_paires():
+        etat = ETATS_PLAGIAT.get(p["statut"])
         if not etat:
             continue
         for moi, autre in ((p["a"], p["b"]), (p["b"], p["a"])):

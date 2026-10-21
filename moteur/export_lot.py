@@ -125,13 +125,7 @@ def etat_export(cours: str, lab: str, dossiers: dict[str, Path]) -> dict:
 
 def _plagiat_confirme() -> list[tuple[dict, dict, dict]]:
     """Paires dont Claude a rendu un verdict (donc confirmées par Guillaume) : (a, b, verdict)."""
-    decisions = plagiat._lire("decisions.json", {})
-    sortie = []
-    for p in plagiat._lire("paires.json", []):
-        d = decisions.get(p["cle"], {})
-        if d.get("statut") == "analysee":
-            sortie.append((p["a"], p["b"], d))
-    return sortie
+    return [(p["a"], p["b"], p["resultat"]) for p in plagiat.etat_des_paires() if p["statut"] == "analysee"]
 
 
 def _texte_plagiat(cours, groupe, lab, etudiant, paires) -> str:
