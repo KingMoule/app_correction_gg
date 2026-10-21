@@ -196,7 +196,7 @@ def test_francais_tronque(rapport):
     abimer(d / "francais.json")
     r = client.get(f"/api/francais/rapport/{COURS}/{GROUPE}/{LAB}/{ETUDIANT}")
     assert r.status_code == 200 and r.json()["analyse"] is False
-    r = client.put(f"/api/francais/rapport/{COURS}/{GROUPE}/{LAB}/{ETUDIANT}", json={})
+    r = client.put(f"/api/francais/rapport/{COURS}/{GROUPE}/{LAB}/{ETUDIANT}", json={"revision": 0})
     assert r.status_code == 409  # à réanalyser, pas de 500
 
 
@@ -254,5 +254,5 @@ def test_fiche_en_attente_tronquee(rapport, tmp_path):
     (dossier / "abc.pdf").write_bytes(pdf())
     abimer(dossier / "abc.json")
     assert client.get("/api/bibliotheque/attente").json() == []
-    r = client.post("/api/bibliotheque/trancher/abc", json={})
+    r = client.post("/api/bibliotheque/trancher/abc", json={"revision": 0})
     assert r.status_code in (404, 405, 422)

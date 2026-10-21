@@ -4,7 +4,7 @@
 
 const URL_FRANCAIS = `/api/francais/rapport/${base}`;
 const URL_BAREME = `/api/francais/bareme/${encodeURIComponent(ref[0] || "")}`;
-let fr = null;        // état renvoyé par le moteur : fautes, decisions, choix, masquees, decalages, penalite, bareme
+let fr = null;        // état renvoyé par le moteur : fautes (id stable), revision, decisions, choix, masquees, decalages, penalite, bareme
 let selection = null; // id de la faute ouverte dans la fiche
 let deplacement = false; // mode « Déplacer » actif pour la faute ouverte
 
@@ -29,34 +29,53 @@ async function chargerFrancais() {
   afficherTout();
 }
 
-// ----- sauvegarde des décisions -----
-let minuterieFr = null;
-async function envoyerDecisions() {
-  minuterieFr = null;
-  const r = await fetch(URL_FRANCAIS, {
-    method: "PUT", headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ decisions: fr.decisions, choix: fr.choix, masquees: fr.masquees, decalages: fr.decalages }),
-  });
-  if (!r.ok) { etatFr(await erreurFr(r), true); return; }
-  const d = await r.json();
-  fr.nb_acceptees = d.nb_acceptees; fr.penalite = d.penalite;
-  resume();
+// ----- sauvegarde des décisions (envoi-francais.js : un PATCH par lot de fautes changées, renvoyé tant que le moteur ne confirme pas) -----
+function indicateurFr(texte, erreur) {
+  const e = $("fr-sauvegarde");
+  e.textContent = "Français : " + texte;
+  e.classList.toggle("erreur", !!erreur);
+  if (erreur) etatFr(texte, true); // le panneau n'affiche que les problèmes
 }
-function sauverDecisions() { clearTimeout(minuterieFr); minuterieFr = setTimeout(envoyerDecisions, 300); }
-async function viderDecisions() { if (minuterieFr) { clearTimeout(minuterieFr); await envoyerDecisions(); } }
+const envoiFr = creerEnvoiFrancais({
+  url: URL_FRANCAIS,
+  fetch: (...a) => fetch(...a),
+  surEtat: (texte, erreur) => indicateurFr(texte, erreur),
+  surReponse(d, adopter) {
+    fr.revision = d.revision; fr.nb_acceptees = d.nb_acceptees; fr.penalite = d.penalite;
+    // Rien de plus récent en attente : on reprend l'état du moteur (changements faits sur un autre appareil compris).
+    if (adopter && ["decisions", "choix", "masquees", "decalages"].some((k) => JSON.stringify(fr[k]) !== JSON.stringify(d[k]))) {
+      Object.assign(fr, { decisions: d.decisions, choix: d.choix, masquees: d.masquees, decalages: d.decalages ?? {} });
+      afficherTout();
+    } else resume();
+  },
+  async surRefus(statut, message) {
+    // 409 : rapport réanalysé ou modifié ailleurs; 422 : envoi invalide. L'état du moteur est rechargé.
+    await chargerFrancais();
+    $("francais").hidden = false;
+    const texte = (statut === 409 ? "Décisions rechargées : le rapport a changé (nouvelle analyse ou autre appareil). "
+      : "Le moteur a refusé l'enregistrement. ") + message + " Vos derniers changements n'ont pas été gardés : vérifiez les fautes.";
+    etatFr(texte, true); indicateurFr("Rechargé : vérifiez", true);
+  },
+});
+const sauverDecisions = (id, champs) => envoiFr.noter(id, champs);
+// Attend la confirmation du moteur : true = tout est enregistré (appelé par toutEnregistrer() de lecteur.js).
+function viderDecisions() { return envoiFr.toutEnregistrer(); }
+window.addEventListener("pagehide", () => envoiFr.envoyer(true));
+document.addEventListener("visibilitychange", () => { if (document.visibilityState === "hidden") envoiFr.envoyer(true); });
 function decider(id, valeur) {
   if (valeur) fr.decisions[id] = valeur; else delete fr.decisions[id];
-  sauverDecisions(); afficherTout();
+  sauverDecisions(id, { decision: valeur ?? null }); afficherTout();
 }
 function deplacer(id, dx, dy) {
-  if (Math.abs(dx) < 0.5 && Math.abs(dy) < 0.5) delete fr.decalages[id]; else fr.decalages[id] = [Math.round(dx * 10) / 10, Math.round(dy * 10) / 10];
-  sauverDecisions(); afficherTout();
+  const nul = Math.abs(dx) < 0.5 && Math.abs(dy) < 0.5;
+  if (nul) delete fr.decalages[id]; else fr.decalages[id] = [Math.round(dx * 10) / 10, Math.round(dy * 10) / 10];
+  sauverDecisions(id, { decalage: nul ? null : fr.decalages[id] }); afficherTout();
 }
-function choisirCorrection(id, texte) { fr.choix[id] = texte; sauverDecisions(); afficherTout(); }
+function choisirCorrection(id, texte) { fr.choix[id] = texte; sauverDecisions(id, { choix: texte }); afficherTout(); }
 function masquer(id, masque) {
   fr.masquees = fr.masquees.filter((m) => m !== id);
   if (masque) fr.masquees.push(id);
-  sauverDecisions(); afficherTout();
+  sauverDecisions(id, { masquee: !!masque }); afficherTout();
 }
 
 // ----- couche sur les pages -----
@@ -95,7 +114,7 @@ function brancherDeplacement(c, f, dx0, dy0) {
     const premiere = f.zones[0];
     c.style.left = premiere.x0 + dx + "px"; c.style.top = premiere.y0 - 13 + dy + "px";
     fr.decalages[f.id] = [Math.round(dx * 10) / 10, Math.round(dy * 10) / 10];
-    sauverDecisions();
+    sauverDecisions(f.id, { decalage: fr.decalages[f.id] });
   };
   c.addEventListener("pointerdown", (e) => {
     e.preventDefault(); e.stopPropagation(); c.setPointerCapture(e.pointerId);
@@ -168,7 +187,7 @@ function afficherFiche() {
   const fermer = el("button", "Fermer");
   fermer.onclick = fermerFiche;
   const dep = el("button", deplacement ? "Fin du déplacement" : "Déplacer la correction", deplacement ? "on" : "");
-  dep.onclick = () => { deplacement = !deplacement; viderDecisions(); afficherFiche(); afficherCouches(); };
+  dep.onclick = () => { deplacement = !deplacement; envoiFr.envoyer(); afficherFiche(); afficherCouches(); };
   rangee.append(bascule, dep);
   if (fr.decalages?.[f.id]) {
     const remise = el("button", "Remettre en place");
@@ -236,6 +255,7 @@ if (params.get("panneau") === "francais") $("francais").hidden = false; // ouver
 $("fr-analyser").onclick = async () => {
   $("fr-analyser").disabled = true; etatFr("Analyse en cours…");
   try {
+    if (!(await viderDecisions())) { $("fr-analyser").disabled = false; return; } // l'analyse remplace l'état affiché
     const r = await fetch(URL_FRANCAIS + "/analyser", { method: "POST" });
     if (!r.ok) { etatFr(await erreurFr(r), true); return; }
     fr = await r.json(); fr.decalages ??= {}; selection = null; deplacement = false; $("detail").hidden = true; afficherTout();
@@ -243,11 +263,11 @@ $("fr-analyser").onclick = async () => {
   finally { $("fr-analyser").disabled = false; }
 };
 $("fr-tout-accepter").onclick = () => {
-  for (const f of fr.fautes) if (!decisionDe(f)) fr.decisions[f.id] = "acceptee";
-  sauverDecisions(); afficherTout();
+  for (const f of fr.fautes) if (!decisionDe(f)) { fr.decisions[f.id] = "acceptee"; sauverDecisions(f.id, { decision: "acceptee" }); }
+  afficherTout();
 };
 async function sauverBareme() {
-  await viderDecisions(); // le rechargement qui suit ne doit pas écraser des décisions pas encore envoyées
+  if (!(await viderDecisions())) return; // le rechargement qui suit ne doit pas écraser des décisions pas encore confirmées
   const plafond = $("fr-plafond").value;
   const r = await fetch(URL_BAREME, {
     method: "PUT", headers: { "Content-Type": "application/json" },

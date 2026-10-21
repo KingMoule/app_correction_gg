@@ -101,7 +101,7 @@ def fautes_acceptees(chemin_francais: Path) -> list[dict]:
             continue
         correction = doc["choix"].get(sid) or (f["suggestions"][0] if f["suggestions"] else None)
         dx, dy = doc.get("decalages", {}).get(sid, (0, 0))  # correction déplacée à la main (points PDF)
-        sortie.append({"zones": f["zones"], "correction": None if f["id"] in doc["masquees"] else correction,
+        sortie.append({"zones": f["zones"], "correction": None if sid in {str(m) for m in doc["masquees"]} else correction,
                        "decalage": (dx, dy)})
     return sortie
 
