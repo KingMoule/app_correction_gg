@@ -4,8 +4,22 @@ copies/
 *.docx
 *.pdf
 
-# Dossier de données local (bibliothèque, listes de classe, annotations)
-donnees/
+# Listes de classe, tableaux de notes et lots exportés (données personnelles)
+*.csv
+*.xlsx
+*.xlsm
+*.zip
+# Exception : les fichiers de test fictifs se commitent dans tests/fixtures/
+!tests/fixtures/**
+
+# Dossier de données local (bibliothèque, listes de classe, annotations),
+# et sauvegardes (donnees_sauvegardes/, donnees-sauvegardes/...)
+donnees*/
+
+# Worktrees et réglages locaux de Claude Code
+.claude/worktrees/
+.claude/settings.local.json
+
 __pycache__/
 *.egg-info/
 .venv/
