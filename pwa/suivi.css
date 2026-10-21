@@ -1,32 +1,30 @@
-/* Tableau de suivi d'un lab : tableau en paysage, cartes en portrait. Cibles de 44 px au moins. */
-#suivi-page { max-width: 72rem; margin: .5rem auto; }
-#suivi-page h1 { font-size: 1.25rem; margin: .3rem 0; }
-.fil { color: #666; display: flex; gap: .5rem; align-items: center; }
-.fil a { color: var(--accent-fort); min-height: 44px; display: inline-flex; align-items: center; text-decoration: none; }
-.resume { display: flex; gap: .5rem; flex-wrap: wrap; margin: .5rem 0; }
-.resume span { background: #fff; border: 1px solid #d8d8d8; border-radius: 10px; padding: .4rem .8rem; }
-.filtres { flex-wrap: wrap; align-items: center; }
-.filtres select { min-height: 44px; padding: 0 1rem; border: 1px solid #d8d8d8; border-radius: 22px; background: #fff; font-size: 1rem; }
-.filtres button.on { background: #222; color: #fff; }
-.avert { background: #fff8e1; border: 1px solid #ecd58a; border-radius: 8px; padding: .5rem .8rem; font-size: .9rem; }
-.tab { background: #fff; border: 1px solid #d8d8d8; border-radius: 12px; overflow: hidden; }
-.tab .ligne { display: grid; grid-template-columns: 10rem 8.5rem 9rem 7.5rem 4rem minmax(0, 1fr); gap: .4rem .6rem; align-items: center; padding: .5rem .8rem; border-top: 1px solid #eee; min-height: 56px; }
-.tab .tete { background: #fafafa; font-size: .85rem; color: #666; border-top: 0; min-height: 40px; }
-.tab .titre-groupe { background: #f1f1ee; font-weight: 600; min-height: 44px; display: flex; }
-.tab .nom a { color: #222; text-decoration: none; font-weight: 600; display: block; min-height: 44px; padding: .35rem 0; box-sizing: border-box; }
-.tab small { display: block; color: #666; font-weight: 400; }
-.tab .fini { opacity: .62; }
+/* Tableau de suivi d'un lab : tableau en paysage, cartes en portrait. Cibles de 44 px au moins; lignes de 48 px. */
+#suivi-page { max-width: 72rem; margin: 0 auto; padding: var(--e4) var(--e5) var(--e6); }
+.fil { color: var(--texte-2); font-size: 14px; display: flex; gap: var(--e2); align-items: center; }
+.fil a { color: var(--accent-fort); min-height: var(--cible); display: inline-flex; align-items: center; text-decoration: none; font-weight: 500; }
+.resume { display: flex; gap: var(--e2); flex-wrap: wrap; margin: 0 0 var(--e3); }
+.resume span { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-s); box-shadow: var(--ombre); padding: var(--e2) var(--e4); color: var(--texte-2); font-size: 14px; }
+.resume span b { color: var(--texte); font-size: 20px; margin-right: 4px; font-variant-numeric: tabular-nums; }
+.filtres select { padding-right: var(--e2); }
+.avert { margin: 0 0 var(--e3); }
+.tab { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-m); box-shadow: var(--ombre); overflow: hidden; }
+.tab .ligne { display: grid; grid-template-columns: 10rem 8.5rem 9rem 7.5rem 4rem minmax(0, 1fr); gap: var(--e1) var(--e3); align-items: center; padding: var(--e1) var(--e4); border-top: 1px solid var(--border); min-height: var(--ligne); }
+.tab .tete { background: var(--surface-2); font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; color: var(--texte-2); border-top: 0; min-height: 36px; }
+.tab .titre-groupe { background: var(--bg); font-weight: 600; font-size: 14px; color: var(--texte-2); min-height: 40px; display: flex; }
+.tab .nom a { color: var(--texte); text-decoration: none; font-weight: 600; display: block; min-height: var(--cible); padding: 10px 0; box-sizing: border-box; }
+.tab small { display: block; color: var(--texte-2); font-size: 13px; font-weight: 400; }
+.tab .fini { color: var(--texte-2); }
+.tab .fini .nom a { color: var(--texte-2); }
 .tab .act .bk, .tab .act .gros { white-space: nowrap; padding: 0 var(--e3); }
-.tab .act { display: flex; gap: .4rem; justify-content: flex-end; align-items: center; }
-.tab .act .pastille { margin-right: auto; }
-.pastille.p-alerte { background: #f8d2cf; }
-.pastille.p-nouv { background: #e3e8f5; }
-.pastille.p-neutre { background: #eee; }
-.lib { display: none; font-size: .8rem; color: #666; }
+.tab .act { display: flex; gap: var(--e2); justify-content: flex-end; align-items: center; }
+.tab .act .pastille { margin-right: auto; margin-left: 0; }
+.tab .pastille { margin-left: 0; }
+.lib { display: none; font-size: 12px; color: var(--texte-2); }
 @media (max-width: 900px) {
+  #suivi-page { padding: var(--e3); }
   .tab .tete { display: none; }
-  .tab .ligne { grid-template-columns: repeat(4, 1fr); }
+  .tab .ligne { grid-template-columns: repeat(4, 1fr); padding: var(--e2) var(--e3); }
   .tab .nom, .tab .act { grid-column: 1 / -1; }
-  .tab .ligne > div:not(.nom):not(.act) { display: flex; flex-direction: column; gap: .15rem; align-items: flex-start; }
+  .tab .ligne > div:not(.nom):not(.act) { display: flex; flex-direction: column; gap: 2px; align-items: flex-start; }
   .lib { display: block; }
 }
