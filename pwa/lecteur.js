@@ -384,7 +384,7 @@ $("retablir").onclick = () => { const a = histoire.retablir.pop(); if (a) { appl
 // ----- enregistrement dans le moteur -----
 const arrondi = (n) => Math.round(n * 100) / 100;
 // Révision et état connu du moteur à la dernière synchronisation (voir annotations-fusion.js).
-let revision = 0, base = { ids: new Set(), supprimes: new Set() }, avisFusion = false;
+let revision = 0, baseFusion = { ids: new Set(), supprimes: new Set() }, avisFusion = false;
 function traitSerialise(s) {
   return {
     id: s.id, outil: s.outil, couleur: s.couleur, largeur_min: s.largeur_min, largeur_max: s.largeur_max, courbe: s.courbe,
@@ -399,12 +399,12 @@ function serialiserPages() {
 function serialiser() {
   const doc = { version: 2, revision, pages: serialiserPages(), supprimes: [] };
   const presents = FusionAnnotations.identifiants(doc.pages);
-  doc.supprimes = [...new Set([...base.ids, ...base.supprimes])].filter((id) => !presents.has(id));
+  doc.supprimes = [...new Set([...baseFusion.ids, ...baseFusion.supprimes])].filter((id) => !presents.has(id));
   return doc;
 }
 function memoriserBase(doc) { // ce que le moteur a maintenant : sert à distinguer « effacé ici » de « ajouté ailleurs »
   revision = doc.revision;
-  base = { ids: FusionAnnotations.identifiants(doc.pages), supprimes: new Set(doc.supprimes || []) };
+  baseFusion = { ids: FusionAnnotations.identifiants(doc.pages), supprimes: new Set(doc.supprimes || []) };
 }
 function chargerTraits(doc) {
   const connus = new Map(pages.flatMap((pg) => pg.traits).map((s) => [s.id, s])); // garde les objets (annuler/rétablir)
@@ -418,7 +418,7 @@ function chargerTraits(doc) {
 }
 // Le moteur a une révision plus récente (un autre appareil a écrit) : on fusionne, sans rien perdre.
 function fusionnerAvec(distant) {
-  const fusion = FusionAnnotations.fusionner({ pages: serialiserPages() }, distant, base);
+  const fusion = FusionAnnotations.fusionner({ pages: serialiserPages() }, distant, baseFusion);
   chargerTraits({ pages: fusion.pages });
   memoriserBase({ revision: distant.revision, pages: distant.pages, supprimes: distant.supprimes });
   avisFusion = true;
