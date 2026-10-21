@@ -282,9 +282,24 @@ $("fichier-classe").onchange = async (ev) => {
   form.append("fichier", fichier);
   const r = await fetch(`${API}/classes`, { method: "POST", body: form });
   if (!r.ok) alert(await erreurApi(r));
+  else afficherRecapClasse(await r.json());
   ev.target.value = "";
   await charger();
 };
+
+function afficherRecapClasse(classe) {
+  const m = classe.recap;
+  const zone = $("resultat-classe");
+  zone.replaceChildren(texte("strong", `Liste ${classe.cours} groupe ${classe.groupe} : ${m.ajoutes.length} ajouté(s), ${m.inchanges + m.mis_a_jour.length} inchangé(s), ${m.retires.length} retiré(s), ${m.conflits.length} à trancher`));
+  const liste = document.createElement("ul");
+  const ligne = (titre, noms) => { if (noms.length) liste.append(texte("li", `${titre} : ${noms.join(", ")}`)); };
+  ligne("Ajoutés", m.ajoutes);
+  ligne("Retirés de la liste (rapports gardés)", m.retires);
+  ligne("Revenus", m.reactives);
+  ligne("Mis à jour (nom ou DA)", m.mis_a_jour);
+  for (const c of m.conflits) liste.append(texte("li", `À trancher, ${c.nom} : ${c.raison}`));
+  zone.append(liste);
+}
 
 $("importer").onclick = async () => {
   const cours = $("choix-cours").value;
