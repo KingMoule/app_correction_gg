@@ -355,19 +355,28 @@ function appliquer(a, sens) { // sens : +1 refaire, -1 défaire
   pg.el.scrollIntoView({ block: "nearest" });
 }
 // Attendre que les dernières modifications (traits, décisions de français) soient enregistrées.
+// true = confirmé par le moteur; false = pas enregistré (moteur injoignable, décisions refusées) : ne pas quitter le rapport.
 async function toutEnregistrer() {
   for (let i = 0; i < 3 && (modifie || envoi); i++) {
     clearTimeout(minuterie);
     await enregistrer();
     while (envoi) await new Promise((r) => setTimeout(r, 100));
   }
-  if (window.viderDecisions) await window.viderDecisions();
+  const francaisOk = window.viderDecisions ? await window.viderDecisions() : true;
+  return francaisOk && !modifie && !envoi;
+}
+// Variante pour les boutons qui quittent ou exportent : prévient Guillaume si tout n'est pas enregistré.
+async function enregistrerAvant() {
+  if (await toutEnregistrer()) return true;
+  alert("Des modifications ne sont pas encore enregistrées (moteur injoignable ou décisions rechargées). " +
+    "Rien n'a été perdu à l'écran : vérifiez l'indicateur « Non enregistré », puis réessayez.");
+  return false;
 }
 window.toutEnregistrer = toutEnregistrer;
+window.enregistrerAvant = enregistrerAvant;
 $("exporter").onclick = async (e) => {
   e.preventDefault();
-  await toutEnregistrer();
-  location.href = URL_EXPORT;
+  if (await enregistrerAvant()) location.href = URL_EXPORT;
 };
 $("annuler").onclick = () => { const a = histoire.annuler.pop(); if (a) { appliquer(a, -1); histoire.retablir.push(a); majBoutons(); } };
 $("retablir").onclick = () => { const a = histoire.retablir.pop(); if (a) { appliquer(a, +1); histoire.annuler.push(a); majBoutons(); } };

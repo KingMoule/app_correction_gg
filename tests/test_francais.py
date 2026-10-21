@@ -8,6 +8,7 @@ from fastapi.testclient import TestClient
 from reportlab.pdfgen import canvas
 
 from moteur import francais_claude, languagetool, pdf_texte
+from moteur.francais import id_faute
 from moteur.claude import ClaudeDelai, ClaudeEchec, ClaudeLimite, ClaudeNonConnecte, Resultat
 from moteur.app import creer_app
 from moteur.bareme import Bareme, penalite
@@ -142,6 +143,13 @@ def rapport_range(client, monkeypatch):
     return client
 
 
+def decider(client, fid, decision):
+    """Décision d'une faute par PATCH (un changement à la fois)."""
+    r = client.patch(URL_RAPPORT, json={"fautes": {fid: {"decision": decision}}})
+    assert r.status_code == 200
+    return r.json()
+
+
 FAUTE_CLAUDE = {"extrait": "a manger", "correction": "a mangé", "message": "Participe passé"}
 
 
@@ -155,12 +163,12 @@ def test_passe_claude_ajoute_les_fautes_valides(rapport_range, monkeypatch):
     j = rapport_range.post(URL_RAPPORT + "/analyser").json()
     assert [f["texte"] for f in j["fautes"]] == ["mesure", "a manger"]
     c = j["fautes"][1]
-    assert c["source"] == "claude" and c["suggestions"] == ["a mangé"] and c["zones"] and c["id"] == 1
+    assert c["source"] == "claude" and c["suggestions"] == ["a mangé"] and c["zones"] and c["id"] == id_faute(c["debut"], c["fin"], "a manger")
     assert j["fautes"][0]["source"] == "languagetool"
     assert j["claude"] == {"ok": True, "erreur": None, "ajoutees": 1}
     assert "<rapport>" in fausse.appels[0] and "Dubé" not in fausse.appels[0]
     # mêmes décisions, barème et export que LanguageTool
-    j = rapport_range.put(URL_RAPPORT, json={"decisions": {"1": "acceptee"}, "choix": {"1": "a mangé"}}).json()
+    j = rapport_range.patch(URL_RAPPORT, json={"fautes": {c["id"]: {"decision": "acceptee", "choix": "a mangé"}}}).json()
     assert j["nb_acceptees"] == 1 and j["penalite"] == 0.5
 
 
@@ -177,63 +185,71 @@ def test_erreur_claude_garde_languagetool(rapport_range, monkeypatch, erreur, co
 
 def test_nouvelle_analyse_garde_decision_faute_claude(rapport_range, monkeypatch):
     monkeypatch.setattr(francais_claude, "obtenir_file", lambda: FileFausse([FAUTE_CLAUDE]))
-    rapport_range.post(URL_RAPPORT + "/analyser")
-    rapport_range.put(URL_RAPPORT, json={"decisions": {"1": "refusee"}})
-    assert rapport_range.post(URL_RAPPORT + "/analyser").json()["decisions"] == {"1": "refusee"}
+    ci = rapport_range.post(URL_RAPPORT + "/analyser").json()["fautes"][1]["id"]
+    decider(rapport_range, ci, "refusee")
+    assert rapport_range.post(URL_RAPPORT + "/analyser").json()["decisions"] == {ci: "refusee"}
 
 
 def test_rapport_pas_analyse(rapport_range):
     j = rapport_range.get(URL_RAPPORT).json()
     assert j["analyse"] is False and j["penalite"] == 0
-    assert rapport_range.put(URL_RAPPORT, json={}).status_code == 409
+    assert rapport_range.put(URL_RAPPORT, json={"revision": 0}).status_code == 409
+    assert rapport_range.patch(URL_RAPPORT, json={"fautes": {}}).status_code == 409
 
 
 def test_analyse_decisions_et_bareme_par_cours(rapport_range, tmp_path):
     j = rapport_range.post(URL_RAPPORT + "/analyser").json()
     assert j["analyse"] and j["fautes"][0]["texte"] == "mesure" and j["nb_acceptees"] == 0
+    fid = j["fautes"][0]["id"]
     assert (tmp_path / "bibliotheque/202SNURE/00002/lab-3/dube-alice/francais.json").is_file()
     # barème du cours : 2 points par faute, plafond 1
     r = rapport_range.put("/api/francais/bareme/202SNURE", json={"points_par_faute": 2, "plafond": 1})
     assert r.status_code == 200
-    j = rapport_range.put(URL_RAPPORT, json={
-        "decisions": {"0": "acceptee"}, "choix": {"0": "mesurent"}, "masquees": [0]}).json()
-    assert j["nb_acceptees"] == 1 and j["penalite"] == 1 and j["masquees"] == [0]
-    assert rapport_range.get(URL_RAPPORT).json()["choix"] == {"0": "mesurent"}
+    j = rapport_range.put(URL_RAPPORT, json={"revision": j["revision"],
+        "decisions": {fid: "acceptee"}, "choix": {fid: "mesurent"}, "masquees": [fid]}).json()
+    assert j["nb_acceptees"] == 1 and j["penalite"] == 1 and j["masquees"] == [fid]
+    assert rapport_range.get(URL_RAPPORT).json()["choix"] == {fid: "mesurent"}
 
 
 def test_nouvelle_analyse_garde_les_decisions(rapport_range):
-    rapport_range.post(URL_RAPPORT + "/analyser")
-    rapport_range.put(URL_RAPPORT, json={"decisions": {"0": "refusee"}})
+    fid = rapport_range.post(URL_RAPPORT + "/analyser").json()["fautes"][0]["id"]
+    decider(rapport_range, fid, "refusee")
     j = rapport_range.post(URL_RAPPORT + "/analyser").json()
-    assert j["decisions"] == {"0": "refusee"}
+    assert j["decisions"] == {fid: "refusee"}
 
 
 def test_decalage_de_la_correction_enregistre_et_garde(rapport_range):
-    rapport_range.post(URL_RAPPORT + "/analyser")
-    j = rapport_range.put(URL_RAPPORT, json={"decalages": {"0": [12.5, -30]}}).json()
-    assert j["decalages"] == {"0": [12.5, -30]}
-    assert rapport_range.get(URL_RAPPORT).json()["decalages"] == {"0": [12.5, -30]}
+    fid = rapport_range.post(URL_RAPPORT + "/analyser").json()["fautes"][0]["id"]
+    j = rapport_range.patch(URL_RAPPORT, json={"fautes": {fid: {"decalage": [12.5, -30]}}}).json()
+    assert j["decalages"] == {fid: [12.5, -30]}
+    assert rapport_range.get(URL_RAPPORT).json()["decalages"] == {fid: [12.5, -30]}
     # une nouvelle analyse garde le déplacement de la faute inchangée
-    assert rapport_range.post(URL_RAPPORT + "/analyser").json()["decalages"] == {"0": [12.5, -30]}
+    j = rapport_range.post(URL_RAPPORT + "/analyser").json()
+    assert j["decalages"] == {fid: [12.5, -30]}
     # remise en place : plus de décalage
-    assert rapport_range.put(URL_RAPPORT, json={"decalages": {}}).json()["decalages"] == {}
-    assert rapport_range.put(URL_RAPPORT, json={"decalages": {"9": [1, 1]}}).status_code == 422
+    j = rapport_range.patch(URL_RAPPORT, json={"fautes": {fid: {"decalage": None}}}).json()
+    assert j["decalages"] == {}
+    assert rapport_range.put(URL_RAPPORT, json={"revision": j["revision"], "decalages": {"9": [1, 1]}}).status_code == 422
 
 
 def test_ancienne_analyse_sans_decalages(rapport_range, tmp_path):
     """Un francais.json d'avant les décalages doit renvoyer `decalages` (sinon le lecteur plante au glissement)."""
-    rapport_range.post(URL_RAPPORT + "/analyser")
+    fid = rapport_range.post(URL_RAPPORT + "/analyser").json()["fautes"][0]["id"]
     f = tmp_path / "bibliotheque/202SNURE/00002/lab-3/dube-alice/francais.json"
     doc = json.loads(f.read_text(encoding="utf-8")); del doc["decalages"]
     f.write_text(json.dumps(doc), encoding="utf-8")
     assert rapport_range.get(URL_RAPPORT).json()["decalages"] == {}
-    assert rapport_range.put(URL_RAPPORT, json={"decalages": {"0": [5, 6]}}).json()["decalages"] == {"0": [5, 6]}
+    assert rapport_range.patch(URL_RAPPORT, json={"fautes": {fid: {"decalage": [5, 6]}}}).json()["decalages"] == {fid: [5, 6]}
 
 
 def test_decision_sur_faute_inconnue(rapport_range):
-    rapport_range.post(URL_RAPPORT + "/analyser")
-    assert rapport_range.put(URL_RAPPORT, json={"decisions": {"9": "acceptee"}}).status_code == 422
-    assert rapport_range.put(URL_RAPPORT, json={"decisions": {"0": "peut-etre"}}).status_code == 422
+    j = rapport_range.post(URL_RAPPORT + "/analyser").json()
+    fid, rev = j["fautes"][0]["id"], j["revision"]
+    assert rapport_range.put(URL_RAPPORT, json={"revision": rev, "decisions": {"9": "acceptee"}}).status_code == 422
+    assert rapport_range.put(URL_RAPPORT, json={"revision": rev, "decisions": {fid: "peut-etre"}}).status_code == 422
+    assert rapport_range.put(URL_RAPPORT, json={"decisions": {fid: "acceptee"}}).status_code == 422  # révision obligatoire
+    assert rapport_range.patch(URL_RAPPORT, json={"fautes": {"9": {"decision": "acceptee"}}}).status_code == 409
+    assert rapport_range.patch(URL_RAPPORT, json={"fautes": {fid: {"decision": "peut-etre"}}}).status_code == 422
 
 
 def test_bareme_cours_inconnu(client):
@@ -242,12 +258,12 @@ def test_bareme_cours_inconnu(client):
 
 def test_claude_en_panne_garde_les_fautes_claude_precedentes(rapport_range, monkeypatch):
     monkeypatch.setattr(francais_claude, "obtenir_file", lambda: FileFausse([FAUTE_CLAUDE]))
-    rapport_range.post(URL_RAPPORT + "/analyser")
-    rapport_range.put(URL_RAPPORT, json={"decisions": {"1": "acceptee"}})
+    ci = rapport_range.post(URL_RAPPORT + "/analyser").json()["fautes"][1]["id"]
+    decider(rapport_range, ci, "acceptee")
     monkeypatch.setattr(francais_claude, "obtenir_file", lambda: FileFausse(erreur=ClaudeLimite("limit")))
     j = rapport_range.post(URL_RAPPORT + "/analyser").json()
     assert [f["texte"] for f in j["fautes"]] == ["mesure", "a manger"]
-    assert j["decisions"] == {"1": "acceptee"} and j["claude"]["ok"] is False
+    assert j["decisions"] == {ci: "acceptee"} and j["claude"]["ok"] is False
 
 
 def test_extrait_de_claude_mots_entiers(rapport_range, monkeypatch):

@@ -39,7 +39,7 @@
   };
 
   const aller = async (e) => {
-    await window.toutEnregistrer();
+    if (!(await window.enregistrerAvant())) return;
     const q = new URLSearchParams(location.search);
     q.set("groupe", e.groupe);
     q.set("etudiant", e.etudiant);
@@ -49,7 +49,7 @@
   };
 
   const marquer = async (valeur) => {
-    await window.toutEnregistrer();
+    if (!(await window.enregistrerAvant())) return false;
     const corps = { termine: valeur };
     if (valeur) { // note du rapport (vide = pas de note); Annuler = ne rien faire
       const note = prompt("Note du rapport (ex. 17,5), facultatif :", courant.note ?? "");
@@ -69,7 +69,7 @@
   const vers = (e) => {
     if (e) return aller(e);
     alert("Tous les rapports de ce lab sont terminés.");
-    return window.toutEnregistrer().then(() => { location.href = $("tableau").href; });
+    return window.enregistrerAvant().then((ok) => { if (ok) location.href = $("tableau").href; });
   };
 
   $("prec").onclick = () => aller(liste[i - 1]);
