@@ -275,3 +275,95 @@ def test_statut_termine_et_archive(client):
     client.put("/api/bibliotheque/archive/202SNURE/00002/lab-3", json={"archive": False})
     assert client.get("/api/bibliotheque").json()[0]["labs_archives"] == []
     assert client.put("/api/bibliotheque/archive/202SNURE/00002/lab-9", json={"archive": True}).status_code == 404
+
+
+# --- Réimport de liste stable (audit E4) -------------------------------------
+
+def liste(client, lignes):
+    r = client.post("/api/bibliotheque/classes", files={"fichier": (NOM_LISTE, xlsx([["No de DA", "Nom", "Prénom"]] + lignes))})
+    assert r.status_code == 200, r.text
+    return r.json()
+
+
+def ids(classe):
+    return {e["da"]: e["id"] for e in classe["etudiants"] if e.get("da")}
+
+
+def proprietaire(client, lab="lab-1"):
+    """{id: groupe de labs} lus dans l'arbre : à qui appartient chaque rapport."""
+    return {e["id"]: e["labs"] for e in client.get("/api/bibliotheque").json()[0]["etudiants"]}
+
+
+HOMONYMES = [["2600010", "Gagnon", "Marc"], ["2600011", "Gagnon", "Marc"], ["2600012", "Roy", "Léa"]]
+
+
+def ranger_pour(client, da, lab="Lab 1"):
+    res = importer(client, [(f"gagnon_{da}_rapport.pdf", pdf())], lab)
+    assert len(res["ranges"]) == 1, res
+    return res["ranges"][0]["etudiant"]["id"]
+
+
+def test_reimport_ordre_different_garde_les_rapports(client):
+    premiere = liste(client, HOMONYMES)
+    assert ids(premiere)["2600011"] != ids(premiere)["2600010"]
+    id_second = ranger_pour(client, "2600011")
+    second = liste(client, list(reversed(HOMONYMES)))
+    assert second["recap"]["inchanges"] == 3 and not second["recap"]["ajoutes"] and not second["recap"]["retires"]
+    assert ids(second) == ids(premiere)
+    assert proprietaire(client)[id_second] == ["lab-1"]
+    assert proprietaire(client)[ids(second)["2600010"]] == []
+
+
+def test_reimport_ajout_et_nouvel_id_jamais_reutilise(client):
+    premiere = liste(client, HOMONYMES)
+    r = liste(client, HOMONYMES + [["2600013", "Gagnon", "Marc"], ["2600014", "Dubé", "Alice"]])
+    assert r["recap"]["ajoutes"] == ["Marc Gagnon", "Alice Dubé"]
+    nouveaux = [e["id"] for e in r["etudiants"]]
+    assert len(set(nouveaux)) == 5
+    assert [i for i in nouveaux[:3]] == [e["id"] for e in premiere["etudiants"]]
+
+
+def test_reimport_etudiant_retire_garde_ses_rapports(client):
+    liste(client, HOMONYMES)
+    id_roy = ranger_pour(client, "2600012")
+    r = liste(client, HOMONYMES[:2])
+    assert r["recap"]["retires"] == ["Léa Roy"]
+    roy = next(e for e in r["etudiants"] if e["id"] == id_roy)
+    assert roy["retire"] is True
+    assert proprietaire(client)[id_roy] == ["lab-1"]
+    # il revient : réactivé, même id
+    r = liste(client, HOMONYMES)
+    assert r["recap"]["reactives"] == ["Léa Roy"]
+    assert "retire" not in next(e for e in r["etudiants"] if e["id"] == id_roy)
+
+
+def test_reimport_retire_puis_nouvel_homonyme_ne_reprend_pas_son_id(client):
+    premiere = liste(client, [["2600010", "Gagnon", "Marc"]])
+    r = liste(client, [["2600099", "Gagnon", "Marc"]])  # autre DA, l'ancien DA a disparu : même personne
+    assert r["recap"]["mis_a_jour"] == ["Marc Gagnon"] and not r["recap"]["ajoutes"]
+    r = liste(client, [["2600099", "Gagnon", "Marc"], ["2600010", "Gagnon", "Marc"]])
+    assert len({e["id"] for e in r["etudiants"]}) == 2
+
+
+def test_reimport_da_modifie_garde_l_id_et_le_rapport(client):
+    liste(client, HOMONYMES)
+    id_roy = ranger_pour(client, "2600012")
+    r = liste(client, [["2600010", "Gagnon", "Marc"], ["2600011", "Gagnon", "Marc"], ["2600777", "Roy", "Léa"]])
+    roy = next(e for e in r["etudiants"] if e["id"] == id_roy)
+    assert roy["da"] == "2600777" and not r["recap"]["retires"] and not r["recap"]["ajoutes"]
+    assert proprietaire(client)[id_roy] == ["lab-1"]
+
+
+def test_reimport_homonymes_sans_da_sont_a_trancher(client):
+    liste(client, [["", "Gagnon", "Marc"], ["", "Gagnon", "Marc"], ["", "Roy", "Léa"]])
+    avant = client.get("/api/bibliotheque").json()[0]["etudiants"]
+    r = liste(client, [["", "Roy", "Léa"], ["", "Gagnon", "Marc"], ["", "Gagnon", "Marc"]])
+    assert [c["nom"] for c in r["recap"]["conflits"]] == ["Marc Gagnon"]
+    assert [e["id"] for e in r["etudiants"]] == [e["id"] for e in avant] and not r["recap"]["retires"]
+
+
+def test_reimport_liste_abimee_refuse(client, tmp_path):
+    liste(client, HOMONYMES)
+    (tmp_path / "bibliotheque/202SNURE/00002/classe.json").write_text("{tronque", encoding="utf-8")
+    r = client.post("/api/bibliotheque/classes", files={"fichier": (NOM_LISTE, xlsx([["Nom", "Prénom"], ["Roy", "Léa"]]))})
+    assert r.status_code == 422
