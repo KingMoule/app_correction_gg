@@ -4,6 +4,8 @@ Objectif : une app plus belle et plus sobre, **sans changer le comportement ni l
 
 État : **choix faits** (section 5); application en cours, une PR par groupe d'écrans.
 
+Nouvelle étape (2026-10-21) : 3 directions visuelles pour toute l'app, à choisir, dans [`design/propositions-2026-10/`](design/propositions-2026-10/README.md).
+
 ## 1. Constats sur l'app actuelle
 
 Captures « avant » (bibliothèque fictive) : `docs/design/avant/<écran>-<ipad-paysage|ipad-portrait|pc>.png`. Exemples : [bibliothèque](design/avant/biblio-ipad-paysage.png), [suivi](design/avant/suivi-ipad-paysage.png), [lecteur + fautes](design/avant/lecteur-fautes-ipad-paysage.png), [import](design/avant/import-ipad-paysage.png).

@@ -1,0 +1,267 @@
+<title>Trois directions pour Correction</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+/* Planche de comparaison : onglets d'écran collants, 3 maquettes côte à côte, puis raisonnement, critiques et recommandation. */
+:root{
+  --bg:#eceef1; --surf:#ffffff; --surf2:#f5f6f8; --trait:#d9dde3; --tx:#191c21; --tx2:#545b66; --enc:#2a3342;
+  --a:#4f46e5; --b:#0062d1; --c:#0f6f66; --a-d:#eef0ff; --b-d:#e6effb; --c-d:#e1f0ed;
+  --ok:#17692e; --ok-d:#e2f3e6; --non:#8a4b00; --non-d:#fbeed6;
+  --f-tx:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif; --f-mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#121418; --surf:#1c2026; --surf2:#232830; --trait:#333a44; --tx:#e9ebee; --tx2:#a7afba; --enc:#c9d3e3;
+  --a:#a5a1ff; --b:#6aa8ff; --c:#5cc7b8; --a-d:#262449; --b-d:#1a2b44; --c-d:#163430;
+  --ok:#7fd69a; --ok-d:#183a24; --non:#f0b867; --non-d:#3a2a12; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#121418; --surf:#1c2026; --surf2:#232830; --trait:#333a44; --tx:#e9ebee; --tx2:#a7afba; --enc:#c9d3e3;
+  --a:#a5a1ff; --b:#6aa8ff; --c:#5cc7b8; --a-d:#262449; --b-d:#1a2b44; --c-d:#163430;
+  --ok:#7fd69a; --ok-d:#183a24; --non:#f0b867; --non-d:#3a2a12; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--tx);font:400 16px/1.55 var(--f-tx)}
+.env{max-width:1400px;margin:0 auto;padding-block:28px 80px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+h1,h2,h3{text-wrap:balance;margin:0;line-height:1.2}
+h1{font-size:clamp(28px,4vw,40px);font-weight:700;letter-spacing:-.015em}
+h2{font-size:24px;font-weight:650;margin-top:56px}
+h3{font-size:18px;font-weight:600}
+p{margin:0}
+.chapo{max-width:70ch;color:var(--tx2);margin-top:12px;font-size:17px}
+.etq{font:500 12px/1 var(--f-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--tx2)}
+.reco{margin-top:24px;background:var(--surf);border:1px solid var(--trait);border-radius:14px;padding:20px 22px;display:grid;gap:10px;max-width:920px}
+.reco b.lettre{display:inline-grid;place-items:center;width:26px;height:26px;border-radius:7px;color:#fff;font-size:14px;margin-right:6px;vertical-align:-6px}
+/* Barre d'écrans collante */
+.barre{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);padding-block:12px;margin-top:28px;border-bottom:1px solid var(--trait);display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
+.ongl{display:flex;gap:4px;flex-wrap:wrap}
+.ongl a,.mode button{min-height:44px;display:inline-flex;align-items:center;padding:0 14px;border-radius:10px;color:var(--tx2);font-weight:500;text-decoration:none;cursor:pointer;border:1px solid transparent}
+.ongl a[aria-current="true"]{background:var(--surf);color:var(--tx);border-color:var(--trait);font-weight:600}
+.ongl a:focus-visible,.mode button:focus-visible,figure button:focus-visible{outline:2px solid var(--enc);outline-offset:2px}
+.mode{margin-left:auto;display:flex;gap:2px;background:var(--surf2);border:1px solid var(--trait);border-radius:12px;padding:3px}
+.mode button{min-height:40px;padding:0 12px;font:500 14px var(--f-tx);background:none;color:var(--tx2)}
+.mode button[aria-pressed="true"]{background:var(--surf);color:var(--tx);font-weight:600;box-shadow:0 1px 2px rgba(0,0,0,.08)}
+/* Grille des maquettes */
+.grille{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px;margin-top:20px}
+.grille.une{grid-template-columns:minmax(0,1fr)}
+.grille.une figure:not(.vu){display:none}
+figure{margin:0;background:var(--surf);border:1px solid var(--trait);border-radius:14px;overflow:hidden;display:flex;flex-direction:column;min-width:0}
+figure header{display:flex;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid var(--trait)}
+figure header b{display:inline-grid;place-items:center;width:28px;height:28px;border-radius:8px;color:#fff;font-weight:700;flex:none}
+figure header span{font-weight:600}
+figure header small{color:var(--tx2);font-size:13px;margin-left:auto;font-family:var(--f-mono)}
+figure button{all:unset;cursor:zoom-in;display:block;background:var(--surf2)}
+figure img{display:block;width:100%;height:auto}
+figcaption{padding:12px 14px 14px;color:var(--tx2);font-size:14.5px;line-height:1.5}
+.A b.l{background:var(--a)}.B b.l{background:var(--b)}.C b.l{background:#0f6f66}
+.portrait-only .grille figure img{max-width:420px;margin:0 auto}
+.sarc{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.sarc button{all:unset;cursor:zoom-in;display:block;border-radius:10px;overflow:hidden;border:1px solid var(--trait)}.sarc img{display:block;width:100%;height:auto}
+.avant{margin-top:18px;display:grid;grid-template-columns:minmax(0,320px) minmax(0,1fr);gap:16px;align-items:start;background:var(--surf);border:1px dashed var(--trait);border-radius:14px;padding:14px}
+.avant img{width:100%;border-radius:8px;border:1px solid var(--trait)}
+.avant p{color:var(--tx2);font-size:14.5px}
+/* Fiches des directions */
+.fiches{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px;margin-top:20px}
+.fiche{background:var(--surf);border:1px solid var(--trait);border-radius:14px;padding:18px;min-width:0}
+.fiche h3{display:flex;align-items:center;gap:10px}
+.fiche h3 b{display:inline-grid;place-items:center;width:28px;height:28px;border-radius:8px;color:#fff;font-size:15px}
+.nuancier{display:flex;gap:6px;margin:14px 0 6px;flex-wrap:wrap}
+.nuancier i{width:34px;height:34px;border-radius:8px;border:1px solid rgba(0,0,0,.12)}
+.fiche dl{display:grid;grid-template-columns:auto 1fr;gap:6px 12px;margin:12px 0 0;font-size:14.5px}
+.fiche dt{color:var(--tx2)}
+.fiche dd{margin:0}
+.fiche ul,.crit ul{margin:12px 0 0;padding-left:18px;display:grid;gap:6px;font-size:15px}
+/* Critiques */
+.crit{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px;margin-top:20px}
+.crit section{background:var(--surf);border:1px solid var(--trait);border-radius:14px;padding:18px;min-width:0}
+.crit h4{margin:16px 0 0;font-size:13px;font-family:var(--f-mono);text-transform:uppercase;letter-spacing:.05em}
+.crit .ok{color:var(--ok)}.crit .non{color:var(--non)}
+.tableau{overflow-x:auto;margin-top:16px;background:var(--surf);border:1px solid var(--trait);border-radius:14px}
+table{border-collapse:collapse;width:100%;min-width:720px;font-size:15px}
+th,td{text-align:left;padding:12px 14px;border-bottom:1px solid var(--trait);vertical-align:top}
+th{font-size:13px;color:var(--tx2);font-weight:600;background:var(--surf2)}
+tr:last-child td{border-bottom:0}
+.src{columns:2;column-gap:28px;margin-top:14px;font-size:14.5px;color:var(--tx2)}
+.src p{break-inside:avoid;margin-bottom:10px}
+a{color:var(--enc)}
+/* Agrandissement */
+.loupe{position:fixed;inset:0;z-index:20;background:rgba(10,12,16,.86);display:flex;align-items:center;justify-content:center;padding:max(16px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) max(16px,env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
+.loupe img{max-width:100%;max-height:100%;border-radius:10px;box-shadow:0 20px 60px rgba(0,0,0,.5)}
+.loupe button{position:absolute;top:max(14px,env(safe-area-inset-top,0px));right:max(14px,env(safe-area-inset-right,0px));min-width:44px;min-height:44px;border-radius:22px;border:0;background:#fff;color:#111;font:600 15px var(--f-tx);padding:0 16px;cursor:pointer}
+@media (max-width:900px){.barre{position:static}.sarc,.grille,.fiches,.crit{grid-template-columns:minmax(0,1fr)}.mode{margin-left:0}.src{columns:1}.avant{grid-template-columns:minmax(0,1fr)}}
+@media (prefers-reduced-motion:no-preference){figure button img{transition:transform .2s}figure button:hover img{transform:scale(1.01)}}
+</style>
+
+<div class="env">
+  <div class="etq">Correction de labs · refonte visuelle · octobre 2026</div>
+  <h1 style="margin-top:10px">Trois directions pour l'app, écran par écran</h1>
+  <p class="chapo">Trois looks complets, du placement des menus aux icônes et aux couleurs. Chaque direction couvre 9 écrans (accueil, import, suivi, lecteur en paysage et en portrait, plagiat, export LÉA, code d'accès, états et retours), avec des données inventées. Chacune a été critiquée par un agent indépendant, puis corrigée. Touche une maquette pour l'agrandir.</p>
+
+  <div class="reco" id="reco-haut">
+    <div class="etq">Ma recommandation</div>
+    <p><b>A « Atelier », avec ta sarcelle comme accent.</b> C'est la plus professionnelle et la plus lisible pour 20 à 35 rapports par lab, elle marche aussi bien sur l'iPad que sur le PC, et l'accent se change d'un seul jeton. J'y ajouterais deux emprunts : le bloc « À faire » de l'accueil de C et le balayage d'une ligne du suivi de B. <a href="#reco">Voir pourquoi</a>.</p>
+  </div>
+
+  <nav class="barre" aria-label="Écrans">
+    <div class="ongl" id="ongl"></div>
+    <div class="mode" role="group" aria-label="Affichage">
+      <button type="button" data-m="tout" aria-pressed="true">Les 3</button><button type="button" data-m="A" aria-pressed="false">A seule</button><button type="button" data-m="B" aria-pressed="false">B seule</button><button type="button" data-m="C" aria-pressed="false">C seule</button>
+    </div>
+  </nav>
+
+  <div id="vue"></div>
+
+  <h2>Les trois directions en bref</h2>
+  <div class="fiches">
+    <div class="fiche A">
+      <h3><b style="background:var(--a)">A</b>Atelier</h3>
+      <p style="color:var(--tx2);margin-top:6px">Outil pro sobre, façon Linear ou Notion.</p>
+      <div class="nuancier" aria-label="Palette A"><i style="background:#fafafa"></i><i style="background:#f4f4f5"></i><i style="background:#18181b"></i><i style="background:#4f46e5"></i><i style="background:#0f6f66"></i><i style="background:#fef3c7"></i><i style="background:#f3e8ff"></i><i style="background:#cffafe"></i></div>
+      <dl><dt>Navigation</dt><dd>Barre latérale claire de 248 px, labs en cours et lot dedans</dd>
+        <dt>Police</dt><dd>Inter (OFL), 15 px, titres 600</dd>
+        <dt>Icônes</dt><dd>Lucide (ISC), trait fin</dd>
+        <dt>Boutons</dt><dd>Plein (indigo ou sarcelle), blanc bordé ; menu « … » par ligne</dd>
+        <dt>Lecteur</dt><dd>Rail d'outils vertical à gauche, inspecteur à onglets à droite</dd></dl>
+      <p style="margin-top:12px"><a href="a-atelier.html">Ouvrir les 9 écrans de A</a></p>
+    </div>
+    <div class="fiche B">
+      <h3><b style="background:var(--b)">B</b>Natif iPad</h3>
+      <p style="color:var(--tx2);margin-top:6px">Comme si Apple l'avait faite.</p>
+      <div class="nuancier" aria-label="Palette B"><i style="background:#f2f2f7"></i><i style="background:#ffffff"></i><i style="background:#1c1c1e"></i><i style="background:#0062d1"></i><i style="background:#ff9500"></i><i style="background:#af52de"></i><i style="background:#30b0c7"></i></div>
+      <dl><dt>Navigation</dt><dd>Onglets flottants en haut (navigation seulement), grands titres</dd>
+        <dt>Police</dt><dd>Système (SF Pro sur l'iPad), corps 17 px</dd>
+        <dt>Icônes</dt><dd>Phosphor (MIT), le plus proche de SF Symbols</dd>
+        <dt>Boutons</dt><dd>Capsules = boutons, états en point + texte ; feuilles, alertes, popovers</dd>
+        <dt>Lecteur</dt><dd>PDF plein écran, palette de stylos flottante en bas, inspecteur à droite</dd></dl>
+      <p style="margin-top:12px"><a href="b-ipad.html">Ouvrir les 9 écrans de B</a></p>
+    </div>
+    <div class="fiche C">
+      <h3><b style="background:#0f6f66">C</b>Salle des profs</h3>
+      <p style="color:var(--tx2);margin-top:6px">Éducatif et chaleureux, couleurs affirmées, cartes.</p>
+      <div class="nuancier" aria-label="Palette C"><i style="background:#f6f1e8"></i><i style="background:#fffdf9"></i><i style="background:#123f3b"></i><i style="background:#0f6f66"></i><i style="background:#fdebc8"></i><i style="background:#7a3e8f"></i><i style="background:#2a62a6"></i></div>
+      <dl><dt>Navigation</dt><dd>Rail foncé de 92 px, icône + libellé toujours visibles</dd>
+        <dt>Polices</dt><dd>Fraunces (titres) et Figtree (texte), OFL</dd>
+        <dt>Icônes</dt><dd>Tabler (MIT), dans des tuiles colorées</dd>
+        <dt>Boutons</dt><dd>Plats, rayon 12 : sapin plein, blanc bordé ; une seule table d'états</dd>
+        <dt>Lecteur</dt><dd>Palette en carte avec libellés, cartes à droite, suivi en colonnes</dd></dl>
+      <p style="margin-top:12px"><a href="c-classe.html">Ouvrir les 9 écrans de C</a></p>
+    </div>
+  </div>
+
+  <h2>Ce que les 3 directions ont en commun</h2>
+  <div class="tableau"><table>
+    <tr><th>Règle</th><th>D'où elle vient</th></tr>
+    <tr><td>Un seul bouton plein par zone, à droite (« Terminé et suivant », « Importer 10 rapports », « Exporter »); les autres en blanc bordé, teinté ou texte. Plus aucun bouton gris.</td><td>Refactoring UI, Carbon, Primer, Apple HIG</td></tr>
+    <tr><td>Libellé visible partout, sauf crayon, surligneur, gomme, annuler, rétablir, partager. Pas d'infobulle indispensable : l'iPad n'a pas de survol.</td><td>Nielsen Norman Group, HIG</td></tr>
+    <tr><td>Lecteur en 3 groupes : navigation à gauche, outils, action principale à droite. Fiche de la faute en tête du panneau, passage automatique à la suivante, faute traitée grisée mais visible.</td><td>HIG, Antidote, Grammarly, Gradescope</td></tr>
+    <tr><td>Rouge réservé aux fautes et aux erreurs. Plagiat et IA : niveau en mots, couleurs à part (bleu-vert, violet), toujours « à revérifier ».</td><td>Turnitin, Stripe, Vercel</td></tr>
+    <tr><td>Retours : « Enregistré » visible, progression chiffrée (« 6 sur 10 ») pour le lot et le ZIP, toast avec Annuler, bannière pour ce qui exige une action.</td><td>NN/g, Carbon, Atlassian</td></tr>
+    <tr><td>Cibles d'au moins 44 px et contraste AA, vérifiés par script (0 échec sur 71 paires de couleurs, aucun bouton sous 44 px). 5 couleurs d'annotation inchangées, PDF au centre. « Terminé… » ouvre la saisie de la note.</td><td>WCAG 2.2, HIG</td></tr>
+  </table></div>
+
+  <h2>Raisonnement final de chaque direction</h2>
+  <div class="crit"><section><h3 style="display:flex;gap:10px;align-items:center"><b style="display:inline-grid;place-items:center;width:28px;height:28px;border-radius:8px;color:#fff;background:var(--a)">A</b>Atelier</h3><ul><li><b>Barre latérale claire de 248 px</b> : Accueil, Bibliothèque, Importer, Analyse par lot (avec sa progression), Plagiat, Export LÉA, puis les labs en cours ; réglages et « Ordi connecté » en pied. Elle disparaît dans le lecteur.</li><li><b>Neutres froids + un seul accent</b> (indigo dans les maquettes ; la sarcelle de Guillaume s'y substitue d'un jeton, voir la comparaison). L'accent ne sert qu'à l'action principale, à la sélection et à l'outil actif ; avatars et labs restent neutres.</li><li><b>Inter</b> (OFL) en 15 px, minimum 13 px, titres en 600, chiffres tabulaires.</li><li><b>Boutons</b> : primaire plein, secondaire blanc bordé avec ombre fine ; le style discret est réservé aux icônes de barre.</li><li><b>Suivi en tableau dense</b> (lignes de 52 px), filtres segmentés avec compteurs, colonne Note, un menu « … » par ligne au lieu de 4 boutons ; action principale « Corriger le suivant ».</li><li><b>Pastilles d'état</b> point + mot sur fond pâle.</li><li><b>Lecteur</b> : une seule ligne en haut (retour, étudiant, « Enregistré », ‹ 6 / 24 ›, « Terminé… ») ; <b>rail d'outils vertical à gauche</b> ; <b>inspecteur de 320 px</b> à onglets Français / Indice IA / Plagiat ; page à 700 px.</li><li><b>Fiche de la faute</b> en tête de l'inspecteur, liste par catégories en dessous ; toast « Faute acceptée · Annuler ».</li><li><b>Portrait</b> : rail à gauche, feuille Français sous le PDF à 3 hauteurs.</li><li><b>Icônes</b> : Lucide (ISC), trait de 1,75 px.</li></ul></section><section><h3 style="display:flex;gap:10px;align-items:center"><b style="display:inline-grid;place-items:center;width:28px;height:28px;border-radius:8px;color:#fff;background:var(--b)">B</b>Natif iPad</h3><ul><li><b>Barre d'onglets flottante en haut</b> (iPadOS 18), navigation seulement : Accueil, Bibliothèque, Plagiat, Réglages ; « + Importer » dans la barre de la bibliothèque.</li><li><b>Grands titres</b> (34 px), police système (SF Pro sur l'iPad), corps 17 px.</li><li><b>Listes groupées en encarts</b>, tuiles d'icône grises comme dans Réglages.</li><li><b>Capsules = boutons seulement</b> (plein bleu <code>#0062d1</code>, teinté) ; <b>états = point + texte coloré</b>, sans fond, avec des rôles fixes (orange à trancher, vert fait, indigo en cours, violet IA, bleu-vert plagiat).</li><li><b>Import et export en feuilles modales</b> ; confirmation avant Claude en <b>alerte</b> iPadOS ; note en <b>popover</b> sur « Terminer… ».</li><li><b>Suivi en vue liste façon Fichiers</b>, colonnes triables (avec Note), <b>balayage</b> d'une ligne pour Analyser ou Terminer.</li><li><b>Lecteur plein écran</b> : barre de navigation (Lab 4, nom, ‹ 6 sur 24 ›, Français, Partager, « … », « Terminer… ») ; <b>palette de stylos flottante en bas</b> ; épaisseurs en popover au 2e toucher.</li><li><b>Inspecteur Français</b> : résumé chiffré, fiche avec ‹ ›, autres fautes, section « Indices » ; bannière « Acceptée · Annuler ».</li><li><b>Portrait</b> : feuille du bas à poignée (crans bas, moyen, grand) ; palette complète au-dessus.</li><li><b>Icônes</b> : Phosphor (MIT) à l'implémentation, le plus proche de SF Symbols.</li><li><b>Limites d'une PWA</b> : barres de Safari si l'app n'est pas installée, flou d'arrière-plan coûteux sur le PDF (fonds opaques au lecteur), partage par <code>navigator.share</code>, pas de vibration ; l'allure iOS est étrange sur le PC de Windows.</li></ul></section><section><h3 style="display:flex;gap:10px;align-items:center"><b style="display:inline-grid;place-items:center;width:28px;height:28px;border-radius:8px;color:#fff;background:#0f6f66">C</b>Salle des profs</h3><ul><li><b>Rail de navigation foncé de 92 px</b> (sapin profond), icône + libellé toujours visibles : Accueil, Bibliothèque, Importer, Plagiat, Réglages ; « Ordi connecté » écrit en pied. Lot et export passent par le suivi d'un lab.</li><li><b>Palette</b> : papier crème, cartes blanc cassé, sapin (l'accent de Guillaume) pour les actions et la sélection ; <b>une seule table d'états</b> (neutre, sapin clair, sapin plein ✓, ambre, prune, bleu ciel, rouge).</li><li><b>Fraunces</b> (OFL) pour les titres seulement, <b>Figtree</b> (OFL) pour le texte et les chiffres.</li><li><b>Boutons plats</b> (rayon 12, 48 px), secondaire bordé de 1,5 px ; cartes rayon 16.</li><li><b>Accueil</b> : carte « Reprendre » en sapin plein, bloc « À faire », cartes de lab avec un liseré de couleur par cours, bibliothèque.</li><li><b>Suivi en colonnes compactes</b> À corriger / En cours / Terminés (elles se remplissent seules, pas de glisser-déposer), bascule en tableau.</li><li><b>Lecteur</b> : barre haute avec l'étudiant, « Enregistré », ‹ 6 sur 24 › ; <b>palette en carte flottante à gauche avec libellés</b>, Annuler et Rétablir ; à droite, cartes : résumé Français, fiche (annonce la faute suivante), catégories, indice d'IA.</li><li><b>Portrait</b> : palette en bandeau flottant, cartes en bas.</li><li><b>Plagiat</b> : passages en bleu numérotés et appariés ; « Un indice, pas un verdict ».</li><li><b>Export en 3 étapes</b> (vérifier, préparer le ZIP avec progression, déposer dans LÉA).</li><li><b>Icônes</b> : Tabler (MIT), trait de 2 px, souvent dans une tuile.</li></ul></section></div>
+
+  <h2>Critiques indépendantes et améliorations</h2>
+  <p class="chapo">Un agent par direction, qui n'avait vu que les maquettes et le raisonnement écrit, a proposé des améliorations classées. Voici ce qui a été appliqué, et ce qui a été écarté avec la raison.</p>
+  <div class="crit"><section><h3 style="display:flex;gap:10px;align-items:center"><b style="display:inline-grid;place-items:center;width:28px;height:28px;border-radius:8px;color:#fff;background:var(--a)">A</b>Atelier</h3><p style="color:var(--tx2);margin-top:8px;font-size:15px">Structure adulte et retenue, mais une densité de bureau (12 px, contrôles de 36 px, boutons fantômes gris) et un accent dilué.</p><h4 class="ok">Appliqué · 13</h4><ul><li>Boutons fantômes remplacés par des secondaires bordés (« Suivant non terminé », « Annuler », « Remplacer », « Seuil »).</li><li>Toutes les cibles à 44 px (segmentés, menu « … », suggestions, épaisseurs, chevrons de la fiche, œil du code), vérifié par script.</li><li>PDF agrandi : inspecteur à 320 px, page à 700 px (texte d'environ 15 px).</li><li>États des fautes clarifiés sur le PDF (appliqué aux 3 directions) : à trancher pâle, acceptée pleine, refusée sans marque ; la correction ne touche plus la ligne du dessus.</li><li>Suivi : action principale « Corriger le suivant », export et analyse en secondaires ; colonne Note ; filtre « Tous ».</li><li>Étincelles réservées à Claude ; indice d'IA avec une icône de loupe, violet exclusif, « Modéré · à revoir ».</li><li>Avatars et labs neutres ; « En cours » neutre avec une icône de crayon.</li><li>Texte de base à 15 px, minimum 13 px ; raccourcis clavier ⌘K et ↵ retirés.</li><li>Lecteur : ‹ 6 / 24 ›, « Terminé… » ouvre la note, onglet « Note » remplacé par « Plagiat » ; toast « Faute acceptée · Annuler ».</li><li>Portrait : feuille à 3 hauteurs avec poignée, « Enregistré » et ‹ 6 / 24 › gardés.</li><li>Lot en cours dans la barre latérale ; nouvel écran « États et retours » (note, vide, hors ligne, conflit, limite, lab terminé).</li><li>Données cohérentes (42 restants, Lab 3 retiré des « En cours », nouvel export qui remplace celui du 18 oct.).</li><li>Étapes d'import horizontales ; cartes de passages à hauteur du contenu ; contraste du numéro d'étape et des pointillés corrigé.</li></ul><h4 class="non">Écarté · 4</h4><ul><li>Encre bleue par défaut : la couleur de départ du crayon est un choix de Guillaume, et le rouge reste cohérent avec les corrections exportées.</li><li>Orange d'annotation à 3,1:1 : les 5 couleurs restent celles de l'app ; 3:1 suffit pour un trait.</li><li>« Écarter le rapport… » en rouge : gardé, l'action retire le rapport du lab (convention iPadOS : destructif en rouge, en dernier).</li><li>Piste des barres de progression à 3:1 : le chiffre « 7/24 » porte l'information ; une piste plus foncée alourdit la barre.</li></ul></section><section><h3 style="display:flex;gap:10px;align-items:center"><b style="display:inline-grid;place-items:center;width:28px;height:28px;border-radius:8px;color:#fff;background:var(--b)">B</b>Natif iPad</h3><p style="color:var(--tx2);margin-top:8px;font-size:15px">Bases iPadOS justes (listes, feuilles, alerte, palette, inspecteur), mais des capsules à la fois boutons et états, des couleurs décoratives, des cibles Apple sous 44 px et des flux manquants.</p><h4 class="ok">Appliqué · 11</h4><ul><li>« Terminer… » ouvre un popover avec la note ; ‹ › autour de « 6 sur 24 » ; le balayage « Terminer… » ouvre le même popover.</li><li>Suivi en vue liste façon Fichiers : colonnes triables, Note, filtre « Tous ».</li><li>États en point + texte coloré, sans fond : les capsules ne sont plus que des boutons.</li><li>Rôles de couleur fixés (orange, vert, rouge, violet, bleu-vert, indigo, bleu pour les actions) ; dossiers et monogrammes gris.</li><li>Inspecteur : résumé chiffré au lieu du segmenté, ‹ › sur la fiche, bannière « Acceptée · Annuler », section « Indices ».</li><li>Palette : épaisseurs en popover au 2e toucher sur l'outil, Rétablir ajouté, marge basse.</li><li>Portrait : feuille à poignée au cran moyen, palette complète non réduite.</li><li>Onglets réservés à la navigation (Accueil, Bibliothèque, Plagiat, Réglages) ; « + Importer » dans la barre ; onglets aussi sur Plagiat ; bouton latéral inutile retiré.</li><li>Cibles : segmentés, recherche, onglets, actualiser et capsule du lot à 44 px ; coches en vert foncé ; interrupteur bordé.</li><li>Textes décisifs en 15 px foncé ; « 2 rapports exclus » ; « Marquer le lab terminé » en vraie ligne.</li><li>Anneaux avec « 7/24 » dedans ; chiffres de l'accueil touchables ; écran « États et retours ».</li></ul><h4 class="non">Écarté · 3</h4><ul><li>Orange d'annotation plus foncé : les 5 couleurs restent celles de l'app.</li><li>Palette réductible en rond de 56 px, Dynamic Type, libellés VoiceOver : retenus pour l'implémentation, pas dessinés.</li><li>Mode sombre : attendu sur iPadOS, mais Guillaume a décidé « pas de mode sombre » le 2026-10-20 ; les jetons le permettront.</li></ul></section><section><h3 style="display:flex;gap:10px;align-items:center"><b style="display:inline-grid;place-items:center;width:28px;height:28px;border-radius:8px;color:#fff;background:#0f6f66">C</b>Salle des profs</h3><p style="color:var(--tx2);margin-top:8px;font-size:15px">Structure solide et phrases claires, mais un registre de jeu (lèvres, pilules, « bravo ») et un safran qui voulait tout dire : c'était ce flou, plus que la chaleur, qui faisait peu pro.</p><h4 class="ok">Appliqué · 12</h4><ul><li>Table d'états unique (neutre, sapin clair, sapin plein ✓, ambre, prune, bleu ciel, rouge) ; actions et sélection en sapin ; safran retiré.</li><li>Boutons plats (rayon 12, 48 et 44 px), secondaire bordé de 1,5 px ; cartes rayon 16, pastilles rayon 8.</li><li>Suivi : colonnes compactes (lignes de 52 px, environ 8 par colonne, tri par nom, « + 5 autres »), sans glisser-déposer.</li><li>Ton : « bravo », semaine en barres et « Bon retour ! » retirés ; « 42 rapports à corriger dans 3 labs » ; bloc « À faire » ; titre « Code d'accès ».</li><li>Cartes de lab blanches avec un liseré par cours ; avatars neutres.</li><li>Rétablir ajouté ; épaisseurs 56 × 44 ; palette complète en portrait.</li><li>Note saisie à « Terminé » (écran 9) ; « Enregistré » dans la barre ; « −1 pt / 5 » ; « Ordi connecté » écrit dans le rail.</li><li>Prune et loupe pour l'indice d'IA seulement ; Claude en sapin avec des étincelles.</li><li>PDF agrandi (640 px en paysage, 700 px en portrait), panneau de 340 px.</li><li>Plagiat : passages en bleu, numérotés ; jauges retirées ; seuil et périmètre en tête ; « Écarter la paire ».</li><li>Fraunces pour les titres seulement, chiffres en Figtree ; icônes de fichiers neutres.</li><li>Segments à 44 px, « Arrêter » en vrai bouton, ligne de l'interrupteur à 48 px ; Lot et LÉA retirés du rail (ils passent par le suivi).</li></ul><h4 class="non">Écarté · 4</h4><ul><li>Tableau par défaut au suivi : les colonnes sont l'identité de C ; compactées, elles tiennent 30 rapports. Le tableau reste à un toucher (c'est le défaut de A et B).</li><li>« Échéances » à l'accueil : l'app ne connaît pas les dates de remise, ce serait une nouvelle fonction.</li><li>Orange d'annotation remplacé par un violet : les 5 couleurs restent celles de l'app.</li><li>« Tabler annoncé, Lucide dessiné » : vrai pour les 3 maquettes, qui partagent un seul jeu de pictogrammes ; le jeu cible est embarqué à l'implémentation.</li></ul></section></div>
+
+  <h2>Recommandation</h2>
+  <div class="reco" id="reco" style="max-width:none"><div class="etq">Ma recommandation</div>
+<p style="font-size:18px"><b>Direction A, en sarcelle</b>, plus deux emprunts : « À faire » (C) et le balayage d'une ligne au suivi (B).</p>
+<ul style="margin:0;padding-left:18px;display:grid;gap:8px">
+<li><b>Pourquoi A</b> : c'est la seule qui règle à la fois le « peu pro » (hiérarchie nette, un seul accent, plus aucun bouton gris) et la densité dont tu as besoin au suivi. Son lecteur est le plus économe (rail de 64 px, inspecteur de 320 px repliable, page à 700 px). Elle reste naturelle au PC de Windows.</li>
+<li><b>Pourquoi pas B</b> : c'est la plus « iPad », mais une PWA qui imite iOS hérite des barres de Safari, d'un flou coûteux sur le PDF et d'une autre police au PC ; sa palette flottante cache le bas de la page.</li>
+<li><b>Pourquoi pas C</b> : c'est la plus chaleureuse et la plus proche de ton choix d'octobre ; corrigée, elle fait bien plus pro. Mais ses colonnes passent moins bien à 30 rapports, et ses cartes laissent un PDF plus petit au lecteur (640 px).</li>
+<li><b>Risque de A</b> : un côté « bureau » un peu froid. La sarcelle, la correction manuscrite en Caveat et les états vides rédigés le compensent.</li>
+<li><b>Implémentation proposée</b> (un fil, plusieurs PR) : jetons et barre latérale, puis suivi, import, plagiat et export, puis lecteur, puis états et retours. Polices et icônes (Inter, Lucide) embarquées hors ligne.</li>
+</ul>
+<div class="etq" style="margin-top:12px">A avec ta sarcelle</div>
+<div class="sarc">
+<button type="button" data-src="img/a-sarcelle-accueil.webp"><img loading="lazy" src="img/a-sarcelle-accueil.webp" alt="Direction A en sarcelle : accueil" width="1180" height="820"></button>
+<button type="button" data-src="img/a-sarcelle-suivi.webp"><img loading="lazy" src="img/a-sarcelle-suivi.webp" alt="Direction A en sarcelle : suivi" width="1180" height="820"></button>
+<button type="button" data-src="img/a-sarcelle-lecteur.webp"><img loading="lazy" src="img/a-sarcelle-lecteur.webp" alt="Direction A en sarcelle : lecteur" width="1180" height="820"></button>
+</div></div>
+
+  <h2>Sources de la recherche</h2>
+  <p class="chapo">Trois sous-agents ont parcouru les systèmes de design, les galeries et apps reconnues, et les outils comparables. Rien n'a été copié : seuls les principes ont été repris.</p>
+  <div class="src">
+    <p><b>Systèmes de design</b> : <a href="https://developer.apple.com/design/human-interface-guidelines/toolbars">Apple HIG (barres d'outils, onglets, barres latérales, popovers, feuilles, crayon)</a>, <a href="https://m3.material.io/components/navigation-rail">Material 3</a>, <a href="https://fluent2.microsoft.design/">Fluent 2</a>, <a href="https://carbondesignsystem.com/components/button/usage/">IBM Carbon</a>, <a href="https://atlassian.design/foundations/spacing">Atlassian</a>, <a href="https://primer.style/product/components/button/guidelines">GitHub Primer</a>, <a href="https://ui.shadcn.com/docs/components/sidebar">shadcn/ui</a>, <a href="https://www.radix-ui.com/colors/docs/palette-composition/understanding-the-scale">Radix Colors</a>.</p>
+    <p><b>Références d'interface</b> : <a href="https://www.refactoringui.com/previews/building-your-color-palette">Refactoring UI</a>, <a href="https://lawsofux.com/">Laws of UX</a>, Nielsen Norman Group (<a href="https://www.nngroup.com/articles/icon-usability/">icônes</a>, <a href="https://www.nngroup.com/articles/tooltip-guidelines/">infobulles</a>, <a href="https://www.nngroup.com/articles/data-tables/">tableaux</a>, <a href="https://www.nngroup.com/articles/empty-state-interface-design/">états vides</a>), <a href="https://linear.app/now/how-we-redesigned-the-linear-ui">Linear</a>, <a href="https://www.notion.com/help/sidebar">Notion</a>, <a href="https://www.figma.com/blog/behind-our-redesign-ui3/">Figma UI3</a>, <a href="https://culturedcode.com/things/features/">Things</a>, <a href="https://blog.duolingo.com/core-tabs-redesign/">Duolingo</a>.</p>
+    <p><b>Outils comparables</b> : <a href="https://support.readdle.com/pdfexpert/tips-and-tricks/work-with-pdf-tools-and-customize-the-toolbar">PDF Expert</a>, <a href="https://support.gingerlabs.com/hc/en-us/articles/4867633230234">Notability</a>, GoodNotes, <a href="https://help.kamiapp.com/en/articles/6798255-using-the-drawing-tool">Kami</a>, <a href="https://support.apple.com/en-kz/guide/ipad/draw-in-apps-ipad6350b8dc/16.0/ipados">Annotation d'Apple</a>, <a href="https://help.gradescope.com/article/5uxa8ht1a2">Gradescope</a>, <a href="https://guides.turnitin.com/hc/en-us/articles/23438306524173-Navigating-the-Similarity-Report">Turnitin</a>, <a href="https://www.antidote.info/en/documentation/user-guide/the-corrector/the-correction-prism/correction-process/list-of-detections">Antidote</a>, <a href="https://www.grammarly.com/blog/product/grouped-writing-suggestions/">Grammarly</a>, <a href="https://docs.stripe.com/stripe-apps/components/badge.md">Stripe</a>, <a href="https://vercel.com/geist/badge">Vercel Geist</a>.</p>
+    <p><b>Licences vérifiées</b> : Lucide (ISC), Tabler, Phosphor, Heroicons (MIT), Material Symbols (Apache 2.0); polices Inter, Figtree, Fraunces, Caveat (OFL). SF Symbols est exclu : sa licence le réserve aux apps pour produits Apple.</p>
+  </div>
+</div>
+
+<script>
+const ECRANS=[
+ {id:"accueil",nom:"Accueil",avant:"avant/accueil.png",avantTxt:"Aujourd'hui : onglets en texte gris, deux cartes et trois raccourcis, deux tiers de l'écran vides.",
+  A:"Barre latérale avec les labs en cours ; carte « Reprendre », 4 chiffres, tableau des labs avec progression et état d'export.",
+  B:"Grand titre, carte « Continuer » avec aperçu de la page, anneaux « 7/24 », bibliothèque en liste façon Réglages.",
+  C:"Carte « Reprendre » en sapin plein, bloc « À faire », cartes de lab avec un liseré par cours, bibliothèque."},
+ {id:"import",nom:"Import",avant:"avant/import.png",avantTxt:"Aujourd'hui : champs et boutons « Choisir un fichier » du navigateur, sans zone de dépôt ni résultat par fichier.",
+  A:"Étapes à gauche, zone de dépôt, tableau des fichiers avec l'association (DA, nom, à trancher, refusé), barre d'action collante en bas.",
+  B:"Feuille modale ouverte par « + Importer » : Annuler à gauche, Importer (10) à droite, formulaire en listes groupées.",
+  C:"Assistant en 3 cartes d'étape, grande zone de dépôt, fichiers en pastilles colorées par résultat."},
+ {id:"suivi",nom:"Suivi",avant:"avant/suivi.png",avantTxt:"Aujourd'hui : quand un rapport a plusieurs paires de plagiat, la colonne liste tous les noms et la ligne devient très haute.",
+  A:"Tableau dense, filtres avec compteurs, colonne Note, menu « … » par ligne, « Corriger le suivant » en action principale, lot dans la barre latérale.",
+  B:"Vue liste façon Fichiers, colonnes triables, états en point + texte, balayage pour Analyser ou Terminer, lot dans la barre.",
+  C:"Colonnes compactes À corriger, En cours, Terminés (bascule en tableau), une ligne par étudiant, lot en carte."},
+ {id:"lecteur",nom:"Lecteur",avant:"avant/lecteur-barres.png",avantTxt:"Aujourd'hui : deux lignes de boutons texte gris, puis une ligne d'outils, avant même le PDF.",
+  A:"Une seule ligne en haut avec ‹ 6 / 24 › et « Terminé… », rail d'outils vertical, inspecteur Français / Indice IA / Plagiat, toast après « Accepter ».",
+  B:"PDF plein écran, palette de stylos flottante, épaisseurs en popover, inspecteur Français avec indices, bannière « Acceptée · Annuler ».",
+  C:"Palette en carte avec libellés, Annuler et Rétablir ; cartes à droite : résumé, fiche (annonce la suivante), catégories, indice d'IA."},
+ {id:"lecteur-portrait",nom:"Lecteur portrait",portrait:true,
+  A:"Rail à gauche ; feuille Français à 3 hauteurs sous le PDF, fiche et liste côte à côte.",
+  B:"L'inspecteur devient une feuille du bas à poignée; la palette flotte au-dessus.",
+  C:"Palette en bandeau flottant, cartes en bas de l'écran."},
+ {id:"plagiat",nom:"Plagiat",avant:"avant/plagiat.png",avantTxt:"Aujourd'hui : une longue page de formulaires (énoncé, seuil, comparaison) avant d'arriver aux paires.",
+  A:"Liste des paires, passages numérotés côte à côte en bleu-vert, « Écarter la paire » et « Demander l'avis de Claude… » sous les passages.",
+  B:"Vue scindée sous les onglets, anneau de score, alerte de confirmation avant tout envoi à Claude.",
+  C:"Pourcentage et niveau en mots, deux feuilles côte à côte, passages numérotés en bleu."},
+ {id:"export",nom:"Export LÉA",
+  A:"Ce qui part (inclus, exclus, à refaire), aperçu du CSV, « Nouvel export prêt » qui remplace l'ancien.",
+  B:"Feuille modale : contenu en liste, interrupteur « Inclure les inachevés », fichiers prêts, deux grands boutons.",
+  C:"Trois étapes (vérifier, préparer le ZIP avec progression, déposer dans LÉA), contenu du ZIP à droite."},
+ {id:"etats",nom:"États et retours",
+  A:"Feuille de note à « Terminé », lab terminé, bibliothèque vide, hors ligne, conflit, confirmation avant Claude, limite d'usage, toast.",
+  B:"Popover de note sur « Terminer… », état vide centré, hors ligne dans le sous-titre, alertes en liste groupée.",
+  C:"Feuille de note avec rappel du barème, carte « Lab terminé » en sapin, état vide, bandeaux et toast."},
+ {id:"acces",nom:"Code d'accès",
+  A:"Carte centrée, champ avec œil, un seul bouton, état du moteur en pied.",
+  B:"Écran d'accueil façon iPadOS : icône d'app, grand titre, champ et capsule « Continuer ».",
+  C:"Moitié sapin avec le nom de l'app, formulaire « Code d'accès » à droite."}
+];
+const NOMS={A:"Atelier",B:"Natif iPad",C:"Salle des profs"};
+const P={A:"a",B:"b",C:"c"};
+let ecran="accueil", mode="tout";
+const ongl=document.getElementById("ongl"), vue=document.getElementById("vue");
+ECRANS.forEach(e=>{const a=document.createElement("a");a.textContent=e.nom;a.href="#"+e.id;a.dataset.id=e.id;ongl.append(a);});
+function rendre(){
+  const e=ECRANS.find(x=>x.id===ecran)||ECRANS[0];
+  ongl.querySelectorAll("a").forEach(a=>a.setAttribute("aria-current",a.dataset.id===e.id?"true":"false"));
+  document.querySelectorAll(".mode button").forEach(a=>a.setAttribute("aria-pressed",a.dataset.m===mode?"true":"false"));
+  const g=document.createElement("div");g.className="grille"+(mode==="tout"?"":" une");
+  ["A","B","C"].forEach(k=>{
+    const f=document.createElement("figure");f.className=k+(mode===k?" vu":"");
+    const src="img/"+P[k]+"-"+e.id+".webp";
+    f.innerHTML=`<header><b class="l">${k}</b><span>${NOMS[k]}</span><small>${e.portrait?"820 × 1180":"1180 × 820"}</small></header>
+      <button type="button" aria-label="Agrandir la maquette ${k}, ${e.nom}"><img loading="lazy" src="${src}" alt="Direction ${k}, ${NOMS[k]} : écran ${e.nom}" width="${e.portrait?820:1180}" height="${e.portrait?1180:820}"></button>
+      <figcaption>${e[k]}</figcaption>`;
+    f.querySelector("button").onclick=()=>loupe(src,f.querySelector("img").alt);
+    g.append(f);
+  });
+  vue.replaceChildren(g);
+  if(e.portrait){g.querySelectorAll("img").forEach(i=>{i.style.maxWidth=mode==="tout"?"100%":"620px";i.style.margin="0 auto"});}
+  if(e.avant){const d=document.createElement("div");d.className="avant";
+    d.innerHTML=`<img src="${e.avant}" alt="App actuelle : ${e.nom}" loading="lazy"><div><div class="etq">Avant (app actuelle, données fictives)</div><p style="margin-top:8px">${e.avantTxt}</p></div>`;vue.append(d);}
+}
+function loupe(src,alt){const l=document.createElement("div");l.className="loupe";l.setAttribute("role","dialog");l.setAttribute("aria-label",alt);
+  l.innerHTML=`<img src="${src}" alt="${alt}"><button type="button">Fermer</button>`;
+  const fermer=()=>{l.remove();document.removeEventListener("keydown",esc)};const esc=ev=>{if(ev.key==="Escape")fermer()};
+  l.onclick=ev=>{if(ev.target===l||ev.target.tagName==="BUTTON")fermer()};document.addEventListener("keydown",esc);document.body.append(l);l.querySelector("button").focus();}
+ongl.addEventListener("click",ev=>{const a=ev.target.closest("a");if(!a)return;ev.preventDefault();ecran=a.dataset.id;try{history.replaceState(null,"","#"+ecran)}catch(_){}rendre();});
+document.querySelector(".mode").addEventListener("click",ev=>{const a=ev.target.closest("button");if(!a)return;mode=a.dataset.m;try{localStorage.setItem("mode",mode)}catch(_){}rendre();});
+try{const m=localStorage.getItem("mode");if(m)mode=m}catch(_){}
+const h=location.hash.slice(1);if(ECRANS.some(x=>x.id===h))ecran=h;
+rendre();
+document.querySelectorAll(".sarc button").forEach(b=>b.onclick=()=>loupe(b.dataset.src,b.querySelector("img").alt));
+</script>
