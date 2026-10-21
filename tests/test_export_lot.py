@@ -3,6 +3,7 @@
 import csv
 import io
 import json
+import re
 import time
 import zipfile
 
@@ -21,10 +22,11 @@ def faute(n: int) -> dict:
             "suggestions": ["mesurent"], "zones": [{"page": 1, "x0": 72, "y0": 90, "x1": 140, "y1": 102}]}
 
 
-def ecrire_francais(dossier, decisions: dict, nb_fautes: int = 3) -> None:
+def ecrire_francais(dossier, decisions: dict, nb_fautes: int = 3, claude_ok: bool = True) -> None:
     (dossier / "francais.json").write_text(json.dumps({
         "version": 1, "fautes": [faute(i) for i in range(nb_fautes)],
-        "decisions": decisions, "choix": {}, "masquees": [], "decalages": {}}), encoding="utf-8")
+        "decisions": decisions, "choix": {}, "masquees": [], "decalages": {},
+        "claude": {"ok": claude_ok, "erreur": None if claude_ok else "limite atteinte", "ajoutees": 0}}), encoding="utf-8")
 
 
 @pytest.fixture
@@ -65,8 +67,9 @@ def exporter_zip(client, groupe=None, inacheves=True) -> zipfile.ZipFile:
             break
         time.sleep(0.05)
     assert etat["statut"] == "pret", etat
-    reponse = client.get("/api/export-lot/travaux")
-    assert 'filename="Travaux.zip"' in reponse.headers["content-disposition"]
+    q = f"?groupe={groupe}" if groupe else ""
+    reponse = client.get(f"/api/export-lot/travaux/{COURS}/lab-1{q}")
+    assert re.search(r'filename="Travaux_\d{4}-\d{2}-\d{2}_\d{2}h\d{2}\.zip"', reponse.headers["content-disposition"])
     return zipfile.ZipFile(io.BytesIO(reponse.content))
 
 
@@ -101,7 +104,7 @@ def test_apercu_compte_les_inacheves(lab):
 def test_tableau_csv_encodage_excel_francais(lab):
     client, _ = lab
     r = client.get(f"/api/export-lot/tableau/{COURS}/lab-1")
-    assert r.status_code == 200 and "Recapitulatif_202SNURE_lab-1.csv" in r.headers["content-disposition"]
+    assert r.status_code == 200 and re.search(r"Recapitulatif_202SNURE_lab-1_\d{4}-\d{2}-\d{2}_\d{2}h\d{2}\.csv", r.headers["content-disposition"])
     assert r.content.startswith(b"\xef\xbb\xbf")  # BOM : Excel lit l'UTF-8
     en_tete = r.content.decode("utf-8-sig").splitlines()[0]
     assert en_tete.split(";")[:3] == ["DA", "Nom", "Prénom"] and "État" in en_tete  # « ; » et accents
@@ -189,3 +192,86 @@ def test_cellules_sans_formule_ni_date():
     assert export_lot._cellule("=SOMME(A1)") == "'=SOMME(A1)"
     assert export_lot._cellule("-cmd") == "'-cmd" and export_lot._cellule("-3") == "-3"
     assert export_lot._cellule(1.5) == "1,5" and export_lot._cellule(2.0) == "2" and export_lot._cellule(0.0) == "0"
+
+
+# --- États d'export (audit F1, F2) ---------------------------------------------
+
+def etat_export(client, groupe=None) -> dict:
+    q = f"?groupe={groupe}" if groupe else ""
+    return client.get(f"/api/export-lot/apercu/{COURS}/lab-1{q}").json()["export"]
+
+
+def test_noms_horodates():
+    from datetime import datetime
+    stamp = export_lot.horodatage(datetime(2026, 10, 20, 9, 5))
+    assert stamp == "2026-10-20_09h05"  # pas de « : » (interdit sous Windows)
+    assert export_lot.nom_zip(stamp) == "Travaux_2026-10-20_09h05.zip"
+    assert export_lot.nom_tableau(COURS, "lab-1", stamp) == "Recapitulatif_202SNURE_lab-1_2026-10-20_09h05.csv"
+
+
+def test_export_perime_apres_decision_puis_trait_puis_a_jour(lab):
+    client, tmp = lab
+    assert etat_export(client)["statut"] == "jamais"
+    exporter_zip(client)
+    ex = etat_export(client)
+    assert (ex["statut"], ex["modifies"], ex["non_exportes"]) == ("a_jour", 0, 0) and ex["date"]
+    assert client.get(f"/api/suivi/{COURS}/lab-1").json()["export"]["statut"] == "a_jour"
+    # une décision de français change : périmé
+    time.sleep(0.02)
+    ecrire_francais(tmp / "bibliotheque" / COURS / "00002/lab-1/dube-alice", {"0": "refusee", "1": "refusee", "2": "acceptee"})
+    assert etat_export(client)["statut"] == "perime"
+    assert client.get(f"/api/suivi/{COURS}/lab-1").json()["export"]["statut"] == "perime"
+    exporter_zip(client)
+    assert etat_export(client)["statut"] == "a_jour"  # un nouvel export remet à jour
+    # un trait au crayon : périmé de nouveau
+    time.sleep(0.02)
+    url = f"/api/annotations/{COURS}/00002/lab-1/dube-alice"
+    assert client.put(url, json={"version": 1, "pages": {"1": [{"outil": "crayon", "couleur": "#ff0000", "largeur_min": 1,
+                                                                 "largeur_max": 2, "courbe": 1, "points": [[10, 10, 0.5]]}]}}).status_code == 200
+    assert etat_export(client)["statut"] == "perime"
+
+
+def test_export_perime_si_rapport_remplace_ou_note_changee(lab):
+    client, tmp = lab
+    exporter_zip(client)
+    time.sleep(0.02)
+    (tmp / "bibliotheque" / COURS / "00001/lab-1/martin-luc/rapport.pdf").write_bytes(pdf("Luc, nouvelle version"))
+    ex = etat_export(client)
+    assert (ex["statut"], ex["modifies"]) == ("perime", 1)
+
+
+def test_export_partiel_compte_les_non_exportes(lab):
+    client, _ = lab
+    exporter_zip(client, groupe="00001")
+    ex = etat_export(client)
+    assert (ex["statut"], ex["non_exportes"]) == ("a_jour", 2)  # Alice et Zoé (groupe 00002) pas encore partis
+    assert etat_export(client, "00002")["statut"] == "jamais"
+
+
+def test_claude_manquant_dans_apercu_tableau_et_suivi(lab):
+    client, tmp = lab
+    alice = tmp / "bibliotheque" / COURS / "00002/lab-1/dube-alice"
+    ecrire_francais(alice, {"0": "acceptee", "1": "refusee", "2": "acceptee"}, claude_ok=False)
+    a = client.get(f"/api/export-lot/apercu/{COURS}/lab-1").json()
+    assert (a["corrige"], a["claude_manquant"], a["a_trancher"]) == (0, 1, 1)
+    ligne = next(l for l in lire_csv(client.get(f"/api/export-lot/tableau/{COURS}/lab-1").content) if l["Nom"] == "Dubé")
+    assert ligne["État"] == "Claude manquant"
+    # sans inachevés, un rapport « Claude manquant » ne part pas comme s'il était complet
+    assert lire_csv(client.get(f"/api/export-lot/tableau/{COURS}/lab-1?inacheves=false").content) == []
+    suivi = {r["etudiant"]: r for r in client.get(f"/api/suivi/{COURS}/lab-1").json()["rapports"]}
+    assert suivi["dube-alice"]["francais"]["claude_manquant"] is True
+    # un ancien francais.json sans clé « claude » est aussi « Claude manquant »
+    doc = json.loads((alice / "francais.json").read_text(encoding="utf-8"))
+    del doc["claude"]
+    (alice / "francais.json").write_text(json.dumps(doc), encoding="utf-8")
+    assert export_lot.etat_francais(doc) == ("claude_manquant", 2)
+    doc["claude"] = {"ok": True}
+    assert export_lot.etat_francais(doc) == ("corrige", 2)
+
+
+def test_telechargement_refuse_un_autre_lab_ou_groupe(lab):
+    client, _ = lab
+    exporter_zip(client, groupe="00001")
+    assert client.get(f"/api/export-lot/travaux/{COURS}/lab-1?groupe=00001").status_code == 200
+    assert client.get(f"/api/export-lot/travaux/{COURS}/lab-1").status_code == 404  # export d'un seul groupe
+    assert client.get(f"/api/export-lot/travaux/{COURS}/lab-2?groupe=00001").status_code == 404

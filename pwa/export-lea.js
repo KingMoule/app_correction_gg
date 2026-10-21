@@ -12,9 +12,21 @@
 
   function resume(a) {
     if (!a.total) return "Aucun rapport rangé pour ce choix.";
-    const inacheves = [a.a_trancher && `${a.a_trancher} à trancher`, a.non_analyse && `${a.non_analyse} non analysé(s)`]
+    const inacheves = [a.a_trancher && `${a.a_trancher} à trancher`, a.non_analyse && `${a.non_analyse} non analysé(s)`,
+      a.claude_manquant && `${a.claude_manquant} Claude manquant`]
       .filter(Boolean).join(", ");
     return `${a.total} rapport(s) : ${a.corrige} corrigé(s)` + (inacheves ? `, ${inacheves}` : "") + ".";
+  }
+
+  // « 2026-10-20T14:32:05 » -> « 2026-10-20 à 14 h 32 »
+  const dateFr = (iso) => (iso ? iso.slice(0, 10) + " à " + iso.slice(11, 13) + " h " + iso.slice(14, 16) : "");
+
+  function etatExport(x) {
+    if (!x || x.statut === "jamais") return "Jamais exporté.";
+    const reste = x.non_exportes ? ` ${x.non_exportes} rapport(s) pas encore exporté(s).` : "";
+    return x.statut === "perime"
+      ? `⚠ Export PÉRIMÉ : ${x.modifies} rapport(s) modifié(s) depuis le dernier export (${dateFr(x.date)}). Refais l'export.${reste}`
+      : `Dernier export à jour (${dateFr(x.date)}).${reste}`;
   }
 
   window.blocExportLea = (cours, lab, groupes) => {
@@ -38,6 +50,7 @@
     const exporter = el("button", "Préparer Travaux.zip", "bk principal");
     const tableau = el("a", "Tableau (CSV)", "bk");
     tableau.title = "Une ligne par étudiant (coéquipiers inclus) : DA, fautes, pénalité, note, état";
+    const peremption = el("p", "", "aide");
     const suivi = el("div", "", "suivi-export");
     suivi.setAttribute("aria-live", "polite");
 
@@ -50,6 +63,8 @@
         const q = groupe() ? `?groupe=${enc(groupe())}` : "";
         const a = await (await fetch(`${API_EXPORT}/apercu/${enc(cours)}/${enc(lab)}${q}`)).json();
         apercu.textContent = resume(a);
+        peremption.textContent = etatExport(a.export);
+        peremption.className = "aide" + (a.export?.statut === "perime" ? " export-perime" : "");
         exporter.disabled = !a.total;
       } catch { apercu.textContent = "Moteur injoignable."; }
     }
@@ -66,9 +81,10 @@
         suivi.append(el("p", e.message || "Export impossible.", "erreur"));
       } else if (e.statut === "pret") {
         const mo = Math.max(0.1, e.taille / 1048576).toFixed(1).replace(".", ",");
-        const dl = el("a", `⬇ Télécharger Travaux.zip (${mo} Mo)`, "bk principal");
-        dl.href = `${API_EXPORT}/travaux`;
-        dl.download = "Travaux.zip";
+        const nom = e.nom || "Travaux.zip";
+        const dl = el("a", `⬇ Télécharger ${nom} (${mo} Mo)`, "bk principal");
+        dl.href = `${API_EXPORT}/travaux/${enc(cours)}/${enc(lab)}${e.groupe ? `?groupe=${enc(e.groupe)}` : ""}`;
+        dl.download = nom;
         const archiver = el("button", "Marquer ce lab terminé", "bk");
         archiver.title = "Facultatif : le lab passe dans « Terminés » (rien n'est supprimé)";
         archiver.onclick = async () => {
@@ -79,7 +95,8 @@
           }
           await window.charger?.();
         };
-        suivi.append(el("p", `ZIP prêt : ${e.total} PDF. Une fois remis dans LÉA, tu peux archiver le lab.`), dl, archiver);
+        majApercu(); // le dernier export vient d'être noté
+        suivi.append(el("p", `ZIP prêt (${dateFr(e.date)}) : ${e.total} PDF. Une fois remis dans LÉA, tu peux archiver le lab.`), dl, archiver);
       }
     }
 
@@ -109,7 +126,7 @@
       suivre();
     };
 
-    zone.append(choix, etiquette, apercu, exporter, tableau, suivi);
+    zone.append(choix, etiquette, apercu, peremption, exporter, tableau, suivi);
     majApercu();
     suivre(); // reprend l'affichage si un export de ce lab est en cours ou prêt (page rechargée)
     return zone;

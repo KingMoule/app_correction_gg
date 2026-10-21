@@ -10,7 +10,7 @@ from fastapi import APIRouter, HTTPException
 from . import bibliotheque, plagiat
 from .annotations import lire as lire_annotations
 from .bareme import penalite
-from .export_lot import _json
+from .export_lot import _json, claude_fait, etat_export
 from .francais import lire_bareme
 
 router = APIRouter(prefix="/api/suivi")
@@ -45,7 +45,8 @@ def _francais(doc: dict | None, bareme: dict) -> dict:
     acceptees = sum(1 for d in decisions.values() if d == "acceptee")
     a_trancher = sum(1 for f in doc.get("fautes", []) if str(f["id"]) not in decisions)
     return {"etat": "a_trancher" if a_trancher else "tranche", "a_trancher": a_trancher,
-            "acceptees": acceptees, "penalite": penalite(acceptees, bareme)}
+            "acceptees": acceptees, "penalite": penalite(acceptees, bareme),
+            "claude_manquant": not claude_fait(doc)}  # passe Claude échouée ou jamais faite (voir export_lot)
 
 
 def _commence(cours: str, groupe: str, lab: str, etudiant: str) -> bool:
@@ -70,12 +71,13 @@ def suivi(cours: str, lab: str, groupe: str | None = None) -> dict:
         raise HTTPException(404, f"Aucune liste de classe pour {cours}" + (f" groupe {groupe}." if groupe else "."))
     bareme = lire_bareme(cours)
     plag = _plagiat_par_rapport(cours, lab)
-    rapports = []
+    rapports, dossiers = [], {}
     for c in classes:
         for e in c["etudiants"]:
             dossier = bibliotheque.chemin_rapport(cours, c["groupe"], lab, e["id"]).parent
             if not (dossier / "rapport.pdf").is_file():
                 continue
+            dossiers[f"{c['groupe']}/{e['id']}"] = dossier
             fr = _francais(_json(dossier / "francais.json"), bareme)
             ia = (_json(dossier / "indices_ia.json") or {}).get("force") or None
             termine = bool((_json(dossier / "statut.json") or {}).get("termine"))
@@ -95,4 +97,5 @@ def suivi(cours: str, lab: str, groupe: str | None = None) -> dict:
     archive = all(bibliotheque._lire_drapeau(bibliotheque.dossier_groupe(cours, c["groupe"]) / lab / "archive.json", "archive")
                   for c in classes if (bibliotheque.dossier_groupe(cours, c["groupe"]) / lab).is_dir())
     return {"cours": cours, "lab": lab, "groupes": [c["groupe"] for c in classes], "archive": archive,
-            "total": len(rapports), "compte": compte, "rapports": rapports}
+            "total": len(rapports), "compte": compte, "rapports": rapports,
+            "export": etat_export(cours, lab, dossiers)}
