@@ -11,6 +11,7 @@ moteur/        API et logique (un module par fonction)
   app.py       assemble l'application, route /api/etat
   config.py    chemins, dossier de données
   stockage.py  lecture/écriture JSON sûres (atomique, tolérante, verrou par dossier)
+  acces.py     code d'accès : intergiciel (session, Host, Origin), connexion, limite d'essais; commande `python -m moteur.acces`
   claude.py    appel de `claude -p` (file d'attente, erreurs) ; voir docs/CLAUDE_CLI.md
   bibliotheque.py  liste de classe, import des PDF, rangement cours/groupe/lab/étudiant
   pdf_texte.py extraction du texte d'un PDF + position de chaque mot
@@ -29,7 +30,7 @@ moteur/        API et logique (un module par fonction)
   suivi.py     tableau de suivi d'un lab (un seul appel : état de chaque rapport)
   sauvegarde.py sauvegarde (zip daté, rotation) et restauration des données; commande `python -m moteur.sauvegarde`, lancée par demarrer.bat
   __main__.py  commande de lancement
-pwa/           app iPad (index.html + app.js : bibliothèque; lecteur.html/js/css : lecteur et annotation; plagiat.html/js/css : plagiat; lot.js : analyse par lot; suivi.html/js/css : tableau de suivi d'un lab;
+pwa/           app iPad (index.html + app.js : bibliothèque; lecteur.html/js/css : lecteur et annotation; plagiat.html/js/css : plagiat; acces.js/css/html : écran de saisie du code; lot.js : analyse par lot; suivi.html/js/css : tableau de suivi d'un lab;
                vendor/ : pdf.js, copié dans le dépôt car l'iPad n'a pas forcément Internet)
 scripts/       outils à lancer à la main (ex. test de consommation)
 prototypes/    essais autonomes (ex. crayon), hors moteur
@@ -76,9 +77,20 @@ Tout JSON de la bibliothèque passe par ce module (formats et API HTTP inchangé
 - Limite : le verrou est interne au moteur (un seul processus). `ecrire_octets` offre la même écriture atomique pour un contenu non JSON.
 - Tests : `tests/test_stockage.py` (4 fils × 30 écritures avec lecteurs, PUT d'annotations concurrents, lexique sans perte, fichier tronqué pour chaque lecteur). La CI tourne sous Ubuntu **et** Windows.
 
+## Code d'accès (`moteur/acces.py`, `pwa/acces.js`, audit E6)
+- **Intergiciel ASGI** `ControleAcces` : toute route `/api/` sans session valide = **401**, sauf `/api/connexion` et `/api/deconnexion`. La PWA statique reste publique (aucune donnée). `/docs`, `/redoc` et `/openapi.json` sont désactivés. Un lien ouvert directement (téléchargement du PDF, de `Travaux.zip`) est redirigé vers `/acces.html?suite=…`, qui y revient après la saisie.
+- **Code** (décision de Guillaume, 2026-10-20) : 8 caractères au moins, demandé **au premier lancement** (`python -m moteur`, sans `--local`) puis gardé **haché** (scrypt + sel) dans `<données>/acces.json`, avec un secret qui signe les sessions. `python -m moteur.acces nouveau-code` le change et **révoque toutes les sessions** (nouveau secret). Le code n'apparaît ni dans le dépôt ni dans les journaux. `acces.json` fait partie des sauvegardes (l'empreinte, pas le code).
+- **Session** : jeton signé `expiration.nonce.signature` dans un cookie `session_correction`, `HttpOnly`, `SameSite=Strict`, posé par le serveur, **1 an, glissante** (renouvelé quand il reste moins de 6 mois). Saisie une fois par appareil; l'app de l'écran d'accueil de l'iPad a ses propres cookies, distincts de Safari. « Se déconnecter » (accueil) efface le cookie de cet appareil seulement.
+- **DNS rebinding** : l'en-tête `Host` doit être `localhost`, une adresse IP (un site de rebinding passe par un nom), le nom de l'ordi ou un nom de `CORRECTION_HOTES` (liste séparée par des virgules). Sinon 403 (aussi pour la PWA).
+- **CSRF** : sur POST/PUT/PATCH/DELETE, `Origin` (sinon `Referer`), s'il est présent, doit avoir le même hôte que `Host`; sinon 403. Le scénario de l'audit (liste de classe remplacée depuis un site étranger) est un test.
+- **Limite d'essais** par adresse : 4 échecs libres, puis blocage de 30 s qui double à chaque échec (15 min au plus); le bon code est refusé pendant le blocage (429). En mémoire (remise à zéro au redémarrage).
+- **`--local`** : pas de code (décision de Guillaume; `CORRECTION_SANS_CODE=1` posé par `python -m moteur`), mais `Host` et `Origin` restent contrôlés. Sans code défini et sans terminal, le lancement réseau s'arrête avec un message.
+- **PWA** : `acces.js` (chargé en premier dans chaque écran) enveloppe `fetch` : un 401 d'une requête `/api/` affiche l'écran de saisie **par-dessus** l'écran courant, attend la connexion, puis **rejoue la même requête**. Rien n'est quitté ni rechargé : la file d'envoi du français et les annotations du lecteur reprennent d'elles-mêmes (une seule saisie, même si plusieurs requêtes échouent). Exceptions : les envois `keepalive` de fermeture de page (réessayés par l'appelant) et `/api/connexion`.
+- **Tests** : `tests/test_acces.py` (toutes les routes de l'application parcourues, y compris celles des routeurs inclus : une nouvelle route `/api/` est refusée sans session sans rien ajouter; une route hors `/api` ou de type inconnu fait échouer le test) et `tests/test_acces.js` (rejeu après 401, file du français). `tests/conftest.py` désactive le code et permet l'hôte `testserver` pour les autres tests.
+
 ## Limites connues
 - Connexion en HTTP sur le réseau local : pas de service worker (réservé au HTTPS), donc pas de mode hors ligne. Le moteur doit être allumé pour corriger, ce qui est déjà le cas (voir PLAN.md).
-- Pas d'authentification : à n'utiliser que sur le Wi-Fi maison.
+- Accès par code (voir la section suivante) : en HTTP, le cookie de session circule en clair sur le Wi-Fi (WPA2 protège des personnes hors du réseau, pas de celles qui y sont). Le HTTPS sur l'iPad (certificat à installer) est un chantier à part.
 
 ## Bibliothèque (étape 1)
 Liste de classe : CSV ou xlsx. CSV lu en UTF-8 (avec ou sans BOM), sinon cp1252; séparateur deviné sur la première ligne (`;`, `,` ou tabulation). Format réel d'Omnivox/LÉA (`ListeEtudiants_cours<N>_gr<N>.csv`) : colonnes « No de DA », « Nom de l'étudiant », « Prénom de l'étudiant », valeurs enrobées `="..."` (enrobage retiré), colonnes de remplissage et lignes vides ignorées. En-têtes de nom reconnus : nom, nom de famille, nom de l'étudiant. Le DA est gardé dans le champ facultatif `da` de chaque étudiant de `classe.json`.

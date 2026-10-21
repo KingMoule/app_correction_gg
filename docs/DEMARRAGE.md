@@ -15,7 +15,8 @@ Adresses par défaut : moteur sur le port **8001**, LanguageTool sur **8081**.
 5. **Claude Code** installé et connecté au compte (`claude` doit fonctionner dans un terminal). Voir `docs/CLAUDE_CLI.md`.
 6. **Réseau en profil Privé** : Paramètres → Réseau et Internet → Wi-Fi → ton réseau → Profil de réseau → **Privé**.
 7. **Pare-feu** : autoriser Python sur les réseaux **privés** (Windows le propose au premier lancement : cocher « Réseaux privés »). Sinon : Pare-feu Windows Defender → Autoriser une application → Python → colonne « Privé ».
-8. **iPad** (quand le moteur tourne) : Safari → `http://<IP de l'ordi>:8001` → Partager → « Sur l'écran d'accueil ».
+8. **Code d'accès** : au **premier lancement** de `demarrer.bat`, la fenêtre Moteur demande de choisir un code (8 caractères au moins, rien ne s'affiche; le saisir deux fois). Il est gardé haché dans le dossier de données. Choisis-en un que tu n'utilises nulle part ailleurs.
+9. **iPad** (quand le moteur tourne) : Safari → `http://<IP de l'ordi>:8001` → saisir le code → Partager → « Sur l'écran d'accueil », puis **ouvrir l'app installée et ressaisir le code** (elle a ses propres cookies, distincts de Safari). Le code est ensuite retenu un an.
 
 ## À chaque séance
 
@@ -35,6 +36,19 @@ java -cp languagetool-server.jar org.languagetool.server.HTTPServer --port 8081
 ```
 python -m moteur --port 8001
 ```
+
+## Code d'accès
+
+- **Qui l'exige** : tout appareil sauf l'ordi lancé en `--local` (`python -m moteur --local` : pas de code, ordi seulement). L'écran de saisie apparaît par-dessus l'écran en cours et **les modifications en attente sont conservées** (décisions de français, traits) : saisis le code, elles sont envoyées.
+- **Changer le code** (fermer d'abord la fenêtre Moteur, ou non : c'est pris en compte tout de suite) :
+  ```
+  python -m moteur.acces nouveau-code
+  ```
+  Tous les appareils sont déconnectés et doivent ressaisir le nouveau code. Même commande si tu as **oublié le code**.
+- **Se déconnecter** : bouton « Se déconnecter » dans la barre de l'accueil (cet appareil seulement).
+- **Trop d'essais** : après 4 mauvais codes, attente de 30 s, qui double à chaque nouvel échec (15 min au plus). Redémarrer le moteur remet les compteurs à zéro.
+- **Hôtes permis** : `localhost`, toute adresse IP et le nom de l'ordi. Pour un autre nom (ex. `monordi.local`) : variable `CORRECTION_HOTES` (séparés par des virgules).
+- **Limite** : en HTTP, le cookie circule en clair sur le Wi-Fi. Le code protège contre les appareils qui n'ont pas le code (invités, objets connectés) et contre les sites web malveillants, pas contre quelqu'un qui écoute le réseau.
 
 ## Sauvegarde et restauration
 
@@ -68,5 +82,7 @@ Remet la plus récente archive dans le dossier de données. S'il n'est pas vide,
 - **Port déjà utilisé** : le moteur le dit et s'arrête. Un autre programme occupe le port (par exemple un autre `server.py` sur 8000). Changer de port : `python -m moteur --port 8002`, ou `MOTEUR_PORT` dans `demarrer.bat`. L'adresse iPad change aussi. Pour LanguageTool, changer `LT_PORT` et définir `LANGUAGETOOL_URL` (ex. `http://localhost:8082`).
 - **L'iPad n'atteint pas l'ordi** : vérifier que le réseau de l'ordi est en profil **Privé**, que Python est autorisé dans le pare-feu pour les réseaux privés, et que l'iPad est sur le même Wi-Fi (pas un réseau « invité »). Test depuis l'ordi : ouvrir `http://localhost:8001`.
 - **Changement d'IP** : l'adresse de l'ordi peut changer (redémarrage du routeur). Relire l'adresse affichée dans la fenêtre Moteur et ouvrir cette adresse dans Safari. L'icône de l'écran d'accueil garde l'ancienne : la supprimer et la réinstaller. Option : réserver une adresse fixe pour l'ordi dans le routeur.
+- **« Aucun code d'accès n'est défini »** : lancer `python -m moteur.acces nouveau-code`.
+- **L'iPad affiche l'écran du code à chaque fois** : cookies bloqués ou site ouvert sous deux adresses (l'IP a changé : voir « Changement d'IP »).
 - **Erreur 503 sur le français** : LanguageTool n'est pas démarré (fenêtre fermée ou en erreur).
 - **Données introuvables après changement** : la variable `CORRECTION_DONNEES` n'est lue que par les terminaux ouverts après `setx`.
