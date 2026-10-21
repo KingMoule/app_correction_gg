@@ -1,4 +1,4 @@
-:root { --barre: #222; --fg: #eee; --accent: #4da3ff; }
+:root { --barre: #20242b; --fg: #eef1f5; --l-barre2: #262b33; --l-bouton: #353b45; --l-sel: #7fd8cd; --l-sel-fond: #17413d; --l-trait: #4a515d; }
 * { box-sizing: border-box; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
 html, body { height: 100%; margin: 0; background: #777; font: 15px -apple-system, system-ui, sans-serif; }
 body { display: flex; flex-direction: column; overflow: hidden; padding-top: env(safe-area-inset-top); background: var(--barre); }
@@ -85,3 +85,32 @@ body { display: flex; flex-direction: column; overflow: hidden; padding-top: env
 .fr-ligne button { background: #fff; color: #222; border: 2px solid transparent; border-radius: 6px; padding: 2px 9px; font: inherit; }
 .fr-ligne button.ok.on, #detail button.ok.on { background: #2e7d32; color: #fff; border-color: #2e7d32; }
 .fr-ligne button.non.on, #detail button.non.on { background: #c62828; color: #fff; border-color: #c62828; }
+
+/* Système de design (docs/DESIGN.md) : lecteur sombre, mêmes rayons, couleurs et cibles de 44 px */
+html, body { font-family: var(--font); font-size: 15px; }
+#outils { background: var(--l-barre2); }
+#barre button, #barre .bouton { background: var(--l-bouton); border-radius: var(--r-s); font-weight: 500; gap: 6px; }
+#barre button:hover:not(:disabled), #barre .bouton:hover { background: #404753; }
+#barre button.on { border-color: var(--l-sel); background: var(--l-sel-fond); }
+#barre .principal, #suivi .principal { background: var(--accent); }
+#barre .principal:hover:not(:disabled) { background: var(--accent-fort); }
+#barre button.principal:disabled { background: var(--l-bouton); }
+#statut { font-weight: 600; background: var(--attention-fond); color: var(--attention); }
+#statut.p-fini { background: var(--ok-fond); color: var(--ok); }
+.sep { background: var(--l-trait); }
+#sauvegarde { color: #b9c0cc; }
+#francais { padding-top: var(--e3); font-size: 15px; }
+#francais p { color: #d4d9e1; }
+#francais button { min-height: var(--cible); padding: 0 var(--e3); border-radius: var(--r-s); border: 2px solid transparent; background: var(--l-bouton); color: var(--fg); font: inherit; font-weight: 500; }
+#francais button:hover { background: #404753; }
+#francais input[type=number] { min-height: var(--cible); background: #2a2f37; color: var(--fg); border: 1px solid var(--l-trait); border-radius: var(--r-s); padding: 0 var(--e2); }
+#francais fieldset { border-color: var(--l-trait); border-radius: var(--r-s); }
+.fr-ligne { padding: var(--e2) 0; border-top-color: #3a414c; }
+.fr-ligne button, #detail button { min-width: var(--cible); min-height: var(--cible); padding: 0 var(--e2); border-radius: var(--r-s); border: 2px solid var(--l-trait); background: #2a2f37; color: var(--fg); font-size: 18px; }
+.fr-ligne button.ok.on, #francais .fr-ligne button.ok.on, #francais #detail button.ok.on { background: #2e7d4a; color: #fff; border-color: #2e7d4a; }
+.fr-ligne button.non.on, #francais .fr-ligne button.non.on, #francais #detail button.non.on { background: #c62828; color: #fff; border-color: #c62828; }
+#detail { background: var(--l-barre2); border-bottom-color: var(--l-sel); font-size: 14px; }
+#detail button { font-size: 14px; }
+#detail button.on { border-color: var(--l-sel); background: var(--l-sel-fond); }
+#barre .pastille::before { display: none; }
+#francais #detail button.on { border-color: var(--l-sel); background: var(--l-sel-fond); }
