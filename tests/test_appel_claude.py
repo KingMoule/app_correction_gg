@@ -37,7 +37,7 @@ def capture(monkeypatch):
 
 # --- M5 : outils, MCP, injection -------------------------------------------------
 
-def test_commande_desactive_outils_et_mcp():
+def test_commande_desactive_outils_et_mcp(capture):
     cmd = ClientClaude(modele="sonnet").commande({"type": "object"}, "consigne")
     i = cmd.index("--tools")
     assert cmd[i + 1] == ""  # liste d'outils vide = aucun outil
@@ -47,7 +47,7 @@ def test_commande_desactive_outils_et_mcp():
     assert "--json-schema" in cmd
 
 
-def test_consigne_donnees_toujours_ajoutee():
+def test_consigne_donnees_toujours_ajoutee(capture):
     for systeme in ("ma consigne", None):
         cmd = ClientClaude().commande(None, systeme)
         consigne = cmd[cmd.index("--append-system-prompt") + 1]
