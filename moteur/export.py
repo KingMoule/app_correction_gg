@@ -7,7 +7,6 @@ correction manuscrite sauf si effacée). Coordonnées : points PDF, origine en h
 """
 
 import io
-import json
 from pathlib import Path
 
 from fastapi import APIRouter
@@ -19,6 +18,7 @@ from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.pdfgen import canvas
 
 from .annotations import Annotations, Trait, lire
+from . import stockage
 from .francais import fichiers_rapport
 
 router = APIRouter(prefix="/api/export")
@@ -91,9 +91,9 @@ def dessiner_surligneur(c: canvas.Canvas, t: Trait, haut: float) -> None:
 
 
 def fautes_acceptees(chemin_francais: Path) -> list[dict]:
-    if not chemin_francais.is_file():
+    doc = stockage.lire_json(chemin_francais)
+    if not isinstance(doc, dict) or "fautes" not in doc:
         return []
-    doc = json.loads(chemin_francais.read_text(encoding="utf-8"))
     sortie = []
     for f in doc["fautes"]:
         sid = str(f["id"])

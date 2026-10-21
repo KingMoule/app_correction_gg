@@ -10,6 +10,7 @@
 moteur/        API et logique (un module par fonction)
   app.py       assemble l'application, route /api/etat
   config.py    chemins, dossier de données
+  stockage.py  lecture/écriture JSON sûres (atomique, tolérante, verrou par dossier)
   claude.py    appel de `claude -p` (file d'attente, erreurs) ; voir docs/CLAUDE_CLI.md
   bibliotheque.py  liste de classe, import des PDF, rangement cours/groupe/lab/étudiant
   pdf_texte.py extraction du texte d'un PDF + position de chaque mot
@@ -66,6 +67,14 @@ Les fichiers des étudiants vont seulement sous `donnees/`.
 - **Lecteur, fautes** : sur le PDF, une faute = surlignage du mot (pas de soulignement) + correction manuscrite. Mode « Déplacer la correction » dans la fiche : on glisse la correction au doigt ou à la souris (le crayon et le défilement ne sont pas touchés); « Remettre en place » efface le décalage. Toucher une faute dans le panneau centre le PDF sur elle (`centrerFaute` dans `pwa/francais.js` : position calculée depuis le DOM et le zoom, donc juste même si la page n'est pas rendue; marge de défilement en bas d'une demi-fenêtre).
 - **Passe Claude** : les lignes ignorées ne lui sont pas envoyées, ses fautes qui les touchent sont écartées, et sa consigne exclut calculs, valeurs, unités, symboles et abréviations techniques.
 - **Mesure** : `python scripts/mesurer_filtrage.py [--exemples N]` ré-analyse les rapports rangés et n'affiche que des comptes par règle, avant et après (sans la passe Claude; exemples à l'écran seulement).
+
+## Stockage JSON sûr (`moteur/stockage.py`, audit E1, E3, F5)
+Tout JSON de la bibliothèque passe par ce module (formats et API HTTP inchangés). À utiliser pour tout nouveau fichier JSON.
+- `ecrire_json(chemin, valeur, indent=None, separators=None)` : écriture **atomique** (temporaire au nom unique dans le même dossier, `fsync`, puis `os.replace`); sous Windows, `PermissionError` (un lecteur tient le fichier) est réessayé jusqu'à ≈ 1,5 s. Crée le dossier. Ne laisse jamais de `.tmp` (nettoyé en cas d'échec).
+- `lire_json(chemin, defaut=None)` : fichier **absent, vide, tronqué ou illisible → `defaut`** (message au journal `moteur.stockage` pour un fichier abîmé), jamais d'exception. Les appelants valident la forme (`isinstance`) et traitent l'abîmé comme absent : `francais.json` abîmé = rapport « non analysé » (409 au PUT), `classe.json` abîmé ignoré dans l'arbre et les listes (422 « réimporter » pour `charger_classe`).
+- `verrou(dossier)` : `RLock` par dossier (en général celui du rapport). Lectures et remplacements d'un même dossier sont sérialisés (`lire_json` et `ecrire_json` le prennent eux-mêmes). **Pour une lecture-modification-écriture**, prendre le verrou autour de tout le cycle : `with stockage.verrou(dossier): …` ou `stockage.modifier_json(chemin, fonction, defaut)` (la fonction reçoit la valeur, la modifie sur place ou renvoie la nouvelle). Utilisé par : décisions et analyse de français, annotations, statut + note, lexique (`francais_filtre.modifier_lexique`), indices d'IA. `analyser_rapport` ne tient le verrou que pour la fusion et l'écriture finales (pas pendant l'appel à Claude), donc les décisions prises pendant l'analyse sont reprises.
+- Limite : le verrou est interne au moteur (un seul processus). `ecrire_octets` offre la même écriture atomique pour un contenu non JSON.
+- Tests : `tests/test_stockage.py` (4 fils × 30 écritures avec lecteurs, PUT d'annotations concurrents, lexique sans perte, fichier tronqué pour chaque lecteur). La CI tourne sous Ubuntu **et** Windows.
 
 ## Limites connues
 - Connexion en HTTP sur le réseau local : pas de service worker (réservé au HTTPS), donc pas de mode hors ligne. Le moteur doit être allumé pour corriger, ce qui est déjà le cas (voir PLAN.md).

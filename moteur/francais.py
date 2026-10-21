@@ -6,17 +6,15 @@ choisie) sont enregistrées dans `francais.json` à côté de `rapport.pdf`; le 
 est par cours (`<cours>/bareme.json`).
 """
 
-import json
-import os
 import tempfile
 from dataclasses import asdict
 from pathlib import Path
 from typing import Literal
 
 from fastapi import APIRouter, File, Form, HTTPException, UploadFile
-from pydantic import BaseModel
+from pydantic import BaseModel, ValidationError
 
-from . import francais_claude, francais_filtre, languagetool, pdf_texte
+from . import francais_claude, francais_filtre, languagetool, pdf_texte, stockage
 from .anonymat import Anonymiseur
 from .bareme import Bareme, penalite
 from .bibliotheque import chemin_rapport, racine, segment_sur
@@ -90,7 +88,12 @@ def fichier_bareme(cours: str) -> Path:
 
 def lire_bareme(cours: str) -> Bareme:
     f = fichier_bareme(cours)
-    return Bareme.model_validate_json(f.read_text(encoding="utf-8")) if f.is_file() else Bareme()
+    donnees = stockage.lire_json(f)
+    try:
+        return Bareme.model_validate(donnees) if donnees is not None else Bareme()
+    except ValidationError as e:
+        stockage.journal.warning("Barème illisible dans %s : %s", f, e)
+        return Bareme()
 
 
 @router.get("/bareme/{cours}")
@@ -114,10 +117,17 @@ class Decisions(BaseModel):
 
 
 def ecrire(fichier: Path, contenu: dict) -> None:
-    # Écriture atomique : un plantage ne laisse jamais un fichier à moitié écrit.
-    temporaire = fichier.with_name(fichier.name + ".tmp")
-    temporaire.write_text(json.dumps(contenu, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
-    os.replace(temporaire, fichier)
+    stockage.ecrire_json(fichier, contenu, separators=(",", ":"))
+
+
+def _lire_analyse(f: Path) -> dict | None:
+    """`francais.json` valide, ou None s'il est absent ou abîmé (le rapport est alors à réanalyser)."""
+    doc = stockage.lire_json(f)
+    if isinstance(doc, dict) and all(k in doc for k in ("fautes", "decisions", "choix", "masquees")):
+        return doc
+    if doc is not None:
+        stockage.journal.warning("Analyse de français inutilisable dans %s : réanalyse nécessaire.", f)
+    return None
 
 
 def fichiers_rapport(cours: str, groupe: str, lab: str, etudiant: str) -> tuple[Path, Path]:
@@ -130,7 +140,7 @@ def fichiers_rapport(cours: str, groupe: str, lab: str, etudiant: str) -> tuple[
 def etat(cours: str, groupe: str, lab: str, etudiant: str) -> dict:
     _, f = fichiers_rapport(cours, groupe, lab, etudiant)
     bareme = lire_bareme(cours)
-    doc = json.loads(f.read_text(encoding="utf-8")) if f.is_file() else None
+    doc = _lire_analyse(f)
     if doc is None:
         return {"analyse": False, "fautes": [], "decisions": {}, "choix": {}, "masquees": [],
                 "decalages": {}, "nb_acceptees": 0, "penalite": 0.0, "bareme": bareme.model_dump()}
@@ -151,7 +161,15 @@ def analyser_rapport(cours: str, groupe: str, lab: str, etudiant: str) -> dict:
     rapport, f = fichiers_rapport(cours, groupe, lab, etudiant)
     extrait, fautes, erreur = analyser_fichier(rapport, avec_claude=True,
                                               anonymiseur=Anonymiseur.pour(cours, groupe, etudiant))
-    ancien = json.loads(f.read_text(encoding="utf-8")) if f.is_file() else None
+    with stockage.verrou(f.parent):  # l'analyse (longue) est finie : fusion et écriture sans interruption
+        ancien = _lire_analyse(f)
+        nouveau = _fusionner(fautes, erreur, ancien)
+        ecrire(f, nouveau)
+    return etat(cours, groupe, lab, etudiant)
+
+
+def _fusionner(fautes: list[dict], erreur: str | None, ancien: dict | None) -> dict:
+    """Nouveau `francais.json` : garde les décisions des fautes inchangées et, si Claude a échoué, ses anciennes fautes."""
     if erreur and ancien:
         # Claude indisponible : on garde les fautes de Claude déjà trouvées (et leurs décisions).
         deja = [(x["debut"], x["fin"]) for x in fautes]
@@ -179,21 +197,21 @@ def analyser_rapport(cours: str, groupe: str, lab: str, etudiant: str) -> dict:
                 nouveau["masquees"].append(fa["id"])
             if vieux in ancien.get("decalages", {}):
                 nouveau["decalages"][nid] = ancien["decalages"][vieux]
-    ecrire(f, nouveau)
-    return etat(cours, groupe, lab, etudiant)
+    return nouveau
 
 
 @router.put("/rapport/{cours}/{groupe}/{lab}/{etudiant}")
 def enregistrer_decisions(cours: str, groupe: str, lab: str, etudiant: str, d: Decisions) -> dict:
     _, f = fichiers_rapport(cours, groupe, lab, etudiant)
-    if not f.is_file():
-        raise HTTPException(409, "Rapport pas encore analysé.")
-    doc = json.loads(f.read_text(encoding="utf-8"))
-    ids = {str(x["id"]) for x in doc["fautes"]}
-    if not (set(d.decisions) | set(d.choix) | set(d.decalages) | {str(m) for m in d.masquees}) <= ids:
-        raise HTTPException(422, "Faute inconnue.")
-    doc.update(d.model_dump())
-    ecrire(f, doc)
+    with stockage.verrou(f.parent):
+        doc = _lire_analyse(f)
+        if doc is None:
+            raise HTTPException(409, "Rapport pas encore analysé.")
+        ids = {str(x["id"]) for x in doc["fautes"]}
+        if not (set(d.decisions) | set(d.choix) | set(d.decalages) | {str(m) for m in d.masquees}) <= ids:
+            raise HTTPException(422, "Faute inconnue.")
+        doc.update(d.model_dump())
+        ecrire(f, doc)
     return etat(cours, groupe, lab, etudiant)
 
 
@@ -214,13 +232,11 @@ def ajouter_au_lexique(m: MotLexique) -> dict:
     mot = m.mot.strip().lower()
     if not mot or len(mot) > 60 or any(c.isspace() for c in mot):
         raise HTTPException(422, "Un seul mot, sans espace.")
-    mots = francais_filtre.lire_lexique() | {mot}
-    francais_filtre.ecrire_lexique(mots)
+    mots = francais_filtre.modifier_lexique(lambda m: m | {mot})
     return {"mots": sorted(mots)}
 
 
 @router.delete("/lexique/{mot}")
 def retirer_du_lexique(mot: str) -> dict:
-    mots = francais_filtre.lire_lexique() - {mot.strip().lower()}
-    francais_filtre.ecrire_lexique(mots)
+    mots = francais_filtre.modifier_lexique(lambda m: m - {mot.strip().lower()})
     return {"mots": sorted(mots)}

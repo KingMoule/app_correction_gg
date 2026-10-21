@@ -5,15 +5,14 @@ Le PDF annoté n'est créé qu'à l'export. Coordonnées en points PDF, origine 
 à gauche de la page, comme les zones des fautes de français.
 """
 
-import json
-import os
 import re
 from pathlib import Path
 from typing import Literal
 
 from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ValidationError
 
+from . import stockage
 from .bibliotheque import chemin_rapport, segment_sur
 
 router = APIRouter(prefix="/api/annotations")
@@ -46,7 +45,12 @@ def lire(cours: str, groupe: str, lab: str, etudiant: str) -> Annotations:
     f = fichier_annotations(cours, groupe, lab, etudiant)
     if not f.is_file():
         return Annotations()
-    return Annotations.model_validate_json(f.read_text(encoding="utf-8"))
+    donnees = stockage.lire_json(f)
+    try:
+        return Annotations.model_validate(donnees) if donnees is not None else Annotations()
+    except ValidationError as e:  # fichier JSON valide mais de forme inattendue
+        stockage.journal.warning("Annotations illisibles dans %s : %s", f, e)
+        return Annotations()
 
 
 @router.get("/{cours}/{groupe}/{lab}/{etudiant}")
@@ -58,8 +62,6 @@ def obtenir(cours: str, groupe: str, lab: str, etudiant: str) -> Annotations:
 def enregistrer(cours: str, groupe: str, lab: str, etudiant: str, doc: Annotations) -> dict:
     f = fichier_annotations(cours, groupe, lab, etudiant)
     doc.pages = {k: v for k, v in doc.pages.items() if v}
-    # Écriture atomique : un plantage ne laisse jamais un fichier à moitié écrit.
-    temporaire = f.with_name(f.name + ".tmp")
-    temporaire.write_text(json.dumps(doc.model_dump(), separators=(",", ":")), encoding="utf-8")
-    os.replace(temporaire, f)
+    with stockage.verrou(f.parent):
+        stockage.ecrire_json(f, doc.model_dump(), separators=(",", ":"))
     return {"ok": True, "traits": sum(len(v) for v in doc.pages.values())}

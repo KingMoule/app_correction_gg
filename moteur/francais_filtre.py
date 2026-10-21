@@ -12,12 +12,10 @@ Le texte extrait d'un PDF mêle phrases, calculs, tableaux, unités et symboles.
    et que le mot n'est pas dans le lexique de Guillaume.
 """
 
-import json
-import os
 import re
 from dataclasses import dataclass, field
 
-from . import languagetool
+from . import languagetool, stockage
 from .config import dossier_donnees
 
 # Règles et catégories LanguageTool qui produisent surtout du bruit sur un texte extrait d'un PDF.
@@ -138,20 +136,21 @@ def fichier_lexique():
 
 
 def lire_lexique() -> set[str]:
-    f = fichier_lexique()
-    if not f.is_file():
-        return set()
-    try:
-        return {str(m).lower() for m in json.loads(f.read_text(encoding="utf-8"))}
-    except ValueError:
-        return set()
+    mots = stockage.lire_json(fichier_lexique(), [])
+    return {str(m).lower() for m in mots} if isinstance(mots, list) else set()
 
 
 def ecrire_lexique(mots: set[str]) -> None:
+    stockage.ecrire_json(fichier_lexique(), sorted(mots))
+
+
+def modifier_lexique(modifier) -> set[str]:
+    """Lecture-modification-écriture du lexique sous verrou : `modifier(mots)` renvoie le nouvel ensemble."""
     f = fichier_lexique()
-    temporaire = f.with_name(f.name + ".tmp")
-    temporaire.write_text(json.dumps(sorted(mots), ensure_ascii=False), encoding="utf-8")
-    os.replace(temporaire, f)
+    with stockage.verrou(f.parent):
+        mots = modifier(lire_lexique())
+        ecrire_lexique(mots)
+        return mots
 
 
 # --- Filtre après coup ----------------------------------------------------------

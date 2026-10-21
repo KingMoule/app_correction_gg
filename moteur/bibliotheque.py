@@ -12,7 +12,6 @@ Rangement sous `<données>/bibliotheque/` :
 
 import csv
 import io
-import json
 import re
 import unicodedata
 import uuid
@@ -23,6 +22,7 @@ from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 from pypdf import PdfReader
 
+from . import stockage
 from .config import dossier_donnees
 
 router = APIRouter(prefix="/api/bibliotheque")
@@ -140,7 +140,10 @@ def charger_classe(cours: str, groupe: str) -> dict:
     fichier = dossier_groupe(cours, groupe) / "classe.json"
     if not fichier.is_file():
         raise HTTPException(404, f"Aucune liste de classe pour {cours} groupe {groupe}.")
-    return json.loads(fichier.read_text(encoding="utf-8"))
+    classe = _classe_lisible(fichier)
+    if classe is None:
+        raise HTTPException(422, f"La liste de classe de {cours} groupe {groupe} est abîmée : la réimporter.")
+    return classe
 
 
 @router.post("/classes")
@@ -152,7 +155,7 @@ async def importer_classe(fichier: UploadFile = File(...)) -> dict:
     dossier = dossier_groupe(cours, groupe)
     dossier.mkdir(parents=True, exist_ok=True)
     classe = {"cours": cours, "groupe": groupe, "etudiants": etudiants}
-    (dossier / "classe.json").write_text(json.dumps(classe, ensure_ascii=False, indent=1), encoding="utf-8")
+    stockage.ecrire_json(dossier / "classe.json", classe, indent=1)
     return classe
 
 
@@ -217,14 +220,23 @@ def etudiants_du_cours(cours: str, groupe: str | None = None) -> list[dict]:
     for f in sorted((racine() / cours).glob("*/classe.json")):
         if groupe and f.parent.name != groupe:
             continue
-        sortie += [{**e, "groupe": f.parent.name} for e in json.loads(f.read_text(encoding="utf-8"))["etudiants"]]
+        classe = _classe_lisible(f)
+        if classe:
+            sortie += [{**e, "groupe": f.parent.name} for e in classe["etudiants"]]
     return sortie
+
+
+def _classe_lisible(f: Path) -> dict | None:
+    """`classe.json` valide, ou None (fichier abîmé : ignoré, message au journal)."""
+    classe = stockage.lire_json(f)
+    return classe if isinstance(classe, dict) and isinstance(classe.get("etudiants"), list) else None
 
 
 def classes_du_cours(cours: str) -> list[dict]:
     """Les `classe.json` du cours (un par groupe)."""
     segment_sur(cours, "cours")
-    return [json.loads(f.read_text(encoding="utf-8")) for f in sorted((racine() / cours).glob("*/classe.json"))]
+    classes = (_classe_lisible(f) for f in sorted((racine() / cours).glob("*/classe.json")))
+    return [c for c in classes if c]
 
 
 def a_du_texte(contenu: bytes) -> bool:
@@ -261,10 +273,10 @@ def ranger(contenu: bytes, cours: str, groupe: str, lab: str, etudiant: str, equ
     cible.parent.mkdir(parents=True, exist_ok=True)
     cible.write_bytes(contenu)
     if origine:  # nom du PDF téléchargé de LÉA, repris pour nommer la copie corrigée
-        (cible.parent / "origine.json").write_text(json.dumps({"fichier": origine}, ensure_ascii=False), encoding="utf-8")
+        stockage.ecrire_json(cible.parent / "origine.json", {"fichier": origine})
     fichier_equipe = cible.parent / "equipe.json"
     if equipe:
-        fichier_equipe.write_text(json.dumps(equipe, ensure_ascii=False), encoding="utf-8")
+        stockage.ecrire_json(fichier_equipe, equipe)
     elif fichier_equipe.exists():
         fichier_equipe.unlink()  # nouveau rapport : l'ancienne équipe ne s'applique plus
     return f"{cours}/{groupe}/{lab}/{etudiant}"
@@ -315,7 +327,7 @@ async def importer_lot(
         (dossier / f"{ident}.pdf").write_bytes(contenu)
         meta = {"id": ident, "fichier": nom, "cours": cours, "groupe": groupe, "lab": lab,
                 "raison": raison, "da": da, "candidats": trouves}
-        (dossier / f"{ident}.json").write_text(json.dumps(meta, ensure_ascii=False), encoding="utf-8")
+        stockage.ecrire_json(dossier / f"{ident}.json", meta)
         resultat["en_attente"].append(meta)
     return resultat
 
@@ -325,7 +337,8 @@ def lister_attente() -> list[dict]:
     dossier = racine() / "_attente"
     if not dossier.is_dir():
         return []
-    return [json.loads(f.read_text(encoding="utf-8")) for f in sorted(dossier.glob("*.json"))]
+    metas = (stockage.lire_json(f) for f in sorted(dossier.glob("*.json")))
+    return [m for m in metas if isinstance(m, dict)]
 
 
 class Choix(BaseModel):
@@ -343,7 +356,9 @@ def trancher(ident: str, choix: Choix) -> dict:
     meta_f, pdf_f = dossier / f"{ident}.json", dossier / f"{ident}.pdf"
     if not meta_f.is_file():
         raise HTTPException(404, "Fichier en attente introuvable.")
-    meta = json.loads(meta_f.read_text(encoding="utf-8"))
+    meta = stockage.lire_json(meta_f)
+    if not isinstance(meta, dict):
+        raise HTTPException(422, "Fiche du fichier en attente abîmée : réimporter le PDF.")
     contenu = pdf_f.read_bytes()
     if choix.etudiant:
         groupe = choix.groupe or meta.get("groupe")
@@ -357,7 +372,7 @@ def trancher(ident: str, choix: Choix) -> dict:
         ecartes = racine() / "_ecartes"
         ecartes.mkdir(exist_ok=True)
         pdf_f.replace(ecartes / f"{ident}.pdf")
-        (ecartes / f"{ident}.json").write_text(json.dumps(meta, ensure_ascii=False), encoding="utf-8")
+        stockage.ecrire_json(ecartes / f"{ident}.json", meta)
     meta_f.unlink()
     return {"ok": True}
 
@@ -369,11 +384,13 @@ def arbre() -> list[dict]:
     """Cours > groupes > étudiants, avec les labs dont le rapport est rangé."""
     sortie = []
     for f in sorted(racine().glob("*/*/classe.json")):
-        classe = json.loads(f.read_text(encoding="utf-8"))
+        classe = _classe_lisible(f)
+        if classe is None:
+            continue
         for e in classe["etudiants"]:
             rapports = sorted(f.parent.glob(f"*/{e['id']}/rapport.pdf"))
             e["labs"] = [p.parent.parent.name for p in rapports]
-            equipes = {p.parent.parent.name: json.loads((p.parent / "equipe.json").read_text(encoding="utf-8"))
+            equipes = {p.parent.parent.name: stockage.lire_json(p.parent / "equipe.json", [])
                        for p in rapports if (p.parent / "equipe.json").is_file()}
             if equipes:
                 e["equipes"] = equipes
@@ -387,10 +404,8 @@ def arbre() -> list[dict]:
 
 
 def _lire_drapeau(fichier: Path, cle: str) -> bool:
-    try:
-        return bool(json.loads(fichier.read_text(encoding="utf-8")).get(cle))
-    except (OSError, ValueError, AttributeError):
-        return False
+    doc = stockage.lire_json(fichier, {})
+    return bool(doc.get(cle)) if isinstance(doc, dict) else False
 
 
 def _termine(dossier_rapport: Path) -> bool:
@@ -399,10 +414,8 @@ def _termine(dossier_rapport: Path) -> bool:
 
 def lire_note(dossier_rapport: Path) -> str:
     """Note saisie à « Terminé » (texte libre, ex. « 17/20 »), vide si aucune."""
-    try:
-        return str(json.loads((dossier_rapport / "statut.json").read_text(encoding="utf-8")).get("note") or "")
-    except (OSError, ValueError, AttributeError):
-        return ""
+    doc = stockage.lire_json(dossier_rapport / "statut.json", {})
+    return str(doc.get("note") or "") if isinstance(doc, dict) else ""
 
 
 class Termine(BaseModel):
@@ -421,8 +434,9 @@ def changer_statut(cours: str, groupe: str, lab: str, etudiant: str, corps: Term
     dossier = chemin_rapport(cours, groupe, lab, etudiant).parent
     if not (dossier / "rapport.pdf").is_file():
         raise HTTPException(404, "Rapport introuvable.")
-    note = lire_note(dossier) if corps.note is None else corps.note.strip()
-    (dossier / "statut.json").write_text(json.dumps({"termine": corps.termine, "note": note}, ensure_ascii=False), encoding="utf-8")
+    with stockage.verrou(dossier):  # la note déjà saisie est relue et réécrite sans interruption
+        note = lire_note(dossier) if corps.note is None else corps.note.strip()
+        stockage.ecrire_json(dossier / "statut.json", {"termine": corps.termine, "note": note})
     return {"termine": corps.termine, "note": note}
 
 
@@ -432,7 +446,7 @@ def changer_archive(cours: str, groupe: str, lab: str, corps: Archive) -> dict:
     dossier = dossier_groupe(cours, groupe) / segment_sur(lab, "lab")
     if not dossier.is_dir():
         raise HTTPException(404, "Lab introuvable.")
-    (dossier / "archive.json").write_text(json.dumps({"archive": corps.archive}), encoding="utf-8")
+    stockage.ecrire_json(dossier / "archive.json", {"archive": corps.archive})
     return {"archive": corps.archive}
 
 
