@@ -1,5 +1,28 @@
 # Architecture
 
+Référence technique. **Lis seulement la section du module touché** (sommaire ci-dessous, une ligne par section). Décisions et reste à faire : `docs/PLAN.md`.
+
+## Sommaire par module
+| Section | Fichiers | Contenu |
+|---|---|---|
+| Pile technique, Structure, Lancer, Ajouter une fonction | tout | choix techniques, rôle de chaque fichier, commandes |
+| Correction du français (moteur) | `francais.py`, `francais_filtre.py`, `languagetool.py`, `bareme.py` | API d'analyse sans état, LanguageTool, filtrage prose, lexique |
+| Français sur un rapport rangé | `francais.py`, `francais_claude.py`, `pwa/envoi-francais.js` | `francais.json`, ids stables, révision, PATCH, migration, passe Claude |
+| Stockage JSON sûr | `stockage.py` | écriture atomique, verrou, lecture tolérante (à utiliser pour tout JSON) |
+| Code d'accès | `acces.py`, `pwa/acces.js` | intergiciel, session, Host/Origin, limite d'essais, `--local` |
+| Bibliothèque | `bibliotheque.py` | liste de classe, réimport, association, import, remplacement, coéquipiers |
+| Statut et archive (navigation) | `bibliotheque.py`, `pwa/app.js` | terminé, archive de lab, vues de l'accueil |
+| Tableau de suivi d'un lab | `suivi.py`, `pwa/suivi.*` | un appel par lab, états, « Rapport suivant » |
+| Annotations | `annotations.py`, `pwa/lecteur.js`, `pwa/annotations-fusion.js` | `annotations.json` v2, révision, fusion, barre d'outils |
+| Export du PDF annoté | `export.py` | PDF d'un rapport, à la demande |
+| Export par lot pour LÉA | `export_lot.py`, `pwa/export-lea.js` | ZIP, CSV, états (périmé, Claude manquant) |
+| Indices d'IA | `indices_ia.py`, `pwa/indices-ia.js` | analyse de style, Pangram |
+| Plagiat (et à l'échelle) | `plagiat.py`, `pwa/plagiat.*` | comparaison locale en arrière-plan, plancher, passages, confirmation |
+| Analyse par lot | `lot.py`, `pwa/lot.js` | file, arrêt, aperçu |
+| Sauvegarde des données | `sauvegarde.py` | zip daté, rotation, restauration |
+| Anonymat | `anonymat.py` | masquage avant tout envoi à Claude |
+| Limites connues | | HTTP, pas de hors ligne |
+
 ## Pile technique
 - **Moteur** : Python 3.10+, FastAPI + uvicorn. Choisi pour la suite : lecture de PDF, comparaison de textes (plagiat), appel de `claude -p` et LanguageTool sont tous simples en Python.
 - **PWA** : HTML/CSS/JavaScript sans étape de compilation, servie par le moteur depuis `pwa/`. Aucun outil Node requis pour l'utiliser.
@@ -36,7 +59,7 @@ scripts/       outils à lancer à la main (ex. test de consommation)
 prototypes/    essais autonomes (ex. crayon), hors moteur
 tests/         tests pytest
 donnees/       données locales, exclu du dépôt (.gitignore)
-docs/          plan (état et reste à faire), workflow, architecture, liaison Claude
+docs/          plan (état, reste à faire, décisions), historique, workflow, architecture, liaison Claude, audit, design, démarrage
 ```
 
 ## Lancer
@@ -90,7 +113,7 @@ Tout JSON de la bibliothèque passe par ce module (formats et API HTTP inchangé
 
 ## Limites connues
 - Connexion en HTTP sur le réseau local : pas de service worker (réservé au HTTPS), donc pas de mode hors ligne. Le moteur doit être allumé pour corriger, ce qui est déjà le cas (voir PLAN.md).
-- Accès par code (voir la section suivante) : en HTTP, le cookie de session circule en clair sur le Wi-Fi (WPA2 protège des personnes hors du réseau, pas de celles qui y sont). Le HTTPS sur l'iPad (certificat à installer) est un chantier à part.
+- En HTTP, le cookie de session circule en clair sur le Wi-Fi (WPA2 protège des personnes hors du réseau, pas de celles qui y sont). Le HTTPS sur l'iPad (certificat à installer) est un chantier à part (voir « Code d'accès »).
 
 ## Bibliothèque (étape 1)
 Liste de classe : CSV ou xlsx. CSV lu en UTF-8 (avec ou sans BOM), sinon cp1252; séparateur deviné sur la première ligne (`;`, `,` ou tabulation). Format réel d'Omnivox/LÉA (`ListeEtudiants_cours<N>_gr<N>.csv`) : colonnes « No de DA », « Nom de l'étudiant », « Prénom de l'étudiant », valeurs enrobées `="..."` (enrobage retiré), colonnes de remplissage et lignes vides ignorées. En-têtes de nom reconnus : nom, nom de famille, nom de l'étudiant. Le DA est gardé dans le champ facultatif `da` de chaque étudiant de `classe.json`.
@@ -131,7 +154,7 @@ Coéquipiers : à l'import, `coequipiers()` lit les 15 premières lignes non vid
 - `GET` / `PUT /api/francais/bareme/<cours>` : points par faute et plafond du cours (`<cours>/bareme.json`, vide = aucun plafond).
 - Lecteur : bouton « Français » (analyse, résumé, barème, liste des fautes avec ✓/✗); tap sur une faute (double clic à la souris) pour sa fiche : suggestions, accepter/refuser, effacer la correction écrite. Fautes refusées : plus affichées. Correction manuscrite : police Caveat (OFL, `pwa/vendor/`).
 
-- **Passe Claude** (seulement sur le rapport rangé, `/analyser/` sans état reste LanguageTool seul) : après LanguageTool, un appel `claude -p` (file unique du moteur, schéma JSON) reçoit la prose seulement (les lignes de calcul et de tableau de `francais_filtre` ne partent pas) et les extraits déjà signalés, avec les noms d'étudiants masqués (`moteur/anonymat.py`, voir « Anonymat » ci-dessous; la liste de classe reste locale). La même protection s'applique à l'analyse d'indices d'IA et aux passages du plagiat (seuls les passages communs partent, sous « rapport A/B », masqués avec les listes des cours des deux rapports). Le texte est masqué seulement pour l'envoi : les extraits de Claude sont cherchés dans le texte **original**, donc les positions (`zones`) ne bougent pas; un extrait qui contient un masque ne se retrouve pas et est écarté. Une faute de Claude n'est gardée que si son extrait est dans le texte et ne chevauche aucune autre faute. Elle a le même format (`zones`, décisions, `choix`, `masquees`, barème, export) avec `source: "claude"` (LanguageTool : `"languagetool"`), `regle: "claude"` et sa correction comme unique suggestion.
+- **Passe Claude** (seulement sur le rapport rangé, `/analyser/` sans état reste LanguageTool seul) : après LanguageTool, un appel `claude -p` (file unique du moteur, schéma JSON) reçoit la prose seulement (les lignes de calcul et de tableau de `francais_filtre` ne partent pas) et les extraits déjà signalés, avec les noms d'étudiants masqués (`moteur/anonymat.py`, voir « Anonymat » ci-dessous; la liste de classe reste locale). La même protection couvre les indices d'IA et le plagiat. Le texte est masqué seulement pour l'envoi : les extraits de Claude sont cherchés dans le texte **original**, donc les positions (`zones`) ne bougent pas; un extrait qui contient un masque ne se retrouve pas et est écarté. Une faute de Claude n'est gardée que si son extrait est dans le texte et ne chevauche aucune autre faute. Elle a le même format (`zones`, décisions, `choix`, `masquees`, barème, export) avec `source: "claude"` (LanguageTool : `"languagetool"`), `regle: "claude"` et sa correction comme unique suggestion.
 - Si Claude échoue, le résultat LanguageTool est quand même enregistré; `claude: {ok, erreur: {code, message}, ajoutees}` dans l'état (codes 503 non connecté, 429 limite, 504 délai, 502 autre) et le panneau l'affiche. « Relancer l'analyse » refait la passe.
 
 ## Export du PDF annoté (étape 1)
@@ -167,15 +190,7 @@ Décisions de Guillaume (2026-10-20) : ZIP nommé **`Travaux_AAAA-MM-JJ_HHhMM.zi
 - **Migration** : un ancien `paires.json` (liste avec passages) est converti à la première lecture (`_migrer`) : passages déplacés à part, plancher appliqué. `decisions.json` n'est pas touché : les décisions restent attachées à la clé de la paire (testé).
 - **Comparaison en arrière-plan** : `POST /api/plagiat/comparer` répond tout de suite l'état; `GET /api/plagiat/comparer/etat` donne `etat` (`inactif`, `en_cours`, `termine`, `annule`, `erreur`), `etape` (lecture, indexation, paires, ecriture), `fait`/`total`, puis `rapports`, `paires`, `illisibles`, `duree`. Relancer pendant qu'une comparaison tourne l'arrête à son prochain point d'arrêt (elle n'écrit rien), la nouvelle attend sa fin. Le verrou du plagiat n'est pris qu'à l'écriture finale : confirmer, écarter, suivi et export répondent pendant le calcul. En cas d'erreur, l'ancien résultat reste. `pwa/plagiat.js` affiche la progression et reprend le suivi en rouvrant l'écran.
 - **`etat_des_paires()`** (public) : liste des paires gardées sans passages, avec `statut` et `resultat`; lit un cache en mémoire de `paires.json`, invalidé quand une comparaison réécrit le fichier (signature date/taille + compteur). Le seuil et les décisions sont relus à chaque appel (petits fichiers). Remplace `_lire("paires.json")` et `_statut` dans `suivi.py`, `export_lot.py` et l'écran.
-- **Mesure** (`scripts/mesurer_plagiat.py`, bibliothèque fictive de 300 rapports de 2 à 5 pages : 3 labs × 4 groupes de 25, 300 mots de protocole commun par cellule; 3 600 paires; textes déjà en cache) :
-
-  | | avant | après |
-  |---|---|---|
-  | `paires.json` | 16,78 Mo | 1,29 Mo (+ `passages/` 15,4 Mo, lus à la demande) |
-  | comparaison (calcul) | 6,7 s, requête bloquée | 7,7 s en arrière-plan (écriture des passages comprise) |
-  | suivi d'un lab | 1 242 ms | 112 ms |
-  | liste des paires | 1 165 ms | 21 ms |
-  | détail d'une paire | 52 ms | 6 ms |
+- **Mesure** (`scripts/mesurer_plagiat.py`, bibliothèque fictive de 300 rapports, 3 600 paires) : `paires.json` 16,8 → 1,3 Mo (passages à part : 15,4 Mo lus à la demande), suivi d'un lab 1 242 → 112 ms, liste des paires 1 165 → 21 ms, détail d'une paire 52 → 6 ms; la comparaison (≈ 7 s) tourne en arrière-plan.
 
 ## Analyse par lot (Claude)
 - Modèle : la file Claude du moteur utilise **Sonnet** par défaut (`claude.file_par_defaut`, variable `CORRECTION_MODELE` pour changer). Mesuré : environ 2 % de la session de 5 h par rapport (français + indices d'IA), donc environ 10 rapports par lot avec une marge de 20 %.
