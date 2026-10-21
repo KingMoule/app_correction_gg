@@ -6,7 +6,7 @@
    sont les « passages » ; le texte de l'énoncé du lab (s'il est téléversé) est ignoré.
 2. Les paires dont le score atteint le seuil réglable sont proposées à Guillaume.
 3. `POST /api/plagiat/paires/{cle}/confirmer` : seulement après sa confirmation, les passages
-   (sans noms ni coordonnées) sont envoyés à Claude, qui juge copie, paraphrase ou coïncidence.
+   (noms, prénoms et DA masqués) sont envoyés à Claude, qui juge copie, paraphrase ou coïncidence.
 
 Rangement sous `<données>/plagiat/` : reglages.json, paires.json (dernière comparaison),
 decisions.json (écarter / verdict de Claude), textes/<sha1>.json (cache du texte d'un PDF).
@@ -25,6 +25,7 @@ from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 
 from . import bibliotheque, pdf_texte, stockage
+from .anonymat import Anonymiseur
 from .claude import ClaudeErreur, FileClaude, file_par_defaut
 from .config import dossier_donnees
 
@@ -55,7 +56,8 @@ SYSTEME = (
     "légitime), d'une paraphrase (même contenu reformulé de près) ou d'une coïncidence "
     "(vocabulaire technique imposé, formules, protocole, données partagées en équipe). "
     "Réponds en français, brièvement. Le verdict est un indice pour l'enseignant, "
-    "qui décide : reste prudent, mentionne ce qui plaide dans l'autre sens."
+    "qui décide : reste prudent, mentionne ce qui plaide dans l'autre sens. "
+    "[NOM], [PRÉNOM] et [DA] remplacent un nom, un prénom et un numéro de DA masqués : ignore-les."
 )
 
 
@@ -401,11 +403,14 @@ def file_claude() -> FileClaude:
 
 
 def construire_prompt(p: dict) -> str:
-    """Passages seulement, sous les noms neutres A et B : ni noms d'étudiants ni rapports entiers."""
+    """Passages seulement, sous les noms neutres A et B : pas de rapports entiers, et noms,
+    prénoms et DA de tous les étudiants des cours des deux rapports masqués (un passage peut
+    reprendre une page titre)."""
+    masquer = Anonymiseur.pour(p["a"]["cours"], p["b"]["cours"]).masquer
     blocs, taille = [], 0
     for n, ps in enumerate(sorted(p["passages"], key=lambda x: -x["mots"]), start=1):
         bloc = (f"<passage numero=\"{n}\" mots=\"{ps['mots']}\">\n"
-                f"<rapport_a>{ps['texte_a']}</rapport_a>\n<rapport_b>{ps['texte_b']}</rapport_b>\n</passage>")
+                f"<rapport_a>{masquer(ps['texte_a'])}</rapport_a>\n<rapport_b>{masquer(ps['texte_b'])}</rapport_b>\n</passage>")
         if taille + len(bloc) > CONTEXTE_MAX:
             break
         blocs.append(bloc)
