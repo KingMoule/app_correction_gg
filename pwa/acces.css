@@ -1,0 +1,16 @@
+/* Écran de saisie du code d'accès (audit E6), dans le style de design.css. */
+.acces-voile { position: fixed; inset: 0; z-index: 10000; background: var(--bg); display: flex; align-items: center; justify-content: center;
+  padding: var(--e4); overflow: auto; }
+.acces-carte { width: 100%; max-width: 380px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-m);
+  box-shadow: var(--ombre); padding: var(--e5); display: flex; flex-direction: column; gap: var(--e3); }
+.acces-carte h1 { margin: 0; display: flex; align-items: center; gap: var(--e3); }
+.acces-carte h1::before { content: ""; width: 28px; height: 28px; border-radius: 8px; background: var(--accent); flex: none; }
+.acces-carte p { margin: 0; }
+.acces-carte label { font-weight: 600; font-size: 14px; margin-bottom: calc(-1 * var(--e2)); }
+.acces-carte input { min-height: var(--ligne); padding: 0 var(--e3); border: 1px solid var(--border-fort); border-radius: var(--r-s);
+  background: var(--surface); font-size: 18px; width: 100%; box-sizing: border-box; }
+.acces-bouton { min-height: var(--ligne); border-radius: var(--r-s); border: 1px solid var(--accent); background: var(--accent); color: var(--sur-accent);
+  font-size: 16px; font-weight: 600; cursor: pointer; }
+.acces-bouton:hover { background: var(--accent-fort); }
+.acces-bouton:disabled { opacity: .45; cursor: default; }
+.acces-message { min-height: 1.45em; color: var(--danger); font-size: 14px; }

@@ -1,11 +1,13 @@
 """Lancement : `python -m moteur` (écoute sur le Wi-Fi maison, port 8001 par défaut)."""
 
 import argparse
+import os
 import socket
 import sys
 
 import uvicorn
 
+from . import acces
 from .config import chemin_a_risque, dossier_donnees
 
 
@@ -45,6 +47,15 @@ def main() -> None:
               file=sys.stderr)
         sys.exit(1)
     donnees = dossier_donnees()
+    if args.local:
+        os.environ["CORRECTION_SANS_CODE"] = "1"  # décision de Guillaume : l'ordi seul n'exige pas de code
+        print("Mode local : pas de code d'accès (cet ordi seulement).")
+    else:
+        os.environ.pop("CORRECTION_SANS_CODE", None)
+        if not acces.est_configure():
+            print("Premier lancement : il faut choisir un code d'accès (demandé sur l'iPad).")
+            acces.demander_nouveau_code()
+        print("Code d'accès : défini (changer : python -m moteur.acces nouveau-code).")
     raison = chemin_a_risque(donnees)
     if raison:
         print(f"ATTENTION : le dossier de données ({donnees}) est {raison}.\n"
