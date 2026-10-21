@@ -8,7 +8,6 @@ mais le tableau a une ligne par membre de l'équipe (même note, même pénalit�
 
 import csv
 import io
-import json
 import re
 import threading
 import zipfile
@@ -18,7 +17,7 @@ from fastapi import APIRouter, HTTPException
 from fastapi.responses import Response
 from pydantic import BaseModel
 
-from . import bibliotheque, plagiat
+from . import bibliotheque, plagiat, stockage
 from .annotations import lire
 from .bareme import penalite
 from .export import annoter, fautes_acceptees
@@ -36,10 +35,7 @@ FORCES_IA = {"faible": "faible", "moderee": "modérée", "marquee": "marquée"}
 # --- Collecte ----------------------------------------------------------------
 
 def _json(fichier: Path):
-    try:
-        return json.loads(fichier.read_text(encoding="utf-8"))
-    except (OSError, ValueError):
-        return None
+    return stockage.lire_json(fichier)
 
 
 def etat_francais(doc: dict | None) -> tuple[str, int]:

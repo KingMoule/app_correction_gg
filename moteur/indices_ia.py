@@ -6,16 +6,14 @@ que l'écran le copie vers Pangram, où Guillaume le colle lui-même.
 Le résultat de l'analyse est gardé à côté du rapport (`indices_ia.json`).
 """
 
-import json
 import re
-import tempfile
 import threading
 import unicodedata
 from pathlib import Path
 
 from fastapi import APIRouter, HTTPException
 
-from . import bibliotheque, pdf_texte
+from . import bibliotheque, pdf_texte, stockage
 from .anonymat import Anonymiseur
 from .claude import (
     ClaudeDelai,
@@ -133,9 +131,7 @@ def texte(cours: str, groupe: str, lab: str, etudiant: str) -> dict:
 def resultat(cours: str, groupe: str, lab: str, etudiant: str) -> dict | None:
     """Dernière analyse enregistrée, ou null."""
     _, fichier = _chemins(cours, groupe, lab, etudiant)
-    if not fichier.is_file():
-        return None
-    return json.loads(fichier.read_text(encoding="utf-8"))
+    return stockage.lire_json(fichier)  # None si absent ou abîmé
 
 
 @router.post("/analyser/{cours}/{groupe}/{lab}/{etudiant}")
@@ -158,7 +154,6 @@ def analyser(cours: str, groupe: str, lab: str, etudiant: str) -> dict:
     sortie = valider(r.structure, t)
     sortie["usage"] = r.usage
     sortie["cout_usd"] = r.cout_usd
-    with tempfile.NamedTemporaryFile("w", dir=fichier.parent, delete=False, encoding="utf-8") as f:
-        json.dump(sortie, f, ensure_ascii=False)
-    Path(f.name).replace(fichier)
+    with stockage.verrou(fichier.parent):
+        stockage.ecrire_json(fichier, sortie)
     return sortie

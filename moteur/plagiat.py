@@ -16,7 +16,6 @@ Les énoncés sont sous `bibliotheque/<cours>/_enonces/<lab>.pdf`.
 from __future__ import annotations
 
 import hashlib
-import json
 import tempfile
 import threading
 from pathlib import Path
@@ -25,7 +24,7 @@ from fastapi import APIRouter, File, HTTPException, UploadFile
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 
-from . import bibliotheque, pdf_texte
+from . import bibliotheque, pdf_texte, stockage
 from .claude import ClaudeErreur, FileClaude, file_par_defaut
 from .config import dossier_donnees
 
@@ -72,14 +71,11 @@ def dossier_plagiat() -> Path:
 
 
 def _lire(nom: str, defaut):
-    f = dossier_plagiat() / nom
-    if not f.is_file():
-        return defaut
-    return json.loads(f.read_text(encoding="utf-8"))
+    return stockage.lire_json(dossier_plagiat() / nom, defaut)
 
 
 def _ecrire(nom: str, valeur) -> None:
-    (dossier_plagiat() / nom).write_text(json.dumps(valeur, ensure_ascii=False), encoding="utf-8")
+    stockage.ecrire_json(dossier_plagiat() / nom, valeur)
 
 
 def chemin_enonce(cours: str, lab: str) -> Path:
@@ -93,14 +89,14 @@ def mots_du_pdf(contenu: bytes) -> list[str]:
     """Mots du PDF dans l'ordre (cache par contenu : un PDF n'est lu qu'une fois)."""
     sha = hashlib.sha1(contenu).hexdigest()
     cache = dossier_plagiat() / "textes" / f"{sha}.json"
-    if cache.is_file():
-        return json.loads(cache.read_text(encoding="utf-8"))
+    en_cache = stockage.lire_json(cache)  # un cache abîmé est simplement recalculé
+    if isinstance(en_cache, list):
+        return en_cache
     with tempfile.TemporaryDirectory() as d:
         f = Path(d) / "rapport.pdf"
         f.write_bytes(contenu)
         mots = pdf_texte.extraire(f).texte.split()
-    cache.parent.mkdir(exist_ok=True)
-    cache.write_text(json.dumps(mots, ensure_ascii=False), encoding="utf-8")
+    stockage.ecrire_json(cache, mots)
     return mots
 
 
@@ -254,7 +250,7 @@ def charger_rapports() -> tuple[list[Rapport], list[str]]:
                  "nom": _nom(cours, groupe, etudiant_dir.name)}
         fichier_equipe = etudiant_dir / "equipe.json"
         if fichier_equipe.is_file():
-            ident["equipe"] = [f"{c['groupe']}/{c['id']}" for c in json.loads(fichier_equipe.read_text(encoding="utf-8"))]
+            ident["equipe"] = [f"{c['groupe']}/{c['id']}" for c in stockage.lire_json(fichier_equipe, [])]
         try:
             rapports.append(Rapport(ident, f.read_bytes(), enonces.get((cours, lab))))
         except Exception:

@@ -15,7 +15,7 @@ import threading
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
-from . import bibliotheque, francais, indices_ia
+from . import bibliotheque, francais, indices_ia, stockage
 
 router = APIRouter(prefix="/api/lot")
 
@@ -50,10 +50,8 @@ def a_faire(cours: str, groupe: str, lab: str, etudiant: str, refaire: bool = Fa
         return True, True
     dossier = _dossier_lab(cours, groupe, lab) / etudiant
     fr = dossier / "francais.json"
-    try:
-        fr_ok = fr.is_file() and json.loads(fr.read_text(encoding="utf-8")).get("claude", {}).get("ok", False)
-    except (OSError, ValueError):
-        fr_ok = False
+    doc = stockage.lire_json(fr)
+    fr_ok = isinstance(doc, dict) and bool(doc.get("claude", {}).get("ok", False))
     return not fr_ok, not (dossier / "indices_ia.json").is_file()
 
 
