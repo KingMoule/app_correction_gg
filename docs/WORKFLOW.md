@@ -50,6 +50,17 @@ Conseils de rédaction (doc Anthropic) : donner le contexte et le but, des exemp
 
 Tâche d'une phrase (typo, renommage) : sauter le plan.
 
+## 5b. Leçons de ce projet (plus de 50 PR)
+
+- **Contexte au démarrage** : `CLAUDE.md` n'importe (`@`) que `docs/PLAN.md` (état, reste à faire, décisions en vigueur), le tout sous 15 Ko. Les autres docs sont des pointeurs sans `@`, ouverts selon la tâche. Quand une étape est finie, son récit va dans `docs/HISTORIQUE.md`; `PLAN.md` ne garde que ce qui contraint encore le code. Mesure : `wc -c CLAUDE.md docs/PLAN.md`.
+- **Une décision = une ligne dans `PLAN.md`** (section « Décisions en vigueur »), formulée une fois. Pas de mémoire entre les fils.
+- **PR empilées : vérifier la base.** Une PR ouverte sur la branche d'une autre peut être fusionnée dans cette branche au lieu de `main` (arrivé avec #41 et #42 : le travail n'était pas dans `main`). Avant d'annoncer une PR prête, `gh pr view --json baseRefName` doit dire `main`; sinon la rebaser ou changer sa base. Après la fusion de la PR de dessous, vérifier que la suivante repart bien de `main`.
+- **Deux PR sans conflit de texte peuvent casser le JS** (PR #53 : `base` déclaré deux fois par la fusion de #48 et #49, écran gris). Avant d'annoncer : fusionner `origin/main` dans la branche, puis `pytest` (inclut `tests/test_js_syntaxe.py`, qui lance `node --check` sur chaque script et sur les scripts concaténés par page). Un conflit absent ne prouve rien.
+- **Arrêter les serveurs d'essai** lancés pendant un fil (moteur, LanguageTool, aperçu) avant de terminer : ils tiennent le port 8001 et des fichiers de données.
+- **Le clone est hors de OneDrive** (`C:\dev\app_correction_gg`), comme les données : OneDrive synchronise `.git` et les rapports et peut verrouiller des fichiers. Les worktrees des fils sont dans `.claude/worktrees/` (ignoré par git).
+- **CI Ubuntu et Windows** : certaines erreurs (`os.replace`, encodage cp1252) n'apparaissent que sous Windows; ne pas annoncer « CI verte » avant les deux.
+- **Jamais de fusion par Claude** : Guillaume fusionne, en squash. « PR prête à relire » = poussée, sans conflit avec `main`, CI verte.
+
 ## 6. Texte court pour les « instructions du projet »
 
 ```
