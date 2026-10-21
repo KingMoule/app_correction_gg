@@ -4,7 +4,8 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="theme-color" content="#222222">
+  <meta name="theme-color" content="#20242b">
+  <link rel="stylesheet" href="design.css">
   <link rel="stylesheet" href="lecteur.css">
   <title>Lecteur — Correction de labs</title>
 </head>
@@ -12,14 +13,14 @@
   <div id="barre">
   <div class="ligne">
     <div class="grp">
-      <a id="retour" class="bouton" href="/#biblio">‹ Bibliothèque</a>
+      <a id="retour" class="bouton" href="/#biblio"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>Bibliothèque</a>
       <span id="titre"></span>
     </div>
     <div class="grp" id="suivi">
-      <a id="tableau" class="bouton" href="/#biblio" title="Retour au tableau de suivi du lab">☰ Tableau</a>
-      <button id="prec" title="Rapport précédent, dans l'ordre du tableau">‹ Précédent</button>
+      <a id="tableau" class="bouton" href="/#biblio" title="Retour au tableau de suivi du lab"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg>Tableau</a>
+      <button id="prec" title="Rapport précédent, dans l'ordre du tableau"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>Précédent</button>
       <span id="position"></span>
-      <button id="suiv" class="principal" title="Enregistre, puis ouvre le prochain rapport non terminé du lab">Rapport suivant ›</button>
+      <button id="suiv" class="principal" title="Enregistre, puis ouvre le prochain rapport non terminé du lab">Rapport suivant<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button>
       <span id="statut" class="etiquette"></span>
       <button id="termine">✔ Terminé</button>
       <button id="termine-suivant" class="principal">✔ Terminé et suivant</button>
