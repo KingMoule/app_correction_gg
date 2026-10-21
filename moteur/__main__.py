@@ -6,6 +6,8 @@ import sys
 
 import uvicorn
 
+from .config import chemin_a_risque, dossier_donnees
+
 
 PORT_DEFAUT = 8001
 
@@ -42,6 +44,14 @@ def main() -> None:
               f"Essaie un autre port : python -m moteur --port {args.port + 1}",
               file=sys.stderr)
         sys.exit(1)
+    donnees = dossier_donnees()
+    raison = chemin_a_risque(donnees)
+    if raison:
+        print(f"ATTENTION : le dossier de données ({donnees}) est {raison}.\n"
+              "Les listes de classe, les rapports et les sauvegardes peuvent être "
+              "commités ou synchronisés par erreur.\n"
+              "Choisis un autre dossier avec la variable CORRECTION_DONNEES "
+              "(ex. C:\\correction_donnees).")
     print(f"Sur l'iPad (même Wi-Fi) : http://{adresse_reseau()}:{args.port}")
     uvicorn.run("moteur.app:app", host=hote, port=args.port)
 
