@@ -26,7 +26,7 @@ from pydantic import BaseModel, Field
 
 from . import bibliotheque, pdf_texte, stockage
 from .anonymat import Anonymiseur
-from .claude import ClaudeErreur, FileClaude, file_par_defaut
+from .claude import ClaudeErreur, file_partagee as file_claude  # file unique; les tests remplacent ce nom
 from .config import dossier_donnees
 
 router = APIRouter(prefix="/api/plagiat")
@@ -390,17 +390,6 @@ def ecarter(cle: str) -> dict:
 
 
 # --- Claude (après confirmation) ---------------------------------------------
-
-_file: FileClaude | None = None
-
-
-def file_claude() -> FileClaude:
-    """File Claude du moteur (créée au premier envoi). Les tests la remplacent."""
-    global _file
-    if _file is None:
-        _file = file_par_defaut()
-    return _file
-
 
 def construire_prompt(p: dict) -> str:
     """Passages seulement, sous les noms neutres A et B : pas de rapports entiers, et noms,
