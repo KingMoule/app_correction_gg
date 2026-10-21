@@ -29,8 +29,8 @@ body { display: flex; flex-direction: column; overflow: hidden; padding-top: env
 #barre .epaisseur { width: 64px; }
 .epaisseur span { display: block; width: 30px; border-radius: 99px; background: var(--fg); }
 #titre { font-weight: 600; max-width: 14rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-#page-info, #sauvegarde { font-size: 13px; opacity: .85; font-variant-numeric: tabular-nums; }
-#sauvegarde.erreur { color: #ff8a80; opacity: 1; }
+#page-info, #sauvegarde, #fr-sauvegarde { font-size: 13px; opacity: .85; font-variant-numeric: tabular-nums; }
+#sauvegarde.erreur, #fr-sauvegarde.erreur { color: #ff8a80; opacity: 1; }
 #reglages { position: absolute; top: 100%; right: 8px; background: var(--barre); padding: 10px 14px; border-radius: 0 0 10px 10px;
   display: flex; flex-direction: column; gap: 8px; box-shadow: 0 4px 12px #0008; }
 #reglages input[type=range] { width: 140px; vertical-align: middle; }
@@ -98,7 +98,7 @@ html, body { font-family: var(--font); font-size: 15px; }
 #statut { font-weight: 600; background: var(--attention-fond); color: var(--attention); }
 #statut.p-fini { background: var(--ok-fond); color: var(--ok); }
 .sep { background: var(--l-trait); }
-#sauvegarde { color: #b9c0cc; }
+#sauvegarde, #fr-sauvegarde { color: #b9c0cc; }
 #francais { padding-top: var(--e3); font-size: 15px; }
 #francais p { color: #d4d9e1; }
 #francais button { min-height: var(--cible); padding: 0 var(--e3); border-radius: var(--r-s); border: 2px solid transparent; background: var(--l-bouton); color: var(--fg); font: inherit; font-weight: 500; }

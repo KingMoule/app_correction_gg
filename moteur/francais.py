@@ -6,6 +6,7 @@ choisie) sont enregistrées dans `francais.json` à côté de `rapport.pdf`; le 
 est par cours (`<cours>/bareme.json`).
 """
 
+import hashlib
 import tempfile
 from dataclasses import asdict
 from pathlib import Path
@@ -53,7 +54,27 @@ def analyser_fichier(chemin: Path, avec_claude: bool = False, anonymiseur=None) 
     if avec_claude:
         ajoutees, erreur = francais_claude.passe(extrait.texte, liste, anonymiseur, seg)
         liste = sorted(liste + ajoutees, key=lambda f: (f["debut"], f["fin"]))
-    return extrait, [{"id": i, **f, "zones": extrait.zones(f["debut"], f["fin"])} for i, f in enumerate(liste)], erreur
+    ids = attribuer_ids(liste)
+    return extrait, [{"id": i, **f, "zones": extrait.zones(f["debut"], f["fin"])} for i, f in zip(ids, liste)], erreur
+
+
+# --- Ids stables des fautes -----------------------------------------------------
+
+def id_faute(debut: int, fin: int, texte: str) -> str:
+    """Id d'une faute : empreinte de sa position et de son texte, donc le même d'une analyse à l'autre
+    (un id par rang glissait quand une réanalyse ajoutait une faute avant les autres : audit C1)."""
+    return f"{debut}-{fin}-{hashlib.sha1(texte.encode('utf-8')).hexdigest()[:6]}"
+
+
+def attribuer_ids(fautes: list[dict]) -> list[str]:
+    """Un id unique par faute (suffixe `-2`, `-3`… si deux fautes ont exactement la même empreinte)."""
+    vus: dict[str, int] = {}
+    ids = []
+    for f in fautes:
+        base = id_faute(f["debut"], f["fin"], f["texte"])
+        vus[base] = vus.get(base, 0) + 1
+        ids.append(base if vus[base] == 1 else f"{base}-{vus[base]}")
+    return ids
 
 
 @router.post("/analyser")
@@ -110,21 +131,58 @@ def regler_bareme(cours: str, bareme: Bareme) -> Bareme:
 # --- Rapport rangé : analyse et décisions enregistrées ------------------------
 
 class Decisions(BaseModel):
+    """État complet (PUT). `revision` = celle du `francais.json` lu par le lecteur : périmée = 409."""
+    revision: int
     decisions: dict[str, Literal["acceptee", "refusee"]] = {}  # id de faute -> décision; absent = à trancher
     choix: dict[str, str] = {}  # id de faute -> correction écrite (par défaut : 1re suggestion)
-    masquees: list[int] = []  # fautes dont la correction manuscrite est effacée (surlignage seul)
+    masquees: list[str] = []  # fautes dont la correction manuscrite est effacée (surlignage seul)
     decalages: dict[str, tuple[float, float]] = {}  # id de faute -> déplacement (dx, dy) de la correction, en points PDF
+
+
+class ChangementFaute(BaseModel):
+    """Changement d'une seule faute (PATCH) : seuls les champs fournis sont touchés.
+
+    `decision`, `choix` et `decalage` à null = retour à l'état d'origine (à trancher, 1re suggestion, en place)."""
+    decision: Literal["acceptee", "refusee"] | None = None
+    choix: str | None = None
+    masquee: bool = False
+    decalage: tuple[float, float] | None = None
+
+
+class Changements(BaseModel):
+    fautes: dict[str, ChangementFaute]
 
 
 def ecrire(fichier: Path, contenu: dict) -> None:
     stockage.ecrire_json(fichier, contenu, separators=(",", ":"))
 
 
-def _lire_analyse(f: Path) -> dict | None:
-    """`francais.json` valide, ou None s'il est absent ou abîmé (le rapport est alors à réanalyser)."""
-    doc = stockage.lire_json(f)
-    if isinstance(doc, dict) and all(k in doc for k in ("fautes", "decisions", "choix", "masquees")):
+def _migrer(doc: dict) -> dict:
+    """Anciens `francais.json` (id = rang entier, sans révision) -> ids stables et `revision` 0.
+
+    Faite à chaque lecture, sans réécrire le fichier : décisions, choix, masquées et décalages sont
+    conservés sous leur nouvel id, et la même opération donne toujours les mêmes ids."""
+    fautes = doc["fautes"]
+    if all(isinstance(f.get("id"), str) for f in fautes):
+        doc.setdefault("revision", 0)
         return doc
+    nouveaux = attribuer_ids(fautes)
+    renom = {str(f["id"]): n for f, n in zip(fautes, nouveaux)}
+    doc["fautes"] = [{**f, "id": n} for f, n in zip(fautes, nouveaux)]
+    doc["decisions"] = {renom[k]: v for k, v in doc["decisions"].items() if k in renom}
+    doc["choix"] = {renom[k]: v for k, v in doc["choix"].items() if k in renom}
+    doc["decalages"] = {renom[k]: v for k, v in doc.get("decalages", {}).items() if k in renom}
+    doc["masquees"] = [renom[str(m)] for m in doc["masquees"] if str(m) in renom]
+    doc["version"] = 2
+    doc.setdefault("revision", 0)
+    return doc
+
+
+def _lire_analyse(f: Path) -> dict | None:
+    """`francais.json` valide et migré, ou None s'il est absent ou abîmé (le rapport est alors à réanalyser)."""
+    doc = stockage.lire_json(f)
+    if isinstance(doc, dict) and isinstance(doc.get("fautes"), list) and all(k in doc for k in ("decisions", "choix", "masquees")):
+        return _migrer(doc)
     if doc is not None:
         stockage.journal.warning("Analyse de français inutilisable dans %s : réanalyse nécessaire.", f)
     return None
@@ -142,7 +200,7 @@ def etat(cours: str, groupe: str, lab: str, etudiant: str) -> dict:
     bareme = lire_bareme(cours)
     doc = _lire_analyse(f)
     if doc is None:
-        return {"analyse": False, "fautes": [], "decisions": {}, "choix": {}, "masquees": [],
+        return {"analyse": False, "revision": 0, "fautes": [], "decisions": {}, "choix": {}, "masquees": [],
                 "decalages": {}, "nb_acceptees": 0, "penalite": 0.0, "bareme": bareme.model_dump()}
     nb = sum(1 for d in doc["decisions"].values() if d == "acceptee")
     doc.setdefault("decalages", {})  # analyses faites avant l'ajout des décalages
@@ -169,48 +227,77 @@ def analyser_rapport(cours: str, groupe: str, lab: str, etudiant: str) -> dict:
 
 
 def _fusionner(fautes: list[dict], erreur: str | None, ancien: dict | None) -> dict:
-    """Nouveau `francais.json` : garde les décisions des fautes inchangées et, si Claude a échoué, ses anciennes fautes."""
+    """Nouveau `francais.json` : garde les décisions des fautes inchangées et, si Claude a échoué, ses anciennes fautes.
+
+    Les ids sont des empreintes (position + texte) : une faute inchangée garde son id, donc ses décisions,
+    et un lecteur resté ouvert avec d'anciens ids ne peut pas les réattribuer à une autre faute."""
     if erreur and ancien:
         # Claude indisponible : on garde les fautes de Claude déjà trouvées (et leurs décisions).
         deja = [(x["debut"], x["fin"]) for x in fautes]
         reprises = [x for x in ancien["fautes"] if x.get("source") == "claude"
                     and not any(x["debut"] < b and a < x["fin"] for a, b in deja)]
         if reprises:
-            fautes = sorted(fautes + [{k: v for k, v in x.items() if k != "id"} for x in reprises],
-                            key=lambda x: (x["debut"], x["fin"]))
-            fautes = [{**x, "id": i} for i, x in enumerate(fautes)]
-    nouveau = {"version": 1, "fautes": fautes, "decisions": {}, "choix": {}, "masquees": [],
+            fautes = sorted(fautes + reprises, key=lambda x: (x["debut"], x["fin"]))
+    nouveau = {"version": 2, "revision": (ancien["revision"] + 1) if ancien else 1,
+               "fautes": fautes, "decisions": {}, "choix": {}, "masquees": [],
                "decalages": {}, "claude": {"ok": erreur is None, "erreur": erreur,
                           "ajoutees": sum(1 for x in fautes if x.get("source") == "claude")}}
     if ancien:
-        position = {(a["debut"], a["fin"], a["texte"]): str(a["id"]) for a in ancien["fautes"]}
-        for fa in fautes:
-            vieux = position.get((fa["debut"], fa["fin"], fa["texte"]))
-            if vieux is None:
-                continue
-            nid = str(fa["id"])
-            if vieux in ancien["decisions"]:
-                nouveau["decisions"][nid] = ancien["decisions"][vieux]
-            if vieux in ancien["choix"]:
-                nouveau["choix"][nid] = ancien["choix"][vieux]
-            if int(vieux) in ancien["masquees"]:
-                nouveau["masquees"].append(fa["id"])
-            if vieux in ancien.get("decalages", {}):
-                nouveau["decalages"][nid] = ancien["decalages"][vieux]
+        ids = {x["id"] for x in fautes}
+        nouveau["decisions"] = {k: v for k, v in ancien["decisions"].items() if k in ids}
+        nouveau["choix"] = {k: v for k, v in ancien["choix"].items() if k in ids}
+        nouveau["decalages"] = {k: v for k, v in ancien.get("decalages", {}).items() if k in ids}
+        nouveau["masquees"] = [m for m in ancien["masquees"] if m in ids]
     return nouveau
 
 
 @router.put("/rapport/{cours}/{groupe}/{lab}/{etudiant}")
 def enregistrer_decisions(cours: str, groupe: str, lab: str, etudiant: str, d: Decisions) -> dict:
+    """Remplace tout l'état. Refusé (409) si le lecteur est resté sur une révision périmée : un autre appareil
+    ou une réanalyse a modifié le rapport entre-temps. Préférer le PATCH (une faute à la fois)."""
     _, f = fichiers_rapport(cours, groupe, lab, etudiant)
     with stockage.verrou(f.parent):
         doc = _lire_analyse(f)
         if doc is None:
             raise HTTPException(409, "Rapport pas encore analysé.")
-        ids = {str(x["id"]) for x in doc["fautes"]}
-        if not (set(d.decisions) | set(d.choix) | set(d.decalages) | {str(m) for m in d.masquees}) <= ids:
+        if d.revision != doc["revision"]:
+            raise HTTPException(409, "Les décisions ont changé depuis le chargement (autre appareil ou nouvelle "
+                                     "analyse) : l'état à jour doit être rechargé.")
+        ids = {x["id"] for x in doc["fautes"]}
+        if not (set(d.decisions) | set(d.choix) | set(d.decalages) | set(d.masquees)) <= ids:
             raise HTTPException(422, "Faute inconnue.")
-        doc.update(d.model_dump())
+        doc.update(d.model_dump(exclude={"revision"}))
+        doc["revision"] += 1
+        ecrire(f, doc)
+    return etat(cours, groupe, lab, etudiant)
+
+
+@router.patch("/rapport/{cours}/{groupe}/{lab}/{etudiant}")
+def modifier_decisions(cours: str, groupe: str, lab: str, etudiant: str, c: Changements) -> dict:
+    """Applique les changements de quelques fautes, sans toucher aux autres : deux appareils qui décident
+    sur des fautes différentes ne s'écrasent pas. Une faute qui n'existe plus (rapport réanalysé) = 409."""
+    _, f = fichiers_rapport(cours, groupe, lab, etudiant)
+    with stockage.verrou(f.parent):
+        doc = _lire_analyse(f)
+        if doc is None:
+            raise HTTPException(409, "Rapport pas encore analysé.")
+        ids = {x["id"] for x in doc["fautes"]}
+        if not set(c.fautes) <= ids:
+            raise HTTPException(409, "Une faute n'existe plus : le rapport a été réanalysé. L'état à jour doit être rechargé.")
+        doc.setdefault("decalages", {})
+        for fid, ch in c.fautes.items():
+            donnees = ch.model_dump()
+            for champ in ch.model_fields_set:
+                valeur = donnees[champ]
+                if champ == "masquee":
+                    doc["masquees"] = [m for m in doc["masquees"] if m != fid] + ([fid] if valeur else [])
+                    continue
+                cible = doc[{"decision": "decisions", "choix": "choix", "decalage": "decalages"}[champ]]
+                if valeur is None:
+                    cible.pop(fid, None)
+                else:
+                    cible[fid] = valeur
+        doc["revision"] += 1
         ecrire(f, doc)
     return etat(cours, groupe, lab, etudiant)
 
