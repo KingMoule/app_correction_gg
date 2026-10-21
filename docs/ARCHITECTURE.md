@@ -21,7 +21,7 @@ moteur/        API et logique (un module par fonction)
   anonymat.py  masque noms, prénoms et DA du cours entier avant tout envoi à Claude
   francais_filtre.py prose seulement pour le français (segmentation, filtre, lexique)
   francais_claude.py passe Claude sur le français (erreurs subtiles après LanguageTool)
-  plagiat.py   comparaison locale de tous les rapports + analyse Claude des paires confirmées
+  plagiat.py   comparaison locale (arrière-plan, plancher, passages à part) de tous les rapports + analyse Claude des paires confirmées
   lot.py       analyse par lot (français + indices d'IA sur plusieurs rapports d'un lab)
   indices_ia.py API /api/indices-ia (analyse de style par Claude, texte pour Pangram)
   annotations.py API /api/annotations (traits du crayon, enregistrés à part du PDF)
@@ -152,12 +152,28 @@ Décisions de Guillaume (2026-10-20) : ZIP nommé **`Travaux.zip`**, un par grou
 - Limites : la note manuscrite n'est pas lue (idée écartée : reconnaissance d'écriture); « 17/20 » dans la colonne Note peut être pris pour une date par Excel si les nombres sont petits (préférer « 17,5 »).
 
 ## Plagiat (étape 3)
-- **Comparaison locale** (`POST /api/plagiat/comparer`, sans Claude) : chaque rapport de la bibliothèque (tous cours, groupes, labs) est comparé à tous les autres. Mots mis en minuscules, sans accents ni ponctuation; un passage commun = au moins 8 mots consécutifs identiques (`MOTS_MIN`). Score d'une paire = plus grande part d'un des deux rapports couverte par des passages communs. Un même étudiant n'est pas comparé à lui-même d'un lab à l'autre. Une suite de mots présente dans plus de 40 rapports est considérée comme du texte courant et ignorée.
+- **Comparaison locale** (`POST /api/plagiat/comparer`, sans Claude, **en arrière-plan** : voir « Plagiat à l'échelle » plus bas) : chaque rapport de la bibliothèque (tous cours, groupes, labs) est comparé à tous les autres. Mots mis en minuscules, sans accents ni ponctuation; un passage commun = au moins 8 mots consécutifs identiques (`MOTS_MIN`). Score d'une paire = plus grande part d'un des deux rapports couverte par des passages communs. Un même étudiant n'est pas comparé à lui-même d'un lab à l'autre. Une suite de mots présente dans plus de 40 rapports est considérée comme du texte courant et ignorée.
 - **Énoncé** : `POST /api/plagiat/enonces/{cours}/{lab}` (PDF), rangé sous `bibliotheque/<cours>/_enonces/<lab>.pdf`. Les mots qu'il couvre sont retirés des rapports (ni comparés ni comptés).
-- **Seuil** : `GET/PUT /api/plagiat/reglages` (fraction, 0,2 par défaut). Les paires plus basses restent consultables.
+- **Seuil** : `GET/PUT /api/plagiat/reglages` (fraction, 0,2 par défaut), seuil d'**affichage** : les paires plus basses restent consultables, tant qu'elles dépassent le plancher (ci-dessous).
 - **Confirmation avant Claude** : `POST /api/plagiat/paires/{cle}/confirmer` est le seul chemin vers Claude. Une paire par appel; seuls les passages communs partent (sous les noms « rapport A/B », sans nom d'étudiant), au plus 12 000 caractères. Verdict : copie, paraphrase ou coïncidence + confiance + explication, présenté comme un indice. `…/ecarter` écarte une paire.
-- **Données** sous `donnees/plagiat/` : `paires.json` (dernière comparaison), `decisions.json`, `reglages.json`, `textes/` (cache par empreinte du PDF; une décision suit le contenu des PDF, pas le nom). Un rapport remplacé donne une nouvelle paire, donc une nouvelle décision.
+- **Données** sous `donnees/plagiat/` : `paires.json` (dernière comparaison, résumés sans passages), `passages/<clé>.json`, `decisions.json`, `reglages.json`, `textes/` (cache par empreinte du PDF; une décision suit le contenu des PDF, pas le nom). Un rapport remplacé donne une nouvelle paire, donc une nouvelle décision.
 - Limite connue : des partenaires de lab qui partagent légitimement leurs données ressortent comme paires; c'est à Claude (consigne) et à Guillaume de trancher.
+
+### Plagiat à l'échelle (audit M7)
+- **Plancher** : `PLANCHER = 0,05` (fixe, distinct du seuil d'affichage réglable). `paires.json` ne garde que les paires dont le score atteint le plancher, **plus celles qui ont une décision** (écartée, analysée, erreur), même plus basses. Une décision tombée entre-temps sur une paire qui passe sous le plancher à cause d'un nouvel énoncé est la seule qui peut se perdre (rare, et la décision reste dans `decisions.json`).
+- **Format** : `paires.json` = `{"version": 2, "plancher", "paires": [résumés]}` sans passages. Les passages sont dans `passages/<clé>.json` (un fichier par paire, écriture simple sans `fsync` : données recalculables, ignorée si inchangée), lus seulement par `GET /api/plagiat/paires/{cle}` et `confirmer`. Passages absents = 404 « relancer la comparaison ». Les fichiers des paires disparues sont retirés à chaque comparaison.
+- **Migration** : un ancien `paires.json` (liste avec passages) est converti à la première lecture (`_migrer`) : passages déplacés à part, plancher appliqué. `decisions.json` n'est pas touché : les décisions restent attachées à la clé de la paire (testé).
+- **Comparaison en arrière-plan** : `POST /api/plagiat/comparer` répond tout de suite l'état; `GET /api/plagiat/comparer/etat` donne `etat` (`inactif`, `en_cours`, `termine`, `annule`, `erreur`), `etape` (lecture, indexation, paires, ecriture), `fait`/`total`, puis `rapports`, `paires`, `illisibles`, `duree`. Relancer pendant qu'une comparaison tourne l'arrête à son prochain point d'arrêt (elle n'écrit rien), la nouvelle attend sa fin. Le verrou du plagiat n'est pris qu'à l'écriture finale : confirmer, écarter, suivi et export répondent pendant le calcul. En cas d'erreur, l'ancien résultat reste. `pwa/plagiat.js` affiche la progression et reprend le suivi en rouvrant l'écran.
+- **`etat_des_paires()`** (public) : liste des paires gardées sans passages, avec `statut` et `resultat`; lit un cache en mémoire de `paires.json`, invalidé quand une comparaison réécrit le fichier (signature date/taille + compteur). Le seuil et les décisions sont relus à chaque appel (petits fichiers). Remplace `_lire("paires.json")` et `_statut` dans `suivi.py`, `export_lot.py` et l'écran.
+- **Mesure** (`scripts/mesurer_plagiat.py`, bibliothèque fictive de 300 rapports de 2 à 5 pages : 3 labs × 4 groupes de 25, 300 mots de protocole commun par cellule; 3 600 paires; textes déjà en cache) :
+
+  | | avant | après |
+  |---|---|---|
+  | `paires.json` | 16,78 Mo | 1,29 Mo (+ `passages/` 15,4 Mo, lus à la demande) |
+  | comparaison (calcul) | 6,7 s, requête bloquée | 7,7 s en arrière-plan (écriture des passages comprise) |
+  | suivi d'un lab | 1 242 ms | 112 ms |
+  | liste des paires | 1 165 ms | 21 ms |
+  | détail d'une paire | 52 ms | 6 ms |
 
 ## Analyse par lot (Claude)
 - Modèle : la file Claude du moteur utilise **Sonnet** par défaut (`claude.file_par_defaut`, variable `CORRECTION_MODELE` pour changer). Mesuré : environ 2 % de la session de 5 h par rapport (français + indices d'IA), donc environ 10 rapports par lot avec une marge de 20 %.
@@ -192,5 +208,5 @@ Décisions de Guillaume (2026-10-20, toutes les recommandations) : **écran du l
 `Anonymiseur.pour(*cours)` charge **tous** les `classe.json` du cours (tous groupes, étudiants « retirés » compris) et tous les `equipe.json`; sans liste, il ne masque que les DA. Peu importe le rapport d'où vient le texte : un coéquipier d'un autre groupe est masqué comme les autres.
 - Remplacements : `[PRÉNOM]`, `[NOM]` (un mot à la fois, donc `Tremblay-Côté` → `[NOM]-[NOM]`; mot à la fois nom et prénom → `[NOM]`), `[DA]` (DA connus et toute suite isolée de 6 à 9 chiffres). Accents, casse et majuscules ignorés; noms collés (`AliceDubé`, `dube_alice`) découpés en noms connus de 4 lettres et plus.
 - Noms courts (compromis pour ne pas effacer des mots ordinaires) : 4 lettres et plus = masqués partout; 3 lettres = mot entier avec majuscule seulement (`Roy` oui, `roy` non); 2 lettres ou moins = majuscule et collé (espaces, virgule, trait d'union) à un autre mot de nom ou prénom (`Wu Li` oui, `Li` seul de lithium non). Les petits mots courants (le, la, de, du...) ne sont jamais des noms. Limite connue : un nom de 3 lettres seul et en minuscules, ou un nom de 2 lettres seul, n'est pas masqué.
-- Plagiat : `construire_prompt` masque `texte_a` et `texte_b` de chaque passage; `paires.json` garde les passages en clair (local).
+- Plagiat : `construire_prompt` masque `texte_a` et `texte_b` de chaque passage; `passages/<clé>.json` garde les passages en clair (local).
 - Tests : `tests/test_anonymat.py` (règles) et `tests/test_anonymat_prompts.py` (contenu exact des prompts, Claude simulé).

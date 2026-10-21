@@ -3,6 +3,8 @@ const API = "/api/plagiat";
 const $ = (id) => document.getElementById(id);
 let courant = null; // clé de la paire affichée
 let minuteur = null;
+let suiviComparaison = null;
+const BAS_MAX = 100; // lignes affichées sous le seuil (la bibliothèque grossit : on borne le DOM)
 
 function texte(tag, contenu, classe) {
   const el = document.createElement(tag);
@@ -51,7 +53,10 @@ async function charger() {
   const bas = d.paires.filter((p) => p.statut === "sous_seuil");
   $("paires").replaceChildren(...(hauts.length ? hauts.map(ligne) : [texte("p", d.paires.length
     ? "Aucune paire au-dessus du seuil." : "Aucune comparaison pour l'instant.")]));
-  $("paires-basses").replaceChildren(...bas.map(ligne));
+  $("paires-basses").replaceChildren(...bas.slice(0, BAS_MAX).map(ligne));
+  if (bas.length > BAS_MAX) {
+    $("paires-basses").append(texte("p", `${bas.length - BAS_MAX} autre(s) paire(s) plus faibles non affichées (monter le seuil d'affichage pour les cacher toutes).`, "aide"));
+  }
   $("sous-seuil").hidden = !bas.length;
   if (courant) await afficherDetail(courant);
   const attente = d.paires.some((p) => p.statut === "en_cours");
@@ -127,23 +132,54 @@ async function confirmer(p) {
   await charger();
 }
 
+const ETAPES = {
+  lecture: "Lecture des PDF", indexation: "Recherche des passages communs",
+  paires: "Comparaison des paires", ecriture: "Enregistrement",
+};
+
+function texteComparaison(d) {
+  if (d.etat === "en_cours") {
+    const pas = d.total ? ` ${d.fait} / ${d.total}` : "";
+    return `Comparaison en cours : ${ETAPES[d.etape] || d.etape}${pas}. Tu peux changer d'écran, elle continue.`;
+  }
+  if (d.etat === "termine") {
+    return `${d.rapports} rapport(s) comparés, ${d.paires} paire(s) gardées en ${d.duree} s.` +
+      (d.illisibles?.length ? ` Illisibles : ${d.illisibles.join(", ")}.` : "");
+  }
+  if (d.etat === "erreur") return `La comparaison a échoué : ${d.erreur}`;
+  return "";
+}
+
+// Suit la comparaison en arrière-plan (une relance côté moteur arrête la précédente).
+async function suivreComparaison() {
+  clearTimeout(suiviComparaison);
+  let d;
+  try {
+    d = await (await fetch(`${API}/comparer/etat`)).json();
+  } catch (e) {
+    suiviComparaison = setTimeout(suivreComparaison, 2000); // moteur injoignable un instant : on réessaie
+    return;
+  }
+  $("etat-comparaison").textContent = texteComparaison(d);
+  if (d.etat === "en_cours") {
+    suiviComparaison = setTimeout(suivreComparaison, 700);
+  } else if (d.etat === "termine") {
+    await charger();
+  }
+}
+
 $("comparer").onclick = async () => {
   const pour = Number($("seuil").value);
   await fetch(`${API}/reglages`, {
     method: "PUT", headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ seuil: Math.min(100, Math.max(0, pour)) / 100 }),
   });
-  $("etat-comparaison").textContent = "Comparaison en cours…";
   courant = null;
   $("detail").hidden = true;
   const r = await fetch(`${API}/comparer`, { method: "POST" });
   if (!r.ok) { $("etat-comparaison").textContent = await erreurApi(r); return; }
-  const d = await r.json();
-  const suspectes = d.paires.filter((p) => p.statut === "a_confirmer").length;
-  $("etat-comparaison").textContent =
-    `${d.rapports} rapport(s) comparés, ${suspectes} paire(s) au-dessus du seuil.` +
-    (d.illisibles.length ? ` Illisibles : ${d.illisibles.join(", ")}.` : "");
-  await charger();
+  $("etat-comparaison").textContent = "Comparaison lancée…";
+  await suivreComparaison();
 };
 
 $("seuil").onchange = async () => {
@@ -182,3 +218,4 @@ async function charger_cours() {
 
 charger_cours().catch(() => {});
 charger().catch(() => {});
+suivreComparaison().catch(() => {}); // reprend l'affichage d'une comparaison déjà en cours

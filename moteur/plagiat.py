@@ -1,14 +1,17 @@
 """Plagiat : comparaison locale de tous les rapports, puis analyse par Claude des paires confirmées.
 
 Étapes (voir docs/PLAN.md, étape 3) :
-1. `POST /api/plagiat/comparer` : programme local, gratuit. Chaque rapport de la bibliothèque
-   (tous cours, groupes et labs) est comparé à tous les autres. Les suites de mots communes
-   sont les « passages » ; le texte de l'énoncé du lab (s'il est téléversé) est ignoré.
-2. Les paires dont le score atteint le seuil réglable sont proposées à Guillaume.
+1. `POST /api/plagiat/comparer` : programme local, gratuit, lancé en arrière-plan (progression
+   dans `GET /api/plagiat/comparer/etat`; une relance arrête la précédente). Chaque rapport de la
+   bibliothèque (tous cours, groupes et labs) est comparé à tous les autres. Les suites de mots
+   communes sont les « passages » ; le texte de l'énoncé du lab (s'il est téléversé) est ignoré.
+2. Les paires dont le score atteint le seuil réglable sont proposées à Guillaume. Seules les paires
+   au-dessus du PLANCHER (ou ayant une décision) sont gardées sur disque.
 3. `POST /api/plagiat/paires/{cle}/confirmer` : seulement après sa confirmation, les passages
    (noms, prénoms et DA masqués) sont envoyés à Claude, qui juge copie, paraphrase ou coïncidence.
 
-Rangement sous `<données>/plagiat/` : reglages.json, paires.json (dernière comparaison),
+Rangement sous `<données>/plagiat/` : reglages.json, paires.json (dernière comparaison, résumés
+sans passages), passages/<clé>.json (passages d'une paire, lus à l'ouverture de la paire),
 decisions.json (écarter / verdict de Claude), textes/<sha1>.json (cache du texte d'un PDF).
 Les énoncés sont sous `bibliotheque/<cours>/_enonces/<lab>.pdf`.
 """
@@ -16,8 +19,12 @@ Les énoncés sont sous `bibliotheque/<cours>/_enonces/<lab>.pdf`.
 from __future__ import annotations
 
 import hashlib
+import json
+import os
+import re
 import tempfile
 import threading
+import time
 from pathlib import Path
 
 from fastapi import APIRouter, File, HTTPException, UploadFile
@@ -36,7 +43,11 @@ MOTS_MIN = 8
 # Une suite qu'on retrouve dans plus de rapports que cela est un texte courant
 # (formule, énoncé non téléversé) : on ne s'en sert pas, ce qui borne aussi le temps de calcul.
 RAPPORTS_MAX_PAR_SUITE = 40
-SEUIL_DEFAUT = 0.2  # fraction du rapport couverte par des passages communs
+SEUIL_DEFAUT = 0.2  # fraction du rapport couverte par des passages communs (seuil d'affichage, réglable)
+# Plancher de conservation : sous cette fraction, une paire n'est pas gardée sur disque (sauf si elle a
+# une décision). Fixe, plus bas que tout seuil d'affichage raisonnable : audit 2026-10, M7.
+PLANCHER = 0.05
+VERSION_PAIRES = 2
 CONTEXTE_MAX = 12000  # caractères de passages envoyés à Claude par paire
 
 SCHEMA_VERDICT = {
@@ -74,10 +85,6 @@ def dossier_plagiat() -> Path:
 
 def _lire(nom: str, defaut):
     return stockage.lire_json(dossier_plagiat() / nom, defaut)
-
-
-def _ecrire(nom: str, valeur) -> None:
-    stockage.ecrire_json(dossier_plagiat() / nom, valeur)
 
 
 def chemin_enonce(cours: str, lab: str) -> Path:
@@ -173,15 +180,38 @@ def passages_communs(a: Rapport, b: Rapport, positions: list[tuple[int, int]]) -
              "texte_b": " ".join(b.origine[p[2]:p[3]])} for p in gardes]
 
 
-def comparer_rapports(rapports: list[Rapport]) -> list[dict]:
-    """Toutes les paires qui ont au moins un passage commun, triées par score décroissant."""
+class Annulee(Exception):
+    """La comparaison a été relancée : celle-ci s'arrête sans rien écrire."""
+
+
+class Progression:
+    """Avancement d'une comparaison (lu par l'écran) et point d'arrêt propre (`maj` lève `Annulee`)."""
+
+    def __init__(self) -> None:
+        self.annule = threading.Event()
+        self.etat: dict = {"etat": "en_cours", "etape": "lecture", "fait": 0, "total": 0}
+
+    def maj(self, etape: str, fait: int, total: int) -> None:
+        if self.annule.is_set():
+            raise Annulee()
+        self.etat.update(etape=etape, fait=fait, total=total)
+
+
+def comparer_rapports(rapports: list[Rapport], decidees: frozenset | set = frozenset(),
+                      progression: Progression | None = None) -> list[dict]:
+    """Paires qui ont au moins un passage commun, au-dessus du PLANCHER (ou déjà décidées),
+    triées par score décroissant. Chaque paire porte ses `passages`."""
+    maj = progression.maj if progression else (lambda *_: None)
     index: dict[tuple[str, ...], list[tuple[int, int]]] = {}
     for n, r in enumerate(rapports):
+        maj("indexation", n, len(rapports))
         for i, s in enumerate(r.suites):
             if not r.ignores[i]:
                 index.setdefault(s, []).append((n, i))
     positions: dict[tuple[int, int], list[tuple[int, int]]] = {}
-    for postes in index.values():
+    for k, postes in enumerate(index.values()):
+        if k % 2000 == 0:
+            maj("indexation", len(rapports), len(rapports))
         if len(postes) < 2 or len({n for n, _ in postes}) > RAPPORTS_MAX_PAR_SUITE:
             continue
         for x, (n1, i) in enumerate(postes):
@@ -192,8 +222,10 @@ def comparer_rapports(rapports: list[Rapport]) -> list[dict]:
                     positions.setdefault((n1, n2), []).append((i, j))
                 else:
                     positions.setdefault((n2, n1), []).append((j, i))
+    del index
     paires = []
-    for (n1, n2), pos in positions.items():
+    for k, ((n1, n2), pos) in enumerate(positions.items()):
+        maj("paires", k, len(positions))
         a, b = rapports[n1], rapports[n2]
         passages = passages_communs(a, b, sorted(set(pos)))
         couverts_a = sum(y - x for x, y in _union([tuple(p["a"]) for p in passages]))
@@ -203,6 +235,8 @@ def comparer_rapports(rapports: list[Rapport]) -> list[dict]:
         if a.sha == b.sha:  # textes identiques : plusieurs paires pourraient avoir la même clé
             ids = sorted(f"{r.ident['cours']}/{r.ident['groupe']}/{r.ident['lab']}/{r.ident['etudiant']}" for r in (a, b))
             cle += "-" + hashlib.sha1("|".join(ids).encode()).hexdigest()[:6]
+        if round(max(cov_a, cov_b), 4) < PLANCHER and cle not in decidees:
+            continue
         if a.sha > b.sha:  # clé stable : A est toujours le plus petit hachage
             a, b, passages = b, a, [{**p, "a": p["b"], "b": p["a"],
                                      "texte_a": p["texte_b"], "texte_b": p["texte_a"]} for p in passages]
@@ -242,10 +276,13 @@ def _enonces() -> dict[tuple[str, str], set]:
     return resultat
 
 
-def charger_rapports() -> tuple[list[Rapport], list[str]]:
+def charger_rapports(progression: Progression | None = None) -> tuple[list[Rapport], list[str]]:
     enonces = _enonces()
     rapports, ignores = [], []
-    for f in sorted(bibliotheque.racine().glob("*/*/*/*/rapport.pdf")):
+    fichiers = sorted(bibliotheque.racine().glob("*/*/*/*/rapport.pdf"))
+    for n, f in enumerate(fichiers):
+        if progression:
+            progression.maj("lecture", n, len(fichiers))
         etudiant_dir = f.parent
         lab, groupe, cours = etudiant_dir.parent.name, etudiant_dir.parent.parent.name, etudiant_dir.parent.parent.parent.name
         ident = {"cours": cours, "groupe": groupe, "lab": lab, "etudiant": etudiant_dir.name,
@@ -279,22 +316,126 @@ def seuil() -> float:
     return float(_lire("reglages.json", {}).get("seuil", SEUIL_DEFAUT))
 
 
-def _statut(cle: str, score: float, decisions: dict) -> str:
-    if cle in _en_cours:
+def _statut(cle: str, score: float, decisions: dict, seuil_: float, en_cours: set | None = None) -> str:
+    if cle in (_en_cours if en_cours is None else en_cours):
         return "en_cours"
     d = decisions.get(cle)
     if d:
         return d["statut"]  # ecartee, analysee ou erreur
-    return "a_confirmer" if score >= seuil() else "sous_seuil"
+    return "a_confirmer" if score >= seuil_ else "sous_seuil"
 
 
-def _resume(p: dict, decisions: dict) -> dict:
+def _resume(p: dict, decisions: dict, seuil_: float, en_cours: set | None = None) -> dict:
     r = {k: v for k, v in p.items() if k != "passages"}
-    r["statut"] = _statut(p["cle"], p["score"], decisions)
+    r["statut"] = _statut(p["cle"], p["score"], decisions, seuil_, en_cours)
     d = decisions.get(p["cle"], {})
     if r["statut"] in ("analysee", "erreur"):
         r["resultat"] = {k: v for k, v in d.items() if k != "statut"}
     return r
+
+
+# --- Paires sur disque : résumés (paires.json) et passages à part ------------------
+
+_CLE_SURE = re.compile(r"^[A-Za-z0-9_-]{1,80}$")
+_generation = 0  # augmente à chaque écriture de paires.json (invalide le cache en mémoire)
+_cache: dict = {"sig": None, "paires": []}
+
+
+def _ecrire(nom: str, valeur) -> None:
+    global _generation
+    stockage.ecrire_json(dossier_plagiat() / nom, valeur)
+    if nom == "paires.json":
+        _generation += 1
+
+
+def _signature():
+    try:
+        st = (dossier_plagiat() / "paires.json").stat()
+    except FileNotFoundError:
+        return ("absent", str(dossier_plagiat()), _generation)
+    return (st.st_mtime_ns, st.st_size, str(dossier_plagiat()), _generation)
+
+
+def _chemin_passages(cle: str) -> Path:
+    if not _CLE_SURE.match(cle):
+        raise HTTPException(404, "Paire inconnue : relancer la comparaison.")
+    return dossier_plagiat() / "passages" / f"{cle}.json"
+
+
+def _ecrire_passages(cle: str, passages: list) -> None:
+    """Données dérivées (recalculables) : écriture simple sans fsync, ignorée si inchangée."""
+    chemin = _chemin_passages(cle)
+    contenu = json.dumps(passages, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
+    try:
+        if chemin.read_bytes() == contenu:
+            return
+    except OSError:
+        pass
+    chemin.parent.mkdir(parents=True, exist_ok=True)
+    fd, nom = tempfile.mkstemp(dir=chemin.parent, prefix=chemin.name + ".", suffix=".tmp")
+    try:
+        with os.fdopen(fd, "wb") as f:
+            f.write(contenu)
+        stockage._reessayer(lambda: os.replace(nom, chemin))
+    except BaseException:
+        try:
+            os.unlink(nom)
+        except OSError:
+            pass
+        raise
+
+
+def _ecrire_paires(paires: list[dict]) -> None:
+    """Passages d'abord (un fichier par paire), puis le fichier de résumés : un arrêt au milieu laisse
+    l'ancien paires.json valide. Retire les fichiers de passages des paires disparues."""
+    for p in paires:
+        _ecrire_passages(p["cle"], p.get("passages", []))
+    gardees = {p["cle"] for p in paires}
+    dossier = dossier_plagiat() / "passages"
+    if dossier.is_dir():
+        for f in dossier.iterdir():
+            if f.suffix == ".json" and f.stem not in gardees:
+                f.unlink(missing_ok=True)
+    legeres = [{k: v for k, v in p.items() if k != "passages"} for p in paires]
+    _ecrire("paires.json", {"version": VERSION_PAIRES, "plancher": PLANCHER, "paires": legeres})
+
+
+def _migrer(anciennes: list, decisions: dict) -> list[dict]:
+    """Ancien paires.json (liste de paires avec passages) -> résumés + passages à part, plancher appliqué.
+    Les décisions (decisions.json) ne changent pas : elles se rattachent à la clé de la paire."""
+    gardees = [p for p in anciennes if isinstance(p, dict) and "cle" in p
+               and (p.get("score", 0) >= PLANCHER or p["cle"] in decisions)]
+    _ecrire_paires(gardees)
+    return [{k: v for k, v in p.items() if k != "passages"} for p in gardees]
+
+
+def _paires_legeres() -> list[dict]:
+    """Résumés des paires gardées (sans passages), en cache tant que paires.json ne change pas."""
+    with _verrou:
+        sig = _signature()
+        if _cache["sig"] == sig:
+            return _cache["paires"]
+        doc = stockage.lire_json(dossier_plagiat() / "paires.json", None)
+        if isinstance(doc, list):  # format d'avant le plancher
+            paires = _migrer(doc, _lire("decisions.json", {}))
+        elif isinstance(doc, dict):
+            paires = doc.get("paires", [])
+        else:
+            paires = []
+        _cache.update(sig=_signature(), paires=paires)
+        return paires
+
+
+def etat_des_paires() -> list[dict]:
+    """État de toutes les paires gardées, sans leurs passages : clé, rapports `a` et `b`, scores,
+    `statut` (a_confirmer, sous_seuil, en_cours, ecartee, analysee, erreur) et `resultat` (verdict).
+    Lecture d'un cache léger (relu seulement si une comparaison a écrit paires.json) : point d'entrée
+    unique du suivi, de l'export et de l'écran du plagiat."""
+    paires = _paires_legeres()
+    decisions = _lire("decisions.json", {})
+    s = seuil()
+    en_cours = set(_en_cours)
+    return [_resume(p, decisions, s, en_cours) for p in paires]
 
 
 class Reglages(BaseModel):
@@ -345,34 +486,104 @@ def lister_enonces() -> list[dict]:
     return [{"cours": c, "lab": l} for c, l in sorted(_enonces())]
 
 
+# --- Comparaison en arrière-plan ------------------------------------------------
+
+class _Comparaison:
+    def __init__(self, precedente: "_Comparaison | None") -> None:
+        self.progression = Progression()
+        self.precedente = precedente
+        self.fil = threading.Thread(target=self._executer, daemon=True, name="plagiat-comparaison")
+
+    @property
+    def etat(self) -> dict:
+        return dict(self.progression.etat)
+
+    def _executer(self) -> None:
+        etat = self.progression.etat
+        debut = time.perf_counter()
+        try:
+            if self.precedente:  # la précédente s'arrête au prochain point d'arrêt; on attend sa fin
+                self.precedente.fil.join()
+            rapports, illisibles = charger_rapports(self.progression)
+            etat.update(rapports=len(rapports), illisibles=illisibles)
+            paires = comparer_rapports(rapports, set(_lire("decisions.json", {})), self.progression)
+            with _verrou:
+                self.progression.maj("ecriture", 0, 1)  # dernier contrôle : une relance n'écrit jamais après coup
+                _ecrire_paires(paires)
+            etat.update(etat="termine", etape="fin", fait=len(paires), total=len(paires), paires=len(paires))
+        except Annulee:
+            etat.update(etat="annule")
+        except BaseException as e:  # noqa: BLE001 : message gardé pour l'écran
+            etat.update(etat="erreur", erreur=str(e) or type(e).__name__)
+        finally:
+            etat["duree"] = round(time.perf_counter() - debut, 2)
+
+
+_job_verrou = threading.Lock()
+_job: _Comparaison | None = None
+
+
+def demarrer_comparaison() -> dict:
+    """Lance la comparaison en arrière-plan; si une autre tourne, elle est arrêtée proprement avant."""
+    global _job
+    with _job_verrou:
+        if _job and _job.fil.is_alive():
+            _job.progression.annule.set()
+        _job = _Comparaison(_job)
+        _job.fil.start()
+        return _job.etat
+
+
 @router.post("/comparer")
 def comparer() -> dict:
-    """Compare tous les rapports de la bibliothèque entre eux (local, sans Claude)."""
-    with _verrou:
-        rapports, illisibles = charger_rapports()
-        paires = comparer_rapports(rapports)
-        _ecrire("paires.json", paires)
-    return {"rapports": len(rapports), "illisibles": illisibles, **lister()}
+    """Lance la comparaison de tous les rapports (local, sans Claude) et répond tout de suite."""
+    return demarrer_comparaison()
+
+
+@router.get("/comparer/etat")
+def etat_comparaison() -> dict:
+    """Avancement : `etat` = inactif, en_cours, termine, annule ou erreur; `etape`, `fait` et `total`."""
+    with _job_verrou:
+        return _job.etat if _job else {"etat": "inactif"}
+
+
+def attendre_comparaison(delai: float = 60) -> dict:
+    """Attend la fin de la comparaison courante (tests, scripts) et renvoie son état."""
+    with _job_verrou:
+        job = _job
+    if job:
+        job.fil.join(delai)
+    return etat_comparaison()
 
 
 @router.get("/paires")
 def lister() -> dict:
-    decisions = _lire("decisions.json", {})
-    paires = [_resume(p, decisions) for p in _lire("paires.json", [])]
-    return {"seuil": seuil(), "paires": paires}
+    return {"seuil": seuil(), "plancher": PLANCHER, "paires": etat_des_paires()}
 
 
 def _paire(cle: str) -> dict:
-    for p in _lire("paires.json", []):
+    for p in _paires_legeres():
         if p["cle"] == cle:
             return p
     raise HTTPException(404, "Paire inconnue : relancer la comparaison.")
 
 
+def _passages(cle: str) -> list:
+    passages = stockage.lire_json(_chemin_passages(cle), None)
+    if not isinstance(passages, list):
+        raise HTTPException(404, "Passages absents : relancer la comparaison.")
+    return passages
+
+
+def _paire_complete(cle: str) -> dict:
+    """La paire avec ses passages (lus sur disque à ce moment seulement)."""
+    return {**_paire(cle), "passages": _passages(cle)}
+
+
 @router.get("/paires/{cle}")
 def detail(cle: str) -> dict:
     p = _paire(cle)
-    return {**_resume(p, _lire("decisions.json", {})), "passages": p["passages"]}
+    return {**_resume(p, _lire("decisions.json", {}), seuil()), "passages": _passages(cle)}
 
 
 def _decider(cle: str, valeur: dict) -> None:
@@ -433,7 +644,7 @@ def _terminer(cle: str, futur) -> None:
 def confirmer(cle: str) -> dict:
     """Guillaume a confirmé : la paire est envoyée à Claude (réponse tout de suite, résultat plus tard)."""
     with _verrou:
-        p = _paire(cle)
+        p = _paire_complete(cle)
         if cle in _en_cours:
             return {"statut": "en_cours"}
         _en_cours.add(cle)
