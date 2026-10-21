@@ -8,13 +8,16 @@ Rangement sous `<données>/bibliotheque/` :
     <cours>/<groupe>/<lab>/archive.json             {"archive": true} : lab rangé dans « Terminés »
     _attente/<id>.pdf + <id>.json                   PDF à trancher par Guillaume
     _ecartes/<id>.pdf + <id>.json                   PDF écartés (récupérables, jamais supprimés)
+    _remplaces/<cours>_<groupe>_<lab>_<étudiant>_<horodatage>/   ancien dossier d'un rapport remplacé, au complet
 """
 
 import csv
 import io
 import re
 import unicodedata
+import shutil
 import uuid
+from datetime import datetime
 from pathlib import Path
 
 from fastapi import APIRouter, File, Form, HTTPException, UploadFile
@@ -341,16 +344,33 @@ def lister_attente() -> list[dict]:
     return [m for m in metas if isinstance(m, dict)]
 
 
+def mettre_de_cote(dossier: Path, prefixe: str) -> Path:
+    """Déplace tout le dossier d'un rapport (PDF, annotations, fautes, statut, note…) dans
+    `_remplaces/`, hors de ce que lisent le suivi, le plagiat et l'export. Ne supprime rien."""
+    base = racine() / "_remplaces"
+    base.mkdir(exist_ok=True)
+    horodatage = datetime.now().strftime("%Y%m%d-%H%M%S")
+    cible, n = base / f"{prefixe}_{horodatage}", 1
+    while cible.exists():
+        n += 1
+        cible = base / f"{prefixe}_{horodatage}-{n}"
+    shutil.move(str(dossier), str(cible))
+    return cible
+
+
 class Choix(BaseModel):
     etudiant: str | None = None  # id de l'étudiant; vide = écarter le fichier
+    remplacer: bool = False      # confirmation explicite : mettre de côté le rapport déjà rangé
     groupe: str | None = None    # groupe de l'étudiant (sinon celui du lot)
 
 
 @router.post("/attente/{ident}")
 def trancher(ident: str, choix: Choix) -> dict:
-    """Guillaume choisit l'étudiant (écrase un rapport déjà rangé) ou écarte le fichier.
+    """Guillaume choisit l'étudiant ou écarte le fichier.
 
-    Un fichier écarté est déplacé dans `_ecartes/` (récupérable), jamais supprimé."""
+    Si l'étudiant a déjà un rapport pour ce lab, `remplacer` doit être vrai (sinon 409) : l'ancien
+    dossier est alors déplacé au complet dans `_remplaces/` et le nouveau PDF repart à neuf.
+    Un fichier écarté est déplacé dans `_ecartes/` (récupérable). Rien n'est jamais supprimé."""
     segment_sur(ident, "id")
     dossier = racine() / "_attente"
     meta_f, pdf_f = dossier / f"{ident}.json", dossier / f"{ident}.pdf"
@@ -366,6 +386,11 @@ def trancher(ident: str, choix: Choix) -> dict:
         e = next((x for x in tous if x["id"] == choix.etudiant and x["groupe"] == groupe), None)
         if not e:
             raise HTTPException(400, "Étudiant absent de la liste de classe.")
+        existant = chemin_rapport(meta["cours"], e["groupe"], meta["lab"], e["id"]).parent
+        if existant.exists():
+            if not choix.remplacer:
+                raise HTTPException(409, "Cet étudiant a déjà un rapport pour ce lab : confirmer le remplacement.")
+            mettre_de_cote(existant, f"{meta['cours']}_{e['groupe']}_{meta['lab']}_{e['id']}")
         ranger(contenu, meta["cours"], e["groupe"], meta["lab"], e["id"], coequipiers(contenu, tous, e), meta.get("fichier"))
         pdf_f.unlink()
     else:

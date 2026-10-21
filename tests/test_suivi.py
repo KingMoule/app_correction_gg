@@ -71,3 +71,38 @@ def test_analyser_un_seul_rapport(lab, monkeypatch):
         time.sleep(0.05)
     assert appels == [("fr", "martin-luc")]  # l'indice d'IA de Luc existe déjà
     assert client.post(f"/api/lot/{COURS}/00001/lab-1/inconnu").status_code == 404
+
+
+def test_remplacer_un_rapport_met_l_ancien_de_cote(lab):
+    """C3 : trancher un `deja_importe` déplace tout l'ancien dossier ; suivi, plagiat et export l'ignorent."""
+    client, tmp = lab
+    base = tmp / "bibliotheque" / COURS
+    ancien = base / "00002/lab-1/dube-alice"
+    ancien.joinpath("annotations.json").write_text(json.dumps({"version": 1, "pages": {}}), encoding="utf-8")
+    ancien.joinpath("indices_ia.json").write_text("{}", encoding="utf-8")
+    contenu_avant = {f.name: f.read_bytes() for f in ancien.iterdir()}
+    assert {"annotations.json", "francais.json", "statut.json", "rapport.pdf"} <= set(contenu_avant)
+
+    res = importer_cours(client, [("dube_2000001_Rapport_v2.pdf", pdf("Alice version deux"))])
+    attente = res["en_attente"][0]
+    assert attente["raison"] == "deja_importe"
+    url = f"/api/bibliotheque/attente/{attente['id']}"
+    corps = {"etudiant": "dube-alice", "groupe": "00002"}
+    # sans confirmation : refusé, rien ne bouge
+    assert client.post(url, json=corps).status_code == 409
+    assert {f.name: f.read_bytes() for f in ancien.iterdir()} == contenu_avant
+    # avec confirmation
+    assert client.post(url, json={**corps, "remplacer": True}).status_code == 200
+
+    assert sorted(f.name for f in ancien.iterdir()) == ["origine.json", "rapport.pdf"]  # + equipe.json si coéquipier
+    de_cote = list((tmp / "bibliotheque/_remplaces").iterdir())
+    assert len(de_cote) == 1 and de_cote[0].name.startswith(f"{COURS}_00002_lab-1_dube-alice_")
+    assert {f.name: f.read_bytes() for f in de_cote[0].iterdir()} == contenu_avant  # intact
+
+    r = par_id(client.get(f"/api/suivi/{COURS}/lab-1").json())["dube-alice"]
+    assert r["etat"] == "a_corriger" and r["note"] == "" and r["francais"] == {"etat": "non_analyse"}
+    assert not r["annotation"]
+    assert [p.parent.name for p in plagiat.bibliotheque.racine().glob("*/*/*/*/rapport.pdf")].count("dube-alice") == 1
+    arbre = client.get("/api/bibliotheque").json()
+    alice = next(e for c in arbre for e in c["etudiants"] if e["id"] == "dube-alice")
+    assert alice["termines"] == [] and "notes" not in alice

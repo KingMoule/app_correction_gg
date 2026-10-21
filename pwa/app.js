@@ -246,7 +246,15 @@ async function chargerAttente() {
       choix.append(o);
     }
     const ok = texte("button", "Ranger");
-    ok.onclick = () => trancher(item.id, choix.value ? JSON.parse(choix.value) : "");
+    ok.onclick = () => {
+      const [etudiant, groupe] = choix.value ? JSON.parse(choix.value) : [];
+      const existe = etudiant && arbre.some((c) => c.cours === item.cours && c.groupe === groupe
+        && c.etudiants.some((e) => e.id === etudiant && e.labs.includes(item.lab)));
+      if (existe && !confirm("Cet étudiant a déjà un rapport pour ce lab. Remplacer ? Les corrections de l'ancien rapport "
+        + "(annotations, fautes, statut, note) seront mises de côté dans le dossier _remplaces (récupérable) "
+        + "et le nouveau rapport repartira à neuf.")) return;
+      trancher(item.id, choix.value ? JSON.parse(choix.value) : "", existe);
+    };
     const non = texte("button", "Écarter");
     non.onclick = () => {
       if (confirm("Écarter ce fichier ? Il sera mis de côté dans le dossier _ecartes (récupérable).")) trancher(item.id, null);
@@ -256,13 +264,13 @@ async function chargerAttente() {
   }
 }
 
-async function trancher(id, choix) {
+async function trancher(id, choix, remplacer = false) {
   if (choix === "") return;
   const [etudiant, groupe] = choix ?? [null, null];
   await fetch(`${API}/attente/${id}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ etudiant, groupe }),
+    body: JSON.stringify({ etudiant, groupe, remplacer }),
   });
   await charger();
 }
