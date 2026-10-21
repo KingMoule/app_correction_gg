@@ -218,7 +218,7 @@ def analyser_rapport(cours: str, groupe: str, lab: str, etudiant: str) -> dict:
     """Analyse le rapport rangé. Une nouvelle analyse garde les décisions des fautes inchangées."""
     rapport, f = fichiers_rapport(cours, groupe, lab, etudiant)
     extrait, fautes, erreur = analyser_fichier(rapport, avec_claude=True,
-                                              anonymiseur=Anonymiseur.pour(cours, groupe, etudiant))
+                                              anonymiseur=Anonymiseur.pour(cours))
     with stockage.verrou(f.parent):  # l'analyse (longue) est finie : fusion et écriture sans interruption
         ancien = _lire_analyse(f)
         nouveau = _fusionner(fautes, erreur, ancien)
