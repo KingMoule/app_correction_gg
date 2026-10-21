@@ -61,6 +61,44 @@ function labFini(c, lab) {
   return c.labs_archives.includes(lab) || (avec.length > 0 && avec.every((e) => e.termines.includes(lab)));
 }
 
+// Équipe d'un rapport : retirer ou ajouter un coéquipier (étudiants du cours), enregistré tout de suite.
+function editerEquipe(cours, groupe, lab, etudiant, equipe, apres) {
+  const zone = texte("div", "", "equipe-edition");
+  const rendre = (membres) => {
+    zone.replaceChildren(texte("strong", "Équipe"));
+    if (!membres.length) zone.append(texte("p", "Aucun coéquipier."));
+    for (const m of membres) {
+      const l = texte("div", `${m.prenom} ${m.nom} (groupe ${m.groupe}) `, "rap");
+      const b = texte("button", "Retirer", "bk");
+      b.onclick = () => enregistrer(membres.filter((x) => x !== m));
+      l.append(b);
+      zone.append(l);
+    }
+    const choix = document.createElement("select");
+    choix.append(texte("option", "Ajouter un coéquipier…"));
+    const deja = new Set(membres.map((m) => `${m.groupe}/${m.id}`));
+    for (const g of arbre.filter((x) => x.cours === cours)) {
+      for (const x of g.etudiants.filter((y) => !y.retire && !deja.has(`${g.groupe}/${y.id}`) && !(g.groupe === groupe && y.id === etudiant))) {
+        const o = texte("option", `${x.nom}, ${x.prenom} (groupe ${g.groupe})`);
+        o.value = JSON.stringify({ id: x.id, groupe: g.groupe, nom: x.nom, prenom: x.prenom });
+        choix.append(o);
+      }
+    }
+    choix.onchange = () => { if (choix.value) enregistrer([...membres, JSON.parse(choix.value)]); };
+    zone.append(choix);
+  };
+  const enregistrer = async (membres) => {
+    const r = await fetch(`${API}/equipe/${[cours, groupe, lab, etudiant].map(encodeURIComponent).join("/")}`, {
+      method: "PUT", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ equipe: membres.map((m) => ({ groupe: m.groupe, id: m.id })) }) });
+    if (!r.ok) { alert(await erreurApi(r)); return; }
+    rendre((await r.json()).equipe);
+    await apres?.();
+  };
+  rendre(equipe);
+  return zone;
+}
+
 function ligneRapport(c, lab, e) {
   const fini = e.termines.includes(lab);
   const ligne = texte("div", "", "rap");
@@ -89,7 +127,13 @@ function ligneRapport(c, lab, e) {
     if (await api("PUT", `${API}/statut/${c.cours}/${c.groupe}/${lab}/${e.id}`, corps)) await charger();
   };
   if (e.notes?.[lab]) nom.append(texte("small", ` · note ${e.notes[lab]}`));
-  ligne.append(nom, ia, statut, francais, ouvrir);
+  const eq = texte("button", "Équipe", "bk");
+  eq.title = "Ajouter ou retirer un coéquipier";
+  eq.onclick = () => {
+    if (ligne.nextElementSibling?.classList.contains("equipe-edition")) { ligne.nextElementSibling.remove(); return; }
+    ligne.after(editerEquipe(c.cours, c.groupe, lab, e.id, e.equipes?.[lab] ?? [], charger));
+  };
+  ligne.append(nom, eq, ia, statut, francais, ouvrir);
   return ligne;
 }
 
@@ -335,10 +379,22 @@ function afficherRecap(d) {
   for (const [g, n] of Object.entries(d.par_groupe)) liste.append(texte("li", `Groupe ${g} : ${n} rangé(s)`));
   for (const x of d.en_attente) liste.append(texte("li", `À trancher : ${x.fichier} (${RAISONS[x.raison] ?? x.raison})`));
   for (const x of d.refuses) liste.append(texte("li", `Refusé : ${x.fichier} (${x.raison})`));
-  for (const x of d.ranges.filter((y) => y.equipe.length)) {
-    liste.append(texte("li", `${x.etudiant.prenom} ${x.etudiant.nom} avec ${x.equipe.map((c) => `${c.prenom} ${c.nom}`).join(", ")}`));
-  }
   zone.append(liste);
+  // Équipe détectée sur la page titre, à vérifier : modifiable pour chaque rapport rangé.
+  const equipes = texte("details", "");
+  equipes.open = d.ranges.some((y) => y.equipe.length);
+  equipes.append(texte("summary", "Équipes détectées (à vérifier)"));
+  for (const x of d.ranges) {
+    const l = texte("div", `${x.etudiant.prenom} ${x.etudiant.nom} : ${x.equipe.length ? "avec " + x.equipe.map((c) => `${c.prenom} ${c.nom}`).join(", ") : "seul(e)"} `, "rap");
+    const b = texte("button", "Modifier l'équipe", "bk");
+    b.onclick = () => {
+      if (l.nextElementSibling?.classList.contains("equipe-edition")) { l.nextElementSibling.remove(); return; }
+      l.after(editerEquipe(d.cours, x.groupe, d.lab, x.etudiant.id, x.equipe, charger));
+    };
+    l.append(b);
+    equipes.append(l);
+  }
+  if (d.ranges.length) zone.append(equipes);
 }
 
 charger().catch(() => {});

@@ -352,19 +352,36 @@ def a_du_texte(contenu: bytes) -> bool:
         return False
 
 
+LIGNES_ENTETE = 15  # le bloc d'en-tête / page titre : les premières lignes non vides de la page 1
+ETIQUETTES_EXCLUES = ("enseignant", "professeur", "professeure", "charge", "remis a", "destine a")
+
+
+def _contient(jetons: list[str], motif: list[str]) -> bool:
+    n = len(motif)
+    return n > 0 and any(jetons[i:i + n] == motif for i in range(len(jetons) - n + 1))
+
+
 def coequipiers(contenu: bytes, etudiants: list[dict], exclu: dict | None) -> list[dict]:
-    """Étudiants du cours dont le nom ET le prénom figurent sur la première page."""
+    """Étudiants du cours nommés dans l'en-tête de la première page.
+
+    Le prénom et le nom doivent être **adjacents** sur une même ligne (« Prénom Nom », « NOM Prénom »,
+    « Nom, Prénom »; casse, accents et noms composés sans importance). Un nom seul, ou un prénom et
+    un nom éloignés, ne comptent pas; les lignes d'enseignant non plus. Seules les premières lignes
+    de la page sont lues : un étudiant cité dans l'introduction n'est pas un coéquipier."""
     try:
-        page = normaliser(PdfReader(io.BytesIO(contenu)).pages[0].extract_text() or "")
+        brut = PdfReader(io.BytesIO(contenu)).pages[0].extract_text() or ""
     except Exception:
         return []
-    page = f" {page} "
+    lignes = [normaliser(x) for x in brut.splitlines()]
+    lignes = [x for x in lignes if x][:LIGNES_ENTETE]
+    lignes = [x for x in lignes if not x.startswith(ETIQUETTES_EXCLUES)]
+    jetons = [x.split() for x in lignes]
     trouves = []
     for e in etudiants:
         if exclu and (e["groupe"], e["id"]) == (exclu["groupe"], exclu["id"]):
             continue
-        nom, prenom = normaliser(e["nom"]), normaliser(e["prenom"])
-        if nom and prenom and f" {nom} " in page and f" {prenom} " in page:
+        nom, prenom = normaliser(e["nom"]).split(), normaliser(e["prenom"]).split()
+        if nom and prenom and any(_contient(j, prenom + nom) or _contient(j, nom + prenom) for j in jetons):
             trouves.append({k: e[k] for k in ("id", "groupe", "nom", "prenom")})
     return trouves
 
@@ -405,7 +422,7 @@ async def importer_lot(
     etudiants = etudiants_du_cours(cours, groupe)
     if not etudiants:
         raise HTTPException(404, f"Aucune liste de classe pour {cours}.")
-    resultat = {"ranges": [], "en_attente": [], "refuses": [], "par_groupe": {}}
+    resultat = {"cours": cours, "lab": lab, "ranges": [], "en_attente": [], "refuses": [], "par_groupe": {}}
     for f in fichiers:
         nom = f.filename or "sans-nom.pdf"
         contenu = await f.read()
@@ -555,6 +572,15 @@ class Archive(BaseModel):
     archive: bool
 
 
+class MembreEquipe(BaseModel):
+    groupe: str = Field(max_length=40)
+    id: str = Field(max_length=120)
+
+
+class Equipe(BaseModel):
+    equipe: list[MembreEquipe] = Field(max_length=20)
+
+
 @router.put("/statut/{cours}/{groupe}/{lab}/{etudiant}")
 def changer_statut(cours: str, groupe: str, lab: str, etudiant: str, corps: Termine) -> dict:
     """Marque un rapport terminé (ou le remet en cours). Le rapport doit exister."""
@@ -566,6 +592,32 @@ def changer_statut(cours: str, groupe: str, lab: str, etudiant: str, corps: Term
         note = lire_note(dossier) if corps.note is None else corps.note.strip()
         stockage.ecrire_json(dossier / "statut.json", {"termine": corps.termine, "note": note})
     return {"termine": corps.termine, "note": note}
+
+
+@router.put("/equipe/{cours}/{groupe}/{lab}/{etudiant}")
+def changer_equipe(cours: str, groupe: str, lab: str, etudiant: str, corps: Equipe) -> dict:
+    """Remplace l'équipe d'un rapport (ajout ou retrait de coéquipiers, liste vide = seul).
+    Les membres doivent être des étudiants du cours; le déposant n'en fait pas partie."""
+    segment_sur(etudiant, "étudiant")
+    dossier = chemin_rapport(cours, groupe, lab, etudiant).parent
+    if not (dossier / "rapport.pdf").is_file():
+        raise HTTPException(404, "Rapport introuvable.")
+    connus = {(x["groupe"], x["id"]): x for x in etudiants_du_cours(cours)}
+    equipe = []
+    for m in corps.equipe:
+        cle = (m.groupe, m.id)
+        if cle == (groupe, etudiant):
+            continue
+        if cle not in connus:
+            raise HTTPException(400, "Coéquipier absent de la liste de classe du cours.")
+        if all((x["groupe"], x["id"]) != cle for x in equipe):
+            equipe.append({k: connus[cle][k] for k in ("id", "groupe", "nom", "prenom")})
+    with stockage.verrou(dossier):
+        if equipe:
+            stockage.ecrire_json(dossier / "equipe.json", equipe)
+        elif (dossier / "equipe.json").exists():
+            (dossier / "equipe.json").unlink()
+    return {"equipe": equipe}
 
 
 @router.put("/archive/{cours}/{groupe}/{lab}")
