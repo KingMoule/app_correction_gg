@@ -117,22 +117,120 @@ def extraire_etudiants(lignes: list[list[str]]) -> list[dict]:
         if col_prenom is None or col_nom is None:
             continue
         col_da = next((j for j, n in enumerate(noms) if n in ENTETES_DA), None)
-        etudiants, vus = [], {}
+        etudiants = []
         for ligne in lignes[i + 1:]:
             nom = ligne[col_nom] if col_nom < len(ligne) else ""
             prenom = ligne[col_prenom] if col_prenom < len(ligne) else ""
             if not nom.strip():
                 continue
-            base = slug(f"{nom} {prenom}") or "etudiant"
-            vus[base] = vus.get(base, 0) + 1
-            ident = base if vus[base] == 1 else f"{base}-{vus[base]}"
-            etudiant = {"id": ident, "nom": nom.strip(), "prenom": prenom.strip()}
+            etudiant = {"nom": nom.strip(), "prenom": prenom.strip()}  # l'id vient de fusionner_classe
             da = ligne[col_da].strip() if col_da is not None and col_da < len(ligne) else ""
             if da:
                 etudiant["da"] = da
             etudiants.append(etudiant)
         return etudiants
     raise HTTPException(400, "Colonnes « Nom » et « Prénom » introuvables dans les premières lignes.")
+
+
+def _cle_nom(e: dict) -> str:
+    return normaliser(f"{e['nom']} {e['prenom']}")
+
+
+def _etiquette(e: dict) -> str:
+    return f"{e['prenom']} {e['nom']}".strip()
+
+
+def _nouvel_id(e: dict, pris: set[str]) -> str:
+    """Id jamais utilisé dans la liste (retirés compris) : nom-prénom, puis suffixe DA, puis -2, -3…"""
+    base = slug(f"{e['nom']} {e['prenom']}") or "etudiant"
+    candidats = [base]
+    if e.get("da"):
+        candidats.append(f"{base}-{slug(e['da'])}")
+    for c in candidats:
+        if c not in pris:
+            return c
+    n = 2
+    while f"{base}-{n}" in pris:
+        n += 1
+    return f"{base}-{n}"
+
+
+def fusionner_classe(existants: list[dict], nouveaux: list[dict]) -> tuple[list[dict], dict]:
+    """Fusionne la liste réimportée avec `classe.json` (audit E4). L'ordre du fichier n'a aucun effet.
+
+    Association : 1) par DA; 2) par nom et prénom, seulement s'il n'y a ni doute ni DA contradictoire
+    (même nom mais DA différent : la même personne si son ancien DA a disparu de la liste, sinon un
+    homonyme, donc un nouvel étudiant). Les ids existants sont gardés; un nouvel id ne reprend jamais
+    celui d'un autre. Un étudiant absent de la nouvelle liste est gardé et marqué `retire`. Un cas
+    ambigu (homonymes sans DA) n'est pas modifié et sort dans `conflits`, à trancher.
+    """
+    recap = {"ajoutes": [], "inchanges": 0, "mis_a_jour": [], "retires": [], "reactives": [], "conflits": []}
+    appariement: dict[int, dict] = {}  # position dans `nouveaux` -> étudiant existant
+    pris_existants: set[int] = set()   # positions dans `existants`
+
+    par_da: dict[str, list[int]] = {}
+    for k, e in enumerate(existants):
+        if e.get("da"):
+            par_da.setdefault(e["da"], []).append(k)
+    for j, n in enumerate(nouveaux):
+        k = next((k for k in par_da.get(n.get("da", ""), []) if k not in pris_existants), None)
+        if k is not None:
+            appariement[j] = existants[k]
+            pris_existants.add(k)
+
+    # Par nom : seulement parmi ceux qui restent sans correspondance.
+    restants_n = [j for j in range(len(nouveaux)) if j not in appariement]
+    restants_e = [k for k in range(len(existants)) if k not in pris_existants]
+    da_nouveaux = {n["da"] for n in nouveaux if n.get("da")}
+    conflits_j: set[int] = set()
+    for cle in {_cle_nom(nouveaux[j]) for j in restants_n}:
+        js = [j for j in restants_n if _cle_nom(nouveaux[j]) == cle]
+        ks = [k for k in restants_e if _cle_nom(existants[k]) == cle]
+        if not ks:
+            continue  # vrai nouvel étudiant
+        if len(js) == 1 and len(ks) == 1:
+            n, e = nouveaux[js[0]], existants[ks[0]]
+            da_e, da_n = e.get("da"), n.get("da")
+            if da_e and da_n and da_e != da_n and da_e in da_nouveaux:
+                continue  # son ancien DA est porté par quelqu'un d'autre dans la liste : un homonyme
+            appariement[js[0]] = e
+            pris_existants.add(ks[0])
+        else:  # plusieurs homonymes de part ou d'autre sans DA qui les distingue
+            conflits_j.update(js)
+            pris_existants.update(ks)  # ces étudiants restent tels quels, pas retirés
+            recap["conflits"].append({
+                "nom": _etiquette(nouveaux[js[0]]),
+                "raison": "Homonymes sans DA pour les distinguer : liste inchangée pour ces étudiants. "
+                          "Ajouter le DA dans le fichier puis réimporter.",
+            })
+
+    pris_ids = {e["id"] for e in existants}
+    sortie = [dict(e) for e in existants]
+    index = {e["id"]: s for e, s in zip(existants, sortie)}
+    for j, n in enumerate(nouveaux):
+        if j in appariement:
+            s = index[appariement[j]["id"]]
+            avant = dict(s)
+            s["nom"], s["prenom"] = n["nom"], n["prenom"]
+            if n.get("da"):
+                s["da"] = n["da"]
+            reactive = s.pop("retire", None)
+            if reactive:
+                recap["reactives"].append(_etiquette(s))
+            if s != avant:
+                recap["mis_a_jour"].append(_etiquette(s))
+            elif not reactive:
+                recap["inchanges"] += 1
+        elif j not in conflits_j:
+            ident = _nouvel_id(n, pris_ids)
+            pris_ids.add(ident)
+            sortie.append({"id": ident, **n})
+            recap["ajoutes"].append(_etiquette(n))
+    for k, e in enumerate(existants):
+        if k not in pris_existants and not e.get("retire"):
+            sortie[k]["retire"] = True
+            recap["retires"].append(_etiquette(e))
+    return sortie, recap
 
 
 def dossier_groupe(cours: str, groupe: str) -> Path:
@@ -157,9 +255,14 @@ async def importer_classe(fichier: UploadFile = File(...)) -> dict:
         raise HTTPException(400, "La liste ne contient aucun étudiant.")
     dossier = dossier_groupe(cours, groupe)
     dossier.mkdir(parents=True, exist_ok=True)
-    classe = {"cours": cours, "groupe": groupe, "etudiants": etudiants}
-    stockage.ecrire_json(dossier / "classe.json", classe, indent=1)
-    return classe
+    with stockage.verrou(dossier):
+        existante = _classe_lisible(dossier / "classe.json")
+        if existante is None and (dossier / "classe.json").is_file():
+            raise HTTPException(422, "La liste existante est abîmée : la réparer ou la déplacer avant de réimporter.")
+        fusion, recap = fusionner_classe(existante["etudiants"] if existante else [], etudiants)
+        classe = {"cours": cours, "groupe": groupe, "etudiants": fusion}
+        stockage.ecrire_json(dossier / "classe.json", classe, indent=1)
+    return {**classe, "recap": recap}
 
 
 # --- Association d'un PDF à un étudiant -------------------------------------
