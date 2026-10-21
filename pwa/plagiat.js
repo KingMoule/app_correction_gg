@@ -117,7 +117,9 @@ async function afficherDetail(cle) {
 
 async function confirmer(p) {
   const ok = confirm(
-    `Envoyer cette paire à Claude ?\n\nSeuls les ${p.nb_passages} passage(s) communs partent, sans nom d'étudiant. ` +
+    `Envoyer cette paire à Claude ?\n\nSeuls les ${p.nb_passages} passage(s) communs partent, ` +
+    "avec les noms, prénoms et DA de la classe remplacés par [NOM], [PRÉNOM] et [DA]. " +
+    "Ni le rapport entier ni son nom de fichier ne partent. " +
     "L'analyse compte dans la limite d'usage de ton forfait.");
   if (!ok) return;
   const r = await fetch(`${API}/paires/${p.cle}/confirmer`, { method: "POST" });

@@ -17,7 +17,7 @@ moteur/        API et logique (un module par fonction)
   languagetool.py client du serveur LanguageTool local
   bareme.py    pénalité (points par faute, plafond)
   francais.py  API /api/francais (analyser, bareme)
-  anonymat.py  masque les noms d'étudiants avant tout envoi à Claude
+  anonymat.py  masque noms, prénoms et DA du cours entier avant tout envoi à Claude
   francais_filtre.py prose seulement pour le français (segmentation, filtre, lexique)
   francais_claude.py passe Claude sur le français (erreurs subtiles après LanguageTool)
   plagiat.py   comparaison locale de tous les rapports + analyse Claude des paires confirmées
@@ -119,7 +119,7 @@ Coéquipiers : à l'import, les étudiants du cours dont le nom ET le prénom fi
 - `GET` / `PUT /api/francais/bareme/<cours>` : points par faute et plafond du cours (`<cours>/bareme.json`, vide = aucun plafond).
 - Lecteur : bouton « Français » (analyse, résumé, barème, liste des fautes avec ✓/✗); tap sur une faute (double clic à la souris) pour sa fiche : suggestions, accepter/refuser, effacer la correction écrite. Fautes refusées : plus affichées. Correction manuscrite : police Caveat (OFL, `pwa/vendor/`).
 
-- **Passe Claude** (seulement sur le rapport rangé, `/analyser/` sans état reste LanguageTool seul) : après LanguageTool, un appel `claude -p` (file partagée, schéma JSON) reçoit le texte et les extraits déjà signalés, avec les noms d'étudiants masqués (`moteur/anonymat.py` : nom et prénom de l'étudiant du rapport, noms de famille des autres étudiants du groupe d'au moins 4 lettres, remplacés par `[NOM]`; la liste de classe reste locale). La même protection s'applique à l'analyse d'indices d'IA; le plagiat envoie seulement des passages communs sous « rapport A/B » (noms non masqués dans ces passages). Une faute de Claude n'est gardée que si son extrait est dans le texte et ne chevauche aucune autre faute. Elle a le même format (`zones`, décisions, `choix`, `masquees`, barème, export) avec `source: "claude"` (LanguageTool : `"languagetool"`), `regle: "claude"` et sa correction comme unique suggestion.
+- **Passe Claude** (seulement sur le rapport rangé, `/analyser/` sans état reste LanguageTool seul) : après LanguageTool, un appel `claude -p` (file partagée, schéma JSON) reçoit le texte et les extraits déjà signalés, avec les noms d'étudiants masqués (`moteur/anonymat.py`, voir « Anonymat » ci-dessous; la liste de classe reste locale). La même protection s'applique à l'analyse d'indices d'IA et aux passages du plagiat (seuls les passages communs partent, sous « rapport A/B », masqués avec les listes des cours des deux rapports). Le texte est masqué seulement pour l'envoi : les extraits de Claude sont cherchés dans le texte **original**, donc les positions (`zones`) ne bougent pas; un extrait qui contient un masque ne se retrouve pas et est écarté. Une faute de Claude n'est gardée que si son extrait est dans le texte et ne chevauche aucune autre faute. Elle a le même format (`zones`, décisions, `choix`, `masquees`, barème, export) avec `source: "claude"` (LanguageTool : `"languagetool"`), `regle: "claude"` et sa correction comme unique suggestion.
 - Si Claude échoue, le résultat LanguageTool est quand même enregistré; `claude: {ok, erreur: {code, message}, ajoutees}` dans l'état (codes 503 non connecté, 429 limite, 504 délai, 502 autre) et le panneau l'affiche. « Relancer l'analyse » refait la passe.
 
 ## Export du PDF annoté (étape 1)
@@ -174,3 +174,11 @@ Décisions de Guillaume (2026-10-20, toutes les recommandations) : **écran du l
 
 ## Sauvegarde des données
 `moteur/sauvegarde.py` (pas d'API HTTP). Archive zip de `<données>/` sauf `plagiat/textes/`, écrite en `.tmp` dans `CORRECTION_SAUVEGARDES` (défaut `<données>_sauvegardes`), vérifiée (`testzip`), puis renommée; un JSON invalide à la lecture (écriture en cours) est relu. Rotation : 10 dernières + la plus récente des 8 dernières semaines, limitée aux fichiers `sauvegarde_*.zip`. Restauration : extraction dans un dossier temporaire voisin, refus des chemins hors dossier, l'ancien dossier est renommé `_avant_restauration_<date>`, jamais supprimé. Usage : `docs/DEMARRAGE.md`. Tests : `tests/test_sauvegarde.py` (données fictives).
+
+## Anonymat (`moteur/anonymat.py`)
+
+`Anonymiseur.pour(*cours)` charge **tous** les `classe.json` du cours (tous groupes, étudiants « retirés » compris) et tous les `equipe.json`; sans liste, il ne masque que les DA. Peu importe le rapport d'où vient le texte : un coéquipier d'un autre groupe est masqué comme les autres.
+- Remplacements : `[PRÉNOM]`, `[NOM]` (un mot à la fois, donc `Tremblay-Côté` → `[NOM]-[NOM]`; mot à la fois nom et prénom → `[NOM]`), `[DA]` (DA connus et toute suite isolée de 6 à 9 chiffres). Accents, casse et majuscules ignorés; noms collés (`AliceDubé`, `dube_alice`) découpés en noms connus de 4 lettres et plus.
+- Noms courts (compromis pour ne pas effacer des mots ordinaires) : 4 lettres et plus = masqués partout; 3 lettres = mot entier avec majuscule seulement (`Roy` oui, `roy` non); 2 lettres ou moins = majuscule et collé (espaces, virgule, trait d'union) à un autre mot de nom ou prénom (`Wu Li` oui, `Li` seul de lithium non). Les petits mots courants (le, la, de, du...) ne sont jamais des noms. Limite connue : un nom de 3 lettres seul et en minuscules, ou un nom de 2 lettres seul, n'est pas masqué.
+- Plagiat : `construire_prompt` masque `texte_a` et `texte_b` de chaque passage; `paires.json` garde les passages en clair (local).
+- Tests : `tests/test_anonymat.py` (règles) et `tests/test_anonymat_prompts.py` (contenu exact des prompts, Claude simulé).
