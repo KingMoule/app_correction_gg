@@ -229,7 +229,7 @@ function brancherSaisie(pg) {
     }
     const o = reglages.outil, ep = EPAISSEURS[o][reglages[o].epaisseur];
     const s = {
-      outil: o, couleur: couleurDe(o), courbe: o === "surligneur" ? 1 : reglages.courbe, pts: [p],
+      id: FusionAnnotations.nouvelId(), outil: o, couleur: couleurDe(o), courbe: o === "surligneur" ? 1 : reglages.courbe, pts: [p],
       largeur_min: ep.min, largeur_max: ep.max,
     };
     const d = { pg, s, trace: 0, droit: false, minuterie: null };
@@ -327,7 +327,7 @@ function gommerEn(d, p) {
     if (i >= 0) d.ajoutes.splice(i, 1); else d.retires.push(s);
     for (const m of morceaux) {
       if (m.length < 2 && dense.length > 1) continue; // miettes d'un seul point
-      const n = { ...s, pts: m }; reste.push(n); d.ajoutes.push(n);
+      const n = { ...s, id: FusionAnnotations.nouvelId(), pts: m }; reste.push(n); d.ajoutes.push(n);
     }
   }
   if (touche) { pg.traits = reste; redessiner(pg); marquerModifie(); }
@@ -383,24 +383,45 @@ $("retablir").onclick = () => { const a = histoire.retablir.pop(); if (a) { appl
 
 // ----- enregistrement dans le moteur -----
 const arrondi = (n) => Math.round(n * 100) / 100;
+// Révision et état connu du moteur à la dernière synchronisation (voir annotations-fusion.js).
+let revision = 0, base = { ids: new Set(), supprimes: new Set() }, avisFusion = false;
+function traitSerialise(s) {
+  return {
+    id: s.id, outil: s.outil, couleur: s.couleur, largeur_min: s.largeur_min, largeur_max: s.largeur_max, courbe: s.courbe,
+    points: s.pts.map((q) => [arrondi(q.x), arrondi(q.y), arrondi(q.p)]),
+  };
+}
+function serialiserPages() {
+  const out = {};
+  for (const pg of pages) if (pg.traits.length) out[pg.numero] = pg.traits.map(traitSerialise);
+  return out;
+}
 function serialiser() {
-  const doc = { version: 1, pages: {} };
-  for (const pg of pages) {
-    if (!pg.traits.length) continue;
-    doc.pages[pg.numero] = pg.traits.map((s) => ({
-      outil: s.outil, couleur: s.couleur, largeur_min: s.largeur_min, largeur_max: s.largeur_max, courbe: s.courbe,
-      points: s.pts.map((q) => [arrondi(q.x), arrondi(q.y), arrondi(q.p)]),
-    }));
-  }
+  const doc = { version: 2, revision, pages: serialiserPages(), supprimes: [] };
+  const presents = FusionAnnotations.identifiants(doc.pages);
+  doc.supprimes = [...new Set([...base.ids, ...base.supprimes])].filter((id) => !presents.has(id));
   return doc;
 }
+function memoriserBase(doc) { // ce que le moteur a maintenant : sert à distinguer « effacé ici » de « ajouté ailleurs »
+  revision = doc.revision;
+  base = { ids: FusionAnnotations.identifiants(doc.pages), supprimes: new Set(doc.supprimes || []) };
+}
 function chargerTraits(doc) {
+  const connus = new Map(pages.flatMap((pg) => pg.traits).map((s) => [s.id, s])); // garde les objets (annuler/rétablir)
   for (const pg of pages) {
-    pg.traits = (doc.pages[pg.numero] || []).map((t) => ({
-      outil: t.outil, couleur: t.couleur, largeur_min: t.largeur_min, largeur_max: t.largeur_max, courbe: t.courbe,
+    pg.traits = (doc.pages[pg.numero] || []).map((t) => connus.get(t.id) || ({
+      id: t.id, outil: t.outil, couleur: t.couleur, largeur_min: t.largeur_min, largeur_max: t.largeur_max, courbe: t.courbe,
       pts: t.points.map(([x, y, p]) => ({ x, y, p })),
     }));
+    redessiner(pg);
   }
+}
+// Le moteur a une révision plus récente (un autre appareil a écrit) : on fusionne, sans rien perdre.
+function fusionnerAvec(distant) {
+  const fusion = FusionAnnotations.fusionner({ pages: serialiserPages() }, distant, base);
+  chargerTraits({ pages: fusion.pages });
+  memoriserBase({ revision: distant.revision, pages: distant.pages, supprimes: distant.supprimes });
+  avisFusion = true;
 }
 let modifie = false, envoi = false, minuterie = null;
 function etatSauvegarde(texte, erreur) { $("sauvegarde").textContent = texte; $("sauvegarde").classList.toggle("erreur", !!erreur); }
@@ -412,12 +433,23 @@ async function enregistrer(arret) {
   if (!modifie || (envoi && !arret)) return;
   envoi = true; modifie = false; etatSauvegarde("Enregistrement…");
   try {
+    const doc = serialiser();
     const r = await fetch(URL_ANNOTATIONS, {
       method: "PUT", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(serialiser()), keepalive: arret === true,
+      body: JSON.stringify(doc), keepalive: arret === true,
     });
+    if (r.status === 409) { // un autre appareil a enregistré entre-temps : fusion puis nouvel envoi
+      fusionnerAvec((await r.json()).actuel);
+      modifie = true; clearTimeout(minuterie); minuterie = setTimeout(enregistrer, 0);
+      etatSauvegarde("Fusion avec un autre appareil…");
+      return;
+    }
     if (!r.ok) throw new Error(r.status);
-    if (!modifie) etatSauvegarde("Enregistré");
+    memoriserBase({ revision: (await r.json()).revision, pages: doc.pages, supprimes: doc.supprimes });
+    if (!modifie) {
+      etatSauvegarde(avisFusion ? "Enregistré · traits d'un autre appareil fusionnés" : "Enregistré");
+      avisFusion = false;
+    }
   } catch {
     modifie = true; etatSauvegarde("Non enregistré : nouvel essai…", true);
     clearTimeout(minuterie); minuterie = setTimeout(enregistrer, 4000);
@@ -532,7 +564,7 @@ async function ouvrir() {
     hauteurPile += vp.height + ESPACE;
   }
   pile.style.width = largeurPile + "px";
-  chargerTraits(annotations);
+  chargerTraits(annotations); memoriserBase(annotations);
   ajuster(); largeurFenetre = fenetre.clientWidth;
   pages.forEach((pg) => observateur.observe(pg.el));
   $("page-info").textContent = `Page 1 / ${pages.length}`;
