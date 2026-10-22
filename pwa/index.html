@@ -10,21 +10,15 @@
   <link rel="apple-touch-icon" href="icone.svg">
   <script src="acces.js"></script>
   <link rel="stylesheet" href="design.css">
+  <link rel="stylesheet" href="composants.css">
+  <link rel="stylesheet" href="coque.css">
   <link rel="stylesheet" href="style.css">
   <title>Correction de labs</title>
 </head>
-<body>
-  <header id="barre-nav">
-    <b>Correction</b>
-    <nav id="nav">
-      <button data-v="accueil">Accueil</button>
-      <button data-v="biblio">Bibliothèque</button>
-      <button data-v="importer">Importer <span id="badge-attente" class="badge" hidden></span></button>
-      <button data-v="outils">Lot et plagiat</button>
-    </nav>
-    <span id="etat" class="etat">Connexion au moteur…</span>
-    <button id="deconnexion" class="bk" type="button" title="Oublier le code sur cet appareil">Se déconnecter</button>
-  </header>
+<body class="avec-coque">
+<div class="coque">
+  <aside id="coque-lat" class="coque-lat"></aside>
+  <div class="coque-corps">
   <main>
     <section class="vue" id="v-accueil">
       <div id="continuer"></div>
@@ -106,6 +100,10 @@
 
     </div>
   </main>
+  </div>
+</div>
+  <script src="ui.js"></script>
+  <script src="coque.js"></script>
   <script src="app.js"></script>
   <script src="indices-ia.js"></script>
   <script src="lot.js"></script>

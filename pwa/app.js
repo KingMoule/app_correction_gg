@@ -1,19 +1,4 @@
-// Point d'entrée de la PWA. Les écrans (bibliothèque, lecteur) viendront ici.
-async function verifierMoteur() {
-  const el = document.getElementById("etat");
-  try {
-    const r = await fetch("/api/etat");
-    const d = await r.json();
-    el.textContent = "● Moteur connecté";
-    el.title = `v${d.version}`;
-    el.className = "ok";
-  } catch {
-    el.textContent = "● Moteur injoignable";
-    el.title = "L'ordi est-il allumé et sur le même Wi-Fi ?";
-    el.className = "erreur";
-  }
-}
-verifierMoteur();
+// Point d'entrée de la PWA : bibliothèque, import, accueil. La navigation et l'état du moteur sont dans coque.js.
 
 // --- Bibliothèque et import ---
 const API = "/api/bibliotheque";
@@ -247,6 +232,7 @@ async function charger() {
   $("choix-cours").onchange = remplirGroupes;
   remplirGroupes();
   window.rafraichirLot?.(arbre);
+  window.Coque?.labs(arbre);
   await chargerAttente();
 }
 
@@ -405,11 +391,10 @@ const VUES = ["accueil", "biblio", "importer", "outils"];
 function aller(vue) {
   if (!VUES.includes(vue)) vue = "accueil";
   for (const v of VUES) $("v-" + v).hidden = v !== vue;
-  document.querySelectorAll("#nav button").forEach((b) => b.classList.toggle("on", b.dataset.v === vue));
+  window.Coque?.marquer(vue);
   if (location.hash !== "#" + vue) history.replaceState(null, "", "#" + vue);
   scrollTo(0, 0);
 }
-document.querySelectorAll("#nav button").forEach((b) => { b.onclick = () => aller(b.dataset.v); });
 document.querySelectorAll("[data-go]").forEach((b) => { b.onclick = () => aller(b.dataset.go); });
 window.onhashchange = () => aller(location.hash.slice(1));
 

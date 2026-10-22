@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0f6f66">
+  <script src="acces.js"></script>
+  <link rel="stylesheet" href="design.css">
+  <link rel="stylesheet" href="composants.css">
+  <link rel="stylesheet" href="coque.css">
+  <title>Composants · Correction de labs</title>
+  <style>
+    /* Mise en page du catalogue seulement : rien ici n'est repris par les écrans. */
+    .coque-corps > .catalogue { max-width: 68rem; margin: 0 auto; padding: var(--e5) var(--e5) 64px; }
+    .catalogue > p.intro { color: var(--texte-2); max-width: 46rem; }
+    .catalogue h2 { margin: 40px 0 var(--e1); padding-top: var(--e3); border-top: 1px solid var(--border); }
+    .catalogue h2 + p { margin: 0 0 var(--e3); color: var(--texte-2); max-width: 46rem; }
+    .demo { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-m); padding: var(--e4) var(--e5); margin: var(--e3) 0; }
+    .demo > h3 { margin: 0 0 var(--e3); font-size: var(--t-s); color: var(--texte-2); font-weight: 600; }
+    .rangee { display: flex; flex-wrap: wrap; gap: var(--e3); align-items: center; }
+    .rangee + .rangee { margin-top: var(--e3); }
+    .demo details { margin-top: var(--e3); }
+    .demo details summary { color: var(--accent-fort); font-size: var(--t-s); font-weight: 600; cursor: pointer; min-height: var(--cible); display: flex; align-items: center; }
+    .demo pre { margin: 0; padding: var(--e3); background: var(--surface-2); border-radius: var(--r-s); font-size: 12.5px; line-height: 1.5; overflow-x: auto; white-space: pre-wrap; }
+    .jetons { display: grid; grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr)); gap: var(--e2); }
+    .jeton { display: flex; align-items: center; gap: 10px; font-size: var(--t-min); }
+    .jeton i { width: 36px; height: 36px; border-radius: var(--r-s); border: 1px solid rgba(0, 0, 0, .12); flex: none; }
+    .jeton code { display: block; background: none; padding: 0; font-size: 12px; }
+    .jeton span { color: var(--texte-2); }
+    .icones { display: grid; grid-template-columns: repeat(auto-fill, minmax(8.5rem, 1fr)); gap: var(--e2); }
+    .icones div { display: flex; align-items: center; gap: var(--e2); font-size: 12px; color: var(--texte-2); min-height: 36px; }
+    .icones svg.ic { color: var(--texte); }
+    .paire-ecran { display: grid; grid-template-columns: 1fr 1fr; gap: var(--e4); }
+    .echantillon { font-size: var(--t-s); }
+    .ligne-seg { display: flex; align-items: center; justify-content: space-between; gap: var(--e3); flex-wrap: wrap; }
+    @media (max-width: 700px) { .paire-ecran { grid-template-columns: 1fr; } .catalogue { padding: var(--e3) var(--e3) 48px; } }
+  </style>
+</head>
+<body class="avec-coque">
+<div class="coque">
+  <aside id="coque-lat" class="coque-lat"></aside>
+  <div class="coque-corps">
+<main class="catalogue">
+  <h1>Catalogue des composants</h1>
+  <p class="intro">Direction « Atelier », en sarcelle. Toutes les données ci-dessous sont <b>fictives</b>. Chaque bloc montre le composant et ses états; « HTML » donne le balisage à copier. Guide d'usage : <code>docs/DESIGN.md</code>. La barre latérale à gauche est la vraie coque (elle se replie en tiroir sous 900 px).</p>
+
+  <h2 id="jetons">Jetons</h2>
+  <p>Variables de <code>design.css</code>. Rouge = faute ou erreur seulement; bleu-vert = plagiat; violet = indice d'IA; étincelles = Claude.</p>
+  <div class="demo"><h3>Neutres et accent</h3>
+    <div class="jetons" id="j-base"></div></div>
+  <div class="demo"><h3>États</h3>
+    <div class="jetons" id="j-etats"></div></div>
+  <div class="demo"><h3>Typographie : Inter 15 px (minimum 13 px), titres en 600, chiffres tabulaires</h3>
+    <div style="font-size:24px;font-weight:600;letter-spacing:-.01em">Titre d'écran 24 px</div>
+    <div style="font-size:18px;font-weight:600;margin-top:6px">Titre de section 18 px</div>
+    <div style="margin-top:6px">Texte courant 15 px : les rapports sont rangés par cours, lab, groupe et étudiant.</div>
+    <div class="echantillon" style="color:var(--texte-2);margin-top:6px">Texte secondaire 14 px · <span class="mu">légende et en-têtes 13 px</span></div>
+    <div class="num" style="margin-top:6px;font-size:26px;font-weight:600">0123456789 · 12 / 24</div>
+  </div>
+
+  <h2 id="boutons">Boutons</h2>
+  <p>Un seul bouton plein par zone, à droite. Hauteur de 44 px partout. Libellé visible toujours, sauf les cinq icônes seules : crayon, gomme, annuler, rétablir, partager (avec <code>aria-label</code>).</p>
+  <div class="demo"><h3>Primaire, secondaire, tertiaire, danger</h3>
+    <div class="rangee" id="d-boutons">
+      <button class="btn primaire" type="button"><svg class="ic"><use href="vendor/lucide-sprite.svg#play"/></svg>Corriger le suivant</button>
+      <button class="btn" type="button"><svg class="ic"><use href="vendor/lucide-sprite.svg#file-down"/></svg>Exporter pour LÉA</button>
+      <button class="btn tertiaire" type="button">Voir le détail</button>
+      <button class="btn danger" type="button"><svg class="ic"><use href="vendor/lucide-sprite.svg#trash-2"/></svg>Écarter</button>
+    </div>
+    <div class="rangee">
+      <button class="btn primaire" type="button" disabled>Primaire désactivé</button>
+      <button class="btn" type="button" disabled>Secondaire désactivé</button>
+      <button class="btn tertiaire" type="button" disabled>Tertiaire désactivé</button>
+      <a class="btn" href="#boutons">Lien en bouton</a>
+    </div>
+  </div>
+  <div class="demo"><h3>Icône seule (cinq usages seulement) et bouton de menu « … »</h3>
+    <div class="rangee" id="d-icones-seules">
+      <button class="btn-ico on" type="button" aria-label="Crayon" aria-pressed="true"><svg class="ic l"><use href="vendor/lucide-sprite.svg#pen"/></svg></button>
+      <button class="btn-ico" type="button" aria-label="Gomme" aria-pressed="false"><svg class="ic l"><use href="vendor/lucide-sprite.svg#eraser"/></svg></button>
+      <button class="btn-ico" type="button" aria-label="Annuler"><svg class="ic l"><use href="vendor/lucide-sprite.svg#undo-2"/></svg></button>
+      <button class="btn-ico" type="button" aria-label="Rétablir" disabled><svg class="ic l"><use href="vendor/lucide-sprite.svg#redo-2"/></svg></button>
+      <button class="btn-ico" type="button" aria-label="Partager"><svg class="ic l"><use href="vendor/lucide-sprite.svg#share"/></svg></button>
+      <button class="btn-ico" type="button" aria-label="Autres actions" id="menu-demo"><svg class="ic l"><use href="vendor/lucide-sprite.svg#ellipsis"/></svg></button>
+    </div>
+  </div>
+
+  <h2 id="icones">Icônes</h2>
+  <p>Lucide (ISC), trait de 1,75 px, <code>currentColor</code>. En HTML : <code>&lt;svg class="ic"&gt;&lt;use href="vendor/lucide-sprite.svg#nom"/&gt;&lt;/svg&gt;</code>; en JS : <code>UI.icone("nom")</code>. Tailles : 18 px, <code>.s</code> 16 px, <code>.l</code> 20 px. Pour en ajouter : <code>scripts/sprite_lucide.mjs</code>.</p>
+  <div class="demo"><div class="icones" id="liste-icones"></div></div>
+
+  <h2 id="pastilles">Pastilles d'état</h2>
+  <p>Point + mot sur fond pâle, jamais la couleur seule.</p>
+  <div class="demo">
+    <div class="rangee" id="d-pastilles">
+      <span class="pastille p-neutre">Pas commencé</span>
+      <span class="pastille p-nouv">En cours</span>
+      <span class="pastille">À trancher</span>
+      <span class="pastille p-fini">Terminé</span>
+      <span class="pastille p-alerte">3 fautes à revoir</span>
+      <span class="pastille p-erreur">Erreur</span>
+    </div>
+    <div class="rangee">
+      <span class="pastille p-plagiat">Plagiat : 34 %</span>
+      <span class="pastille p-ia"><svg class="ic"><use href="vendor/lucide-sprite.svg#search"/></svg>Indice d'IA modéré</span>
+      <span class="pastille p-claude"><svg class="ic"><use href="vendor/lucide-sprite.svg#sparkles"/></svg>Analysé par Claude</span>
+    </div>
+  </div>
+
+  <h2 id="segmente">Contrôle segmenté, onglets</h2>
+  <div class="demo"><h3>Segmenté avec compteurs (filtres exclusifs)</h3>
+    <div class="seg" id="d-seg" role="group" aria-label="Filtre des rapports">
+      <button type="button" class="on" aria-pressed="true">À corriger <span class="n">9</span></button>
+      <button type="button" aria-pressed="false">En cours <span class="n">4</span></button>
+      <button type="button" aria-pressed="false">Terminés <span class="n">11</span></button>
+      <button type="button" aria-pressed="false">Tous <span class="n">24</span></button>
+    </div>
+  </div>
+  <div class="demo"><h3>Onglets (inspecteur du lecteur)</h3>
+    <div class="onglets" role="tablist" id="d-onglets">
+      <button role="tab" aria-selected="true" type="button">Français <span class="n">12</span></button>
+      <button role="tab" aria-selected="false" type="button">Indice d'IA</button>
+      <button role="tab" aria-selected="false" type="button">Plagiat <span class="n">2</span></button>
+    </div>
+  </div>
+
+  <h2 id="menu-toast">Menu, toast, bannière</h2>
+  <div class="demo"><h3>Menu « … » (UI.menu) et toast avec « Annuler » (UI.toast)</h3>
+    <div class="rangee">
+      <button class="btn" type="button" id="b-menu"><svg class="ic"><use href="vendor/lucide-sprite.svg#ellipsis"/></svg>Ouvrir le menu</button>
+      <button class="btn" type="button" id="b-toast"><svg class="ic"><use href="vendor/lucide-sprite.svg#spell-check"/></svg>Toast avec Annuler</button>
+      <button class="btn" type="button" id="b-toast-err"><svg class="ic"><use href="vendor/lucide-sprite.svg#circle-alert"/></svg>Toast d'erreur</button>
+    </div>
+    <details><summary>JS</summary><pre>UI.menu(bouton, [
+  { libelle: "Ouvrir", icone: "file-text", surClic: () =&gt; … },
+  { libelle: "Marquer terminé", icone: "check" },
+  { separateur: true },
+  { libelle: "Écarter…", icone: "trash-2", danger: true },
+]);
+UI.toast("Faute acceptée", { action: { libelle: "Annuler", surClic: annuler } });</pre></details>
+  </div>
+  <div class="demo"><h3>Bannière persistante (pour ce qui exige une action)</h3>
+    <div style="display:grid;gap:10px" id="d-bannieres">
+      <div class="banniere" role="status"><svg class="ic"><use href="vendor/lucide-sprite.svg#info"/></svg><div class="corps"><b>Indices à revérifier, jamais un verdict.</b> Le plagiat et l'IA sont des signaux à confirmer.</div></div>
+      <div class="banniere attention" role="status"><svg class="ic"><use href="vendor/lucide-sprite.svg#triangle-alert"/></svg><div class="corps"><b>2 rapports à trancher.</b> Plusieurs étudiants possibles pour « rapport_final.pdf ».</div><button class="btn" type="button">Voir</button></div>
+      <div class="banniere erreur" role="alert"><svg class="ic"><use href="vendor/lucide-sprite.svg#circle-alert"/></svg><div class="corps"><b>Claude est injoignable.</b> Vérifie que le CLI est connecté (<code>claude</code> dans un terminal), puis relance.</div><button class="btn" type="button">Réessayer</button></div>
+      <div class="banniere ok" role="status"><svg class="ic"><use href="vendor/lucide-sprite.svg#circle-check"/></svg><div class="corps"><b>Export prêt.</b> 22 rapports dans Travaux_2026-10-21.zip.</div></div>
+    </div>
+  </div>
+
+  <h2 id="champs">Champs</h2>
+  <p>Étiquette au-dessus, saisie de 44 px (16 px de texte : Safari ne zoome pas), aide en dessous, erreur avec une phrase qui dit quoi faire.</p>
+  <div class="demo paire-ecran" id="d-champs">
+    <div>
+      <label class="champ"><span class="etiquette">Lab</span><input class="saisie" type="text" placeholder="Lab 3" value="Lab 3"><p class="aide">Le nom est repris tel quel dans l'export.</p></label>
+      <label class="champ"><span class="etiquette">Cours</span><select class="saisie"><option>Cours A (fictif)</option><option>Cours B (fictif)</option></select></label>
+      <label class="champ"><span class="etiquette">Recherche</span><span class="champ-icone"><svg class="ic"><use href="vendor/lucide-sprite.svg#search"/></svg><input class="saisie" type="search" placeholder="Nom ou DA"></span></label>
+    </div>
+    <div>
+      <label class="champ invalide"><span class="etiquette">Code d'accès</span><input class="saisie" type="password" value="abc" aria-invalid="true"><p class="message"><svg class="ic s"><use href="vendor/lucide-sprite.svg#circle-alert"/></svg>Au moins 8 caractères. Ajoute-en 5.</p></label>
+      <label class="champ"><span class="etiquette">Désactivé</span><input class="saisie" type="text" value="Non modifiable" disabled></label>
+      <div class="champ"><label class="interrupteur"><input type="checkbox" checked><i></i>Refaire les rapports déjà analysés</label></div>
+      <div class="champ"><label class="interrupteur"><input type="checkbox"><i></i>Inclure les rapports inachevés</label></div>
+    </div>
+  </div>
+
+  <h2 id="depot">Zone de dépôt</h2>
+  <p>Toute la zone ouvre le sélecteur de fichiers (iPad) et accepte le glisser-déposer (PC). Chaque fichier a sa ligne de résultat.</p>
+  <div class="demo">
+    <label class="depot" id="d-depot"><input type="file" accept="application/pdf" multiple><svg class="ic"><use href="vendor/lucide-sprite.svg#file-up"/></svg><b>Dépose les rapports PDF ici</b><span>ou</span><span class="btn">Choisir des fichiers</span></label>
+    <ul class="depot-liste" id="d-depot-liste">
+      <li><svg class="ic"><use href="vendor/lucide-sprite.svg#file-text"/></svg><span class="nom">rapport_lab3_modele.pdf</span><span class="taille">412 Ko</span><span class="pastille p-fini">Importé</span></li>
+      <li><svg class="ic"><use href="vendor/lucide-sprite.svg#file-text"/></svg><span class="nom">lab3_exemple_final.pdf</span><span class="taille">1,2 Mo</span><span class="pastille">À trancher</span></li>
+      <li><svg class="ic"><use href="vendor/lucide-sprite.svg#file-text"/></svg><span class="nom">scan_illisible.pdf</span><span class="taille">3,8 Mo</span><span class="pastille p-erreur">Refusé : pas de texte</span></li>
+    </ul>
+  </div>
+
+  <h2 id="tableau">Tableau dense</h2>
+  <p>Lignes de 52 px, en-tête de 40 px, lignes de groupe grisées, chiffres tabulaires, un menu « … » par ligne au lieu de plusieurs boutons. Avatars neutres.</p>
+  <div class="demo">
+    <div class="ligne-seg" style="margin-bottom:var(--e3)">
+      <div class="seg" role="group" aria-label="Filtre"><button type="button" class="on" aria-pressed="true">À corriger <span class="n">3</span></button><button type="button" aria-pressed="false">Tous <span class="n">5</span></button></div>
+      <button class="btn primaire" type="button"><svg class="ic"><use href="vendor/lucide-sprite.svg#play"/></svg>Corriger le suivant</button>
+    </div>
+    <div class="tableau-defil">
+      <table class="tableau" id="d-tableau">
+        <thead><tr><th>Étudiant</th><th>État</th><th class="nombre">Fautes</th><th>Indices</th><th class="nombre">Note</th><th></th></tr></thead>
+        <tbody>
+          <tr class="groupe"><td colspan="6">Groupe 01 · 5 rapports</td></tr>
+          <tr><td><span class="nom-etu"><span class="avatar">AM</span>Alex Modèle</span></td><td><span class="pastille p-fini">Terminé</span></td><td class="nombre">4</td><td><span class="pastille p-plagiat">Plagiat 12 %</span></td><td class="nombre">17,5 / 20</td><td class="actions"><button class="btn-ico" type="button" aria-label="Actions pour Alex Modèle"><svg class="ic l"><use href="vendor/lucide-sprite.svg#ellipsis"/></svg></button></td></tr>
+          <tr class="sel"><td><span class="nom-etu"><span class="avatar">SE</span>Sam Exemple</span></td><td><span class="pastille p-nouv">En cours</span></td><td class="nombre">11</td><td><span class="pastille p-ia"><svg class="ic"><use href="vendor/lucide-sprite.svg#search"/></svg>IA modéré</span></td><td class="nombre">—</td><td class="actions"><button class="btn-ico" type="button" aria-label="Actions pour Sam Exemple"><svg class="ic l"><use href="vendor/lucide-sprite.svg#ellipsis"/></svg></button></td></tr>
+          <tr><td><span class="nom-etu"><span class="avatar">CT</span>Chris Test</span></td><td><span class="pastille p-neutre">Pas commencé</span></td><td class="nombre">—</td><td><span class="pastille p-claude"><svg class="ic"><use href="vendor/lucide-sprite.svg#sparkles"/></svg>Pas analysé</span></td><td class="nombre">—</td><td class="actions"><button class="btn-ico" type="button" aria-label="Actions pour Chris Test"><svg class="ic l"><use href="vendor/lucide-sprite.svg#ellipsis"/></svg></button></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <h2 id="progression">Progression chiffrée</h2>
+  <div class="demo paire-ecran">
+    <div class="progression"><div class="progression-tete"><span>Analyse par lot · Lab 3</span><span class="num">9 / 12</span></div><progress max="12" value="9"></progress></div>
+    <div class="progression"><div class="progression-tete"><span>Lab 2 · Cours A (fictif)</span><span class="num">11 / 24</span></div><div class="barre"><i class="fait" style="width:46%"></i><i class="cours" style="width:17%"></i></div></div>
+  </div>
+
+  <h2 id="vide">État vide</h2>
+  <div class="demo"><div class="vide carte">
+    <svg class="ic"><use href="vendor/lucide-sprite.svg#inbox"/></svg>
+    <b>Aucun rapport pour ce lab</b>
+    <p>Importe les PDF exportés de Word : chaque rapport est rangé au nom de l'étudiant.</p>
+    <button class="btn primaire" type="button"><svg class="ic"><use href="vendor/lucide-sprite.svg#upload"/></svg>Importer des rapports</button>
+  </div></div>
+
+  <h2 id="coque">Coque</h2>
+  <p>Barre latérale de 248 px : Accueil, Bibliothèque, Importer (badge « à trancher »), Analyse par lot (progression quand un lot tourne), Plagiat, Export LÉA, labs en cours; en pied, Réglages et « Ordi connecté ». Balisage : <code>&lt;div class="coque"&gt;&lt;aside id="coque-lat" class="coque-lat"&gt;&lt;/aside&gt;&lt;div class="coque-corps"&gt;&lt;main&gt;…</code>, puis <code>ui.js</code> et <code>coque.js</code> avant les scripts de la page. Le lecteur n'a pas de coque. Sur cette page de catalogue, la barre ci-contre est la vraie.</p>
+</main>
+  </div>
+</div>
+<script src="ui.js"></script>
+<script src="coque.js"></script>
+<script src="composants.js"></script>
+</body>
+</html>

@@ -7,11 +7,16 @@
   <meta name="theme-color" content="#0f6f66">
   <script src="acces.js"></script>
   <link rel="stylesheet" href="design.css">
+  <link rel="stylesheet" href="composants.css">
+  <link rel="stylesheet" href="coque.css">
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="suivi.css">
   <title>Suivi du lab</title>
 </head>
-<body>
+<body class="avec-coque">
+<div class="coque">
+  <aside id="coque-lat" class="coque-lat"></aside>
+  <div class="coque-corps">
   <main id="suivi-page">
     <div class="fil"><a href="/#biblio" id="retour-biblio">‹ Bibliothèque</a> <span id="fil"></span></div>
     <h1 id="titre"></h1>
@@ -27,6 +32,10 @@
     <p id="message" class="aide" aria-live="polite"></p>
     <div class="tab" id="tab"></div>
   </main>
+  </div>
+</div>
+  <script src="ui.js"></script>
+  <script src="coque.js"></script>
   <script src="suivi.js"></script>
 </body>
 </html>

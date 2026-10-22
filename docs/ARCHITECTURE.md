@@ -12,6 +12,7 @@ Référence technique. **Lis seulement la section du module touché** (sommaire 
 | Code d'accès | `acces.py`, `pwa/acces.js` | intergiciel, session, Host/Origin, limite d'essais, `--local` |
 | Bibliothèque | `bibliotheque.py` | liste de classe, réimport, association, import, remplacement, coéquipiers |
 | Statut et archive (navigation) | `bibliotheque.py`, `pwa/app.js` | terminé, archive de lab, vues de l'accueil |
+| Design : jetons, composants, coque | `pwa/design.css`, `composants.css`, `coque.css`, `ui.js`, `coque.js`, `composants.html` | voir `docs/DESIGN.md` |
 | Tableau de suivi d'un lab | `suivi.py`, `pwa/suivi.*` | un appel par lab, états, « Rapport suivant » |
 | Annotations | `annotations.py`, `pwa/lecteur.js`, `pwa/annotations-fusion.js` | `annotations.json` v2, révision, fusion, barre d'outils |
 | Export du PDF annoté | `export.py` | PDF d'un rapport, à la demande |
@@ -54,7 +55,8 @@ moteur/        API et logique (un module par fonction)
   sauvegarde.py sauvegarde (zip daté, rotation) et restauration des données; commande `python -m moteur.sauvegarde`, lancée par demarrer.bat
   __main__.py  commande de lancement
 pwa/           app iPad (index.html + app.js : bibliothèque; lecteur.html/js/css : lecteur et annotation; plagiat.html/js/css : plagiat; acces.js/css/html : écran de saisie du code; lot.js : analyse par lot; suivi.html/js/css : tableau de suivi d'un lab;
-               vendor/ : pdf.js, copié dans le dépôt car l'iPad n'a pas forcément Internet)
+               design.css (jetons), composants.css, coque.css, ui.js (icônes, toast, menu), coque.js (barre latérale), composants.html/js (catalogue);
+               vendor/ : pdf.js, Inter, sprite Lucide, Caveat, copiés dans le dépôt car l'iPad n'a pas forcément Internet)
 scripts/       outils à lancer à la main (ex. test de consommation)
 prototypes/    essais autonomes (ex. crayon), hors moteur
 tests/         tests pytest
