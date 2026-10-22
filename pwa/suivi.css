@@ -1,31 +1,79 @@
-/* Tableau de suivi d'un lab : tableau en paysage, cartes en portrait. Cibles de 44 px au moins; lignes de 48 px. */
-#suivi-page { max-width: 72rem; margin: 0 auto; padding: var(--e4) var(--e5) var(--e6); }
-.fil { color: var(--texte-2); font-size: 14px; display: flex; gap: var(--e2); align-items: center; }
-.fil a { color: var(--accent-fort); min-height: var(--cible); display: inline-flex; align-items: center; text-decoration: none; font-weight: 500; }
-.resume { display: flex; gap: var(--e2); flex-wrap: wrap; margin: 0 0 var(--e3); }
-.resume span { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-s); box-shadow: var(--ombre); padding: var(--e2) var(--e4); color: var(--texte-2); font-size: 14px; }
-.resume span b { color: var(--texte); font-size: 20px; margin-right: 4px; font-variant-numeric: tabular-nums; }
-.filtres select { padding-right: var(--e2); }
-.avert { margin: 0 0 var(--e3); }
-.tab { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-m); box-shadow: var(--ombre); overflow: hidden; }
-.tab .ligne { display: grid; grid-template-columns: 10rem 8.5rem 9rem 7.5rem 4rem minmax(0, 1fr); gap: var(--e1) var(--e3); align-items: center; padding: var(--e1) var(--e4); border-top: 1px solid var(--border); min-height: var(--ligne); }
-.tab .tete { background: var(--surface-2); font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; color: var(--texte-2); border-top: 0; min-height: 36px; }
-.tab .titre-groupe { background: var(--bg); font-weight: 600; font-size: 14px; color: var(--texte-2); min-height: 40px; display: flex; }
-.tab .nom a { color: var(--texte); text-decoration: none; font-weight: 600; display: block; min-height: var(--cible); padding: 10px 0; box-sizing: border-box; }
-.tab small { display: block; color: var(--texte-2); font-size: 13px; font-weight: 400; }
-.tab .fini { color: var(--texte-2); }
-.tab .fini .nom a { color: var(--texte-2); }
-.tab .act .bk, .tab .act .gros { white-space: nowrap; padding: 0 var(--e3); }
-.tab .act { display: flex; gap: var(--e2); justify-content: flex-end; align-items: center; }
-.tab .act .pastille { margin-right: auto; margin-left: 0; }
-.tab .pastille { margin-left: 0; }
-.lib { display: none; font-size: 12px; color: var(--texte-2); }
-/* 1240 px : la barre latérale (248 px) prend la place des colonnes; la refonte du suivi (PR 3) rendra le tableau à nouveau en paysage. */
+/* Tableau de suivi d'un lab (direction Atelier) : tableau dense de 52 px, filtres segmentés, menu « … » par ligne,
+   balayage d'une ligne au doigt (suivi.js). Composants : composants.css; jetons : design.css. */
+body { margin: 0; }
+#suivi-page { max-width: 80rem; margin: 0 auto; padding: var(--e4) var(--e5) var(--e6); }
+.esp { flex: 1; }
+.sous { margin: 0; color: var(--texte-2); font-size: var(--t-s); }
+
+.suivi-haut { display: flex; align-items: center; gap: var(--e2); min-height: var(--cible); flex-wrap: wrap; }
+.fil { color: var(--texte-2); font-size: var(--t-s); display: flex; align-items: center; gap: var(--e1); }
+.fil a { color: var(--texte-2); min-height: var(--cible); display: inline-flex; align-items: center; text-decoration: none; font-weight: 500; }
+.fil a:hover { color: var(--accent-fort); }
+.fil svg.ic { color: var(--texte-3); }
+.fil b { color: var(--texte); font-weight: 600; }
+
+.suivi-titre { display: flex; align-items: flex-end; gap: var(--e5); flex-wrap: wrap; margin: var(--e2) 0 var(--e3); }
+.suivi-titre h1 { margin: 0 0 var(--e1); }
+.suivi-prog { margin-left: auto; width: 14rem; }
+.suivi-prog .barre { height: 8px; }
+.barre > .cours { background: var(--neutre); }
+.barre > .fait { background: var(--ok-point); }
+.suivi-prog b { color: var(--texte); }
+
+#export:not(:empty) { margin-bottom: var(--e3); }
+.suivi-filtres { display: flex; align-items: center; gap: var(--e2); margin: 0 0 var(--e3); flex-wrap: wrap; }
+.suivi-filtres select.saisie { width: auto; min-width: 11rem; }
+#message:empty { display: none; }
+#message { margin: 0 0 var(--e2); }
+
+/* Tableau */
+.suivi-tab { position: relative; }
+.suivi-tab table.tableau { min-width: 0; }
+.suivi-tab th { position: sticky; top: 0; }
+.suivi-tab tbody tr { cursor: pointer; touch-action: pan-y; }
+.suivi-tab tbody tr.groupe { cursor: default; }
+.suivi-tab tbody tr:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.suivi-tab td { white-space: nowrap; }
+.suivi-tab td.mu, .suivi-tab .mu { color: var(--texte-2); font-size: var(--t-s); }
+.suivi-tab td.nom { white-space: normal; }
+.suivi-tab .nom-etu a { color: var(--texte); text-decoration: none; font-weight: 600; }
+.suivi-tab .nom-etu small { display: block; color: var(--texte-2); font-size: var(--t-min); font-weight: 400; max-width: 16rem; overflow: hidden; text-overflow: ellipsis; }
+.suivi-tab .nom-etu svg.ic { color: var(--texte-3); width: 14px; height: 14px; margin-left: 4px; vertical-align: -2px; }
+.suivi-tab tr.fini .nom-etu a, .suivi-tab tr.fini td.mu { color: var(--texte-2); }
+.suivi-tab tr.fini .avatar { opacity: .7; }
+.suivi-tab td .sous-ligne { display: block; color: var(--texte-2); font-size: var(--t-min); margin-top: 2px; }
+.suivi-tab td.double { line-height: 1.2; }
+.suivi-tab .pastille { cursor: inherit; }
+.suivi-tab a.pastille { text-decoration: none; }
+.suivi-tab td.val-note { font-weight: 600; }
+.suivi-tab td.act { width: 56px; padding: 0 var(--e1); }
+.suivi-tab td.etat-lie { }
+.suivi-tab .pl-multi { max-width: 14rem; overflow: hidden; text-overflow: ellipsis; }
+.suivi-vide { padding: var(--e5); }
+
+/* Balayage d'une ligne : les cellules glissent, deux actions apparaissent à droite (touch-action: pan-y garde le défilement vertical). */
+.suivi-tab tbody tr.balaye td { transition: transform .18s ease; }
+.balayage { position: absolute; right: 0; display: flex; width: 216px; height: var(--ligne-tableau); z-index: 5; overflow: hidden; }
+.balayage button { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; border: 0; border-radius: 0; min-height: var(--ligne-tableau);
+  font: inherit; font-size: var(--t-min); font-weight: 600; color: #fff; cursor: pointer; box-shadow: none; padding: 0; }
+.balayage .analyser { background: var(--claude); }
+.balayage .terminer { background: var(--ok); }
+.balayage .rouvrir { background: var(--neutre); }
+.balayage button:active { filter: brightness(.9); }
+
+.suivi-avert { margin-top: var(--e3); }
+.suivi-avert .corps { color: var(--accent-fort); }
+
+/* Tableau compact : sous 1240 px (barre latérale de 248 px comprise, donc l'iPad en paysage aussi) et en portrait, le tableau doit
+   tenir sans défilement horizontal, qui gênerait le balayage. Les fins de libellé (« · à revoir », « suspectes ») disparaissent. */
 @media (max-width: 1240px) {
-  #suivi-page { padding: var(--e3); }
-  .tab .tete { display: none; }
-  .tab .ligne { grid-template-columns: repeat(4, 1fr); padding: var(--e2) var(--e3); }
-  .tab .nom, .tab .act { grid-column: 1 / -1; }
-  .tab .ligne > div:not(.nom):not(.act) { display: flex; flex-direction: column; gap: 2px; align-items: flex-start; }
-  .lib { display: block; }
+  .suivi-tab td, .suivi-tab th { padding: 0 var(--e2); }
+  .suivi-tab .nom-etu small { max-width: 9rem; }
+  .suivi-tab .pastille .suite { display: none; }
+  .suivi-tab td.double { white-space: normal; line-height: 1.25; }
+}
+@media (max-width: 900px) {
+  .suivi-tab .avatar { display: none; }
+  #suivi-page { padding: var(--e3) var(--e4) var(--e6); }
+  .suivi-prog { margin-left: 0; width: 100%; }
 }
