@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Maquette · Consommation de Claude</title>
+  <link rel="stylesheet" href="../../../pwa/design.css">
+  <link rel="stylesheet" href="../../../pwa/composants.css">
+  <link rel="stylesheet" href="../../../pwa/coque.css">
+  <style>
+    /* Maquette statique, données FICTIVES. #jauge | #page | #lot | #proche (jauge près de la marge). */
+    .vue { display: none; } .vue.on { display: block; }
+    .coque-corps > main { padding: var(--e5) var(--e5) 48px; }
+    .ent { display: flex; align-items: flex-end; justify-content: space-between; gap: var(--e4); margin-bottom: var(--e4); }
+    .ent h1 { margin: 0; } .ent p { margin: 4px 0 0; }
+
+    /* --- Jauge de la barre latérale : discrète, une ligne + un filet --- */
+    .cq-conso { display: block; margin-top: var(--e2); padding: 8px 10px 10px; border-radius: var(--r-s); color: var(--texte-2); text-decoration: none; font-size: var(--t-min); }
+    .cq-conso:hover { background: var(--surface-3); color: var(--texte); }
+    .cq-conso .l1 { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; font-variant-numeric: tabular-nums; }
+    .cq-conso .l1 b { font-weight: 600; color: var(--texte); }
+    .jauge { display: block; position: relative; height: 4px; border-radius: 2px; background: var(--border); margin-top: 7px; }
+    .jauge > i { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 2px; background: var(--accent); }
+    .jauge > u { position: absolute; top: -3px; bottom: -3px; width: 2px; background: var(--texte-3); border-radius: 1px; text-decoration: none; } /* repère de la marge */
+    .jauge.attention > i { background: var(--attention-point); }
+    .jauge.danger > i { background: var(--danger); }
+    .jauge.grande { height: 10px; border-radius: 5px; } .jauge.grande > i { border-radius: 5px; } .jauge.grande > u { top: -4px; bottom: -4px; }
+
+    /* --- Page --- */
+    .grille2 { display: grid; grid-template-columns: 1fr 1fr; gap: var(--e4); }
+    .grille3 { display: grid; grid-template-columns: 1.3fr 1fr; gap: var(--e4); margin-top: var(--e4); }
+    .bloc { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-m); padding: var(--e4) var(--e5); }
+    .bloc h2 { font-size: var(--t-s); font-weight: 600; color: var(--texte-2); margin: 0 0 var(--e3); }
+    .gros-n { font-size: 34px; font-weight: 600; letter-spacing: -.02em; line-height: 1.1; font-variant-numeric: tabular-nums; }
+    .gros-n small { font-size: var(--t); font-weight: 500; color: var(--texte-2); letter-spacing: 0; }
+    .sous { margin: 6px 0 0; color: var(--texte-2); font-size: var(--t-s); }
+    .bloc .jauge { margin: var(--e3) 0 6px; }
+    .legende-j { display: flex; justify-content: space-between; font-size: var(--t-min); color: var(--texte-2); }
+    .jours { display: flex; align-items: flex-end; gap: 10px; height: 110px; margin-top: var(--e2); }
+    .jours > div { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 6px; height: 100%; font-size: var(--t-min); color: var(--texte-2); }
+    .jours i { width: 100%; max-width: 40px; background: var(--accent-bord); border-radius: 4px 4px 0 0; display: block; }
+    .jours .auj i { background: var(--accent); } .jours .auj { color: var(--texte); font-weight: 600; }
+    .repart { display: flex; height: 10px; border-radius: 5px; overflow: hidden; gap: 2px; margin: var(--e2) 0 var(--e3); }
+    .repart i { display: block; }
+    .t-fr { background: var(--accent); } .t-ia { background: var(--ia); } .t-ref { background: var(--claude); } .t-pl { background: var(--plagiat); }
+    .lignes { width: 100%; border-collapse: collapse; font-size: var(--t-s); }
+    .lignes td { padding: 9px 0; border-top: 1px solid var(--border); font-variant-numeric: tabular-nums; }
+    .lignes tr:first-child td { border-top: 0; }
+    .lignes td:last-child, .lignes td:nth-child(2) { text-align: right; color: var(--texte-2); }
+    .lignes td:first-child { display: flex; align-items: center; gap: 8px; }
+    .lignes td:first-child::before { content: ""; width: 8px; height: 8px; border-radius: 2px; background: var(--c); flex: none; }
+    .cal { display: flex; gap: var(--e3); align-items: flex-end; flex-wrap: wrap; margin-top: var(--e3); }
+    .cal .champ { margin: 0; flex: 1; min-width: 7rem; }
+    .astuce { display: flex; gap: var(--e3); align-items: center; justify-content: space-between; padding: var(--e3) var(--e4); border: 1px dashed var(--border-fort); border-radius: var(--r-m); margin-top: var(--e4); font-size: var(--t-s); }
+
+    /* --- Écran du lot --- */
+    .lot-form { display: flex; gap: var(--e3); flex-wrap: wrap; align-items: flex-end; }
+    .lot-form .champ { margin: 0; }
+    .est { margin-top: var(--e4); }
+    .est .ligne { display: flex; align-items: baseline; justify-content: space-between; gap: var(--e3); flex-wrap: wrap; }
+    .est .jauge-lot { position: relative; height: 10px; border-radius: 5px; background: var(--border); margin: 10px 0 6px; }
+    .est .jauge-lot .deja { position: absolute; left: 0; top: 0; bottom: 0; background: var(--texte-3); border-radius: 5px 0 0 5px; }
+    .est .jauge-lot .lot { position: absolute; top: 0; bottom: 0; background: var(--accent); }
+    .est .jauge-lot.depasse .lot { background: var(--attention-point); }
+    .est .jauge-lot u { position: absolute; top: -4px; bottom: -4px; width: 2px; background: var(--texte); text-decoration: none; }
+
+    @media (max-width: 899px) { .grille2, .grille3 { grid-template-columns: 1fr; } .coque-corps > main { padding: var(--e4) var(--e4) 48px; } .coque-haut { display: none; } .coque-lat { position: sticky; transform: none; } }
+  </style>
+</head>
+<body class="avec-coque">
+<div class="coque">
+  <aside class="coque-lat">
+    <div class="cq-marque"><span class="cq-logo"><svg class="ic"><use href="../../../pwa/vendor/lucide-sprite.svg#graduation-cap"/></svg></span><span>Correction<small>Rapports de lab</small></span></div>
+    <nav class="cq-nav">
+      <a class="cq-lien"><svg class="ic"><use href="../../../pwa/vendor/lucide-sprite.svg#house"/></svg><span>Accueil</span></a>
+      <a class="cq-lien"><svg class="ic"><use href="../../../pwa/vendor/lucide-sprite.svg#library"/></svg><span>Bibliothèque</span></a>
+      <a class="cq-lien"><svg class="ic"><use href="../../../pwa/vendor/lucide-sprite.svg#upload"/></svg><span>Importer</span></a>
+      <a class="cq-lien" id="lien-lot"><svg class="ic"><use href="../../../pwa/vendor/lucide-sprite.svg#layers"/></svg><span>Analyse par lot</span></a>
+      <a class="cq-lien"><svg class="ic"><use href="../../../pwa/vendor/lucide-sprite.svg#scan-search"/></svg><span>Plagiat</span></a>
+      <a class="cq-lien"><svg class="ic"><use href="../../../pwa/vendor/lucide-sprite.svg#file-down"/></svg><span>Export LÉA</span></a>
+    </nav>
+    <!-- Jauge : un lien vers la page Consommation, deux lignes -->
+    <a class="cq-conso" id="conso" href="#page" title="Estimation, à calibrer avec /usage de Claude Code">
+      <span class="l1"><span>Claude · 5 h</span><b>≈ 14 %</b></span>
+      <span class="jauge"><i style="width:14%"></i><u style="left:80%"></u></span>
+    </a>
+    <p class="cq-titre">Labs en cours</p>
+    <div class="cq-labs">
+      <a class="cq-lien"><span>Lab 3 · Chimie 101</span><span class="cq-n">4 / 22</span></a>
+      <a class="cq-lien"><span>Lab 2 · Physique 201</span><span class="cq-n">11 / 18</span></a>
+    </div>
+    <div class="cq-pied">
+      <span class="cq-lien" aria-disabled="true"><svg class="ic"><use href="../../../pwa/vendor/lucide-sprite.svg#settings"/></svg><span>Réglages</span></span>
+      <div class="cq-ordi ok"><i class="cq-point"></i><span>Ordi connecté</span></div>
+    </div>
+  </aside>
+
+  <div class="coque-corps"><main>
+
+  <!-- ============ Page « Consommation » ============ -->
+  <section class="vue" id="v-page">
+    <div class="ent"><div><h1>Consommation de Claude</h1><p class="mu">Estimation d'après les appels du moteur, calée sur ta dernière lecture de <code>/usage</code>. Rien d'officiel : à prendre comme un indice.</p></div></div>
+
+    <div class="grille2">
+      <div class="bloc"><h2>Session · 5 dernières heures</h2>
+        <div class="gros-n">≈ 14 <small>% · marge 20 %</small></div>
+        <div class="jauge grande"><i style="width:14%"></i><u style="left:80%"></u></div>
+        <div class="legende-j"><span>0</span><span>repère : arrêt à 80 %</span><span>100</span></div>
+        <p class="sous">Reprise complète vers 17 h 40 (dans 3 h 12).</p>
+      </div>
+      <div class="bloc"><h2>Semaine</h2>
+        <div class="gros-n">≈ 37 <small>%</small></div>
+        <div class="jauge grande"><i style="width:37%"></i></div>
+        <div class="legende-j"><span>0</span><span></span><span>100</span></div>
+        <p class="sous">Réinitialisation jeudi à 9 h.</p>
+      </div>
+    </div>
+
+    <div class="astuce"><span><b>≈ 9 rapports</b> encore possibles avant la marge de 20 % · lot conseillé : <b>7 rapports</b> (3,1 % chacun en moyenne).</span><a class="btn tertiaire">Régler la marge</a></div>
+
+    <div class="grille3">
+      <div class="bloc"><h2>Par jour (≈ % de la session de 5 h, tous appels)</h2>
+        <div class="jours">
+          <div><span>6</span><i style="height:12%"></i>lun.</div><div><span>31</span><i style="height:62%"></i>mar.</div><div><span>48</span><i style="height:96%"></i>mer.</div>
+          <div><span>0</span><i style="height:1%"></i>jeu.</div><div><span>22</span><i style="height:44%"></i>ven.</div><div><span>9</span><i style="height:18%"></i>sam.</div>
+          <div class="auj"><span>14</span><i style="height:28%"></i>auj.</div>
+        </div>
+      </div>
+      <div class="bloc"><h2>Par type d'appel (7 jours)</h2>
+        <div class="repart"><i class="t-fr" style="width:36%"></i><i class="t-ia" style="width:30%"></i><i class="t-ref" style="width:26%"></i><i class="t-pl" style="width:8%"></i></div>
+        <table class="lignes">
+          <tr style="--c:var(--accent)"><td>Français</td><td>0,9 % / rapport</td><td>36 %</td></tr>
+          <tr style="--c:var(--ia)"><td>Indices d'IA</td><td>0,9 % / rapport</td><td>30 %</td></tr>
+          <tr style="--c:var(--claude)"><td>Références</td><td>1,1 % / rapport</td><td>26 %</td></tr>
+          <tr style="--c:var(--plagiat)"><td>Plagiat</td><td>0,6 % / paire</td><td>8 %</td></tr>
+        </table>
+      </div>
+    </div>
+
+    <div class="bloc" style="margin-top:var(--e4)"><h2>Calibrage</h2>
+      <p style="margin:0;font-size:var(--t-s)">Dernier calibrage : <b>hier à 20 h 15</b> (session 22 %, semaine 31 %). L'écart entre ton chiffre et l'estimation était de 2 points : correct. Dans Claude Code, tape <code>/usage</code> et recopie les deux pourcentages de temps en temps (surtout après un gros lot).</p>
+      <div class="cal">
+        <label class="champ"><span class="etiquette">Session (5 h) lue</span><input class="saisie" inputmode="numeric" placeholder="ex. 22"></label>
+        <label class="champ"><span class="etiquette">Semaine lue</span><input class="saisie" inputmode="numeric" placeholder="ex. 31"></label>
+        <button class="btn primaire">Enregistrer</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ Écran du lot, avec l'estimation ============ -->
+  <section class="vue" id="v-lot">
+    <div class="ent"><div><h1>Analyse par lot</h1><p class="mu">Français, indices d'IA et références, avec Claude (Sonnet).</p></div></div>
+    <div class="bloc">
+      <div class="lot-form">
+        <label class="champ"><span class="etiquette">Lab</span><select class="saisie"><option>Lab 3 · Chimie 101 (18 à analyser)</option></select></label>
+        <label class="champ" style="width:7rem"><span class="etiquette">Rapports</span><input class="saisie" value="7"></label>
+        <label class="interrupteur"><input type="checkbox"><i></i><span>Refaire</span></label>
+        <button class="btn primaire" style="margin-left:auto"><svg class="ic"><use href="../../../pwa/vendor/lucide-sprite.svg#play"/></svg>Lancer</button>
+      </div>
+
+      <div class="est" id="est-ok">
+        <div class="ligne"><span><b>Ce lot ≈ 22 %</b> de la session</span><span class="mu">il resterait ≈ 64 % · marge 20 % respectée</span></div>
+        <div class="jauge-lot"><span class="deja" style="width:14%"></span><span class="lot" style="left:14%;width:22%"></span><u style="left:80%"></u></div>
+        <div class="legende-j"><span>déjà utilisé 14 %</span><span>marge à 80 %</span></div>
+      </div>
+    </div>
+
+    <p class="mu" style="margin:var(--e5) 0 var(--e2)">Variante : le lot dépasse la marge (même emplacement, au-dessus du bouton « Lancer »)</p>
+    <div class="bloc">
+      <div class="lot-form">
+        <label class="champ"><span class="etiquette">Lab</span><select class="saisie"><option>Lab 3 · Chimie 101 (24 à analyser)</option></select></label>
+        <label class="champ" style="width:7rem"><span class="etiquette">Rapports</span><input class="saisie" value="22"></label>
+        <button class="btn primaire" style="margin-left:auto"><svg class="ic"><use href="../../../pwa/vendor/lucide-sprite.svg#play"/></svg>Lancer</button>
+      </div>
+      <div class="est">
+        <div class="ligne"><span><b>Ce lot ≈ 68 %</b> de la session</span><span class="mu">on atteindrait ≈ 82 % de la session</span></div>
+        <div class="jauge-lot depasse"><span class="deja" style="width:14%"></span><span class="lot" style="left:14%;width:68%"></span><u style="left:80%"></u></div>
+        <div class="banniere attention" role="status" style="margin-top:var(--e3)"><svg class="ic"><use href="../../../pwa/vendor/lucide-sprite.svg#triangle-alert"/></svg><div class="corps"><b>Dépasse la marge de 20 %.</b> Seuls 21 rapports tiennent. Tu peux lancer quand même, ou <a class="btn tertiaire" style="min-height:0;padding:0">ramener à 21</a>.</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Accueil factice pour montrer la jauge en contexte -->
+  <section class="vue" id="v-jauge">
+    <div class="ent"><div><h1>Accueil</h1><p class="mu">Repérer la jauge sous « Analyse par lot », à gauche. Normale (sarcelle), puis près de la marge (orange), puis au-delà (rouge) :</p></div></div>
+    <div class="bloc" style="max-width:20rem;display:grid;gap:var(--e4)">
+      <a class="cq-conso" style="margin:0"><span class="l1"><span>Claude · 5 h</span><b>≈ 14 %</b></span><span class="jauge"><i style="width:14%"></i><u style="left:80%"></u></span></a>
+      <a class="cq-conso" style="margin:0"><span class="l1"><span>Claude · 5 h</span><b>≈ 68 %</b></span><span class="jauge attention"><i style="width:68%"></i><u style="left:80%"></u></span></a>
+      <a class="cq-conso" style="margin:0"><span class="l1"><span>Claude · limite atteinte</span><b>reprise 17 h 40</b></span><span class="jauge danger"><i style="width:100%"></i><u style="left:80%"></u></span></a>
+    </div>
+  </section>
+
+  </main></div>
+</div>
+<script>
+  const v = location.hash.slice(1) || "page";
+  const cle = { proche: "jauge" }[v] || v;
+  document.getElementById("v-" + cle)?.classList.add("on");
+  if (cle === "lot") document.getElementById("lien-lot").classList.add("on");
+  if (v === "proche") { const c = document.getElementById("conso"); c.querySelector("b").textContent = "≈ 68 %"; const j = c.querySelector(".jauge"); j.classList.add("attention"); j.firstElementChild.style.width = "68%"; }
+</script>
+</body>
+</html>
