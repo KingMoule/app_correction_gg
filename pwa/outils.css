@@ -1,0 +1,52 @@
+/* Analyse par lot, indices d'IA et export pour LÉA (direction Atelier, PR 3/4).
+   Chargé par lot.js, indices-ia.js et export-lea.js eux-mêmes : la page qui les héberge n'a rien à ajouter.
+   Sens des couleurs : violet + loupe = indice d'IA; étincelles = Claude (l'outil); rouge = erreur bloquante seulement. */
+
+/* --- Analyse par lot : progression chiffrée, Arrêter --- */
+.lot-prog { margin: var(--e3) 0 var(--e2); }
+.lot-prog > progress { width: 100%; }
+.progression-tete > span:first-child { display: inline-flex; align-items: center; gap: var(--e2); }
+#lot-etat.banniere { margin: var(--e2) 0; }
+#lot-etat:empty { display: none; }
+#lot-erreurs { list-style: none; padding: 0; margin: var(--e2) 0 0; font-size: var(--t-s); }
+#lot-erreurs li { display: flex; gap: var(--e2); padding: var(--e2) var(--e3); margin-bottom: var(--e1); background: var(--danger-fond); color: var(--danger); border-radius: var(--r-s); }
+#section-lot .btn { display: inline-flex; margin: var(--e2) var(--e2) var(--e2) 0; }
+
+/* --- Indices d'IA : violet, loupe, « à revérifier » --- */
+#section-ia { border-left: 3px solid var(--ia); }
+#section-ia .btn { display: inline-flex; margin: var(--e2) var(--e2) var(--e2) 0; }
+#section-ia .ia-avert { background: var(--ia-fond); border-color: #d8b4fe; color: var(--ia); margin: var(--e2) 0; }
+.ia-force { background: var(--ia-fond); color: var(--ia); }
+.ia-force.moderee, .ia-force.marquee { background: var(--ia-fond); color: var(--ia); }
+.ia-force svg.ic { width: 14px; height: 14px; }
+.ia-force.marquee { box-shadow: inset 0 0 0 1.5px var(--ia); }
+.ia-signal { border-left: 3px solid #d8b4fe; padding-left: var(--e3); margin: var(--e3) 0; }
+.ia-signal blockquote { margin: var(--e1) 0; font-style: italic; color: var(--texte-2); }
+.ia-signal .non-verifie { color: var(--attention); font-size: var(--t-min); }
+
+/* --- Export pour LÉA : ce qui part, état, progression, ZIP prêt --- */
+.export-bloc { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-m); box-shadow: var(--ombre); margin: var(--e2) 0; padding: var(--e3) var(--e4) var(--e4); }
+.export-tete { display: flex; align-items: center; gap: var(--e2); min-height: var(--cible); }
+.export-tete .esp { flex: 1; }
+.export-tete svg.ic { color: var(--accent); }
+.export-tete select.saisie { width: auto; min-width: 10rem; margin: 0; }
+.export-lignes { list-style: none; margin: var(--e2) 0; padding: 0; border: 1px solid var(--border); border-radius: var(--r-s); overflow: hidden; }
+.export-lignes li { display: flex; align-items: center; gap: var(--e2); min-height: var(--ligne-tableau); padding: 0 var(--e3); border-top: 1px solid var(--border); font-size: var(--t-s); }
+.export-lignes li:first-child { border-top: 0; }
+.export-lignes li.aide { padding: var(--e3); }
+.export-lignes .libelle { flex: 1; }
+.export-lignes .num { font-size: var(--t); min-width: 1.5rem; text-align: right; }
+.export-bloc .inacheves { margin: var(--e1) 0; font-size: var(--t-s); }
+.export-etat { margin: var(--e2) 0; }
+.export-actions { display: flex; gap: var(--e2); justify-content: flex-end; flex-wrap: wrap; margin-top: var(--e3); }
+.export-actions .btn { margin: 0; display: inline-flex; }
+.suivi-export { margin-top: var(--e3); }
+.suivi-export progress { width: 100%; }
+.suivi-export .progression .aide { margin: var(--e2) 0 0; }
+.export-pret { border: 1px solid #86efac; background: var(--ok-fond); border-radius: var(--r-m); padding: var(--e3) var(--e4); }
+.export-pret-tete { display: flex; align-items: center; gap: var(--e3); color: var(--ok); }
+.export-pret-tete b { display: block; }
+.export-pret-tete .mu { color: var(--ok); font-size: var(--t-s); }
+.export-pret .aide { color: var(--ok); margin: var(--e2) 0 0; }
+.export-pret .export-actions { margin-top: var(--e3); }
+.logo-ok { width: 40px; height: 40px; border-radius: var(--r-s); display: inline-grid; place-items: center; background: var(--ok-point); color: #fff; flex: none; }

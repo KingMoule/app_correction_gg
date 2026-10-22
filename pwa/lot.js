@@ -1,5 +1,10 @@
 // Écran « Analyse par lot » : lance, suit et arrête l'analyse Claude de plusieurs rapports d'un lab.
 (() => {
+  if (!document.querySelector("link[href='outils.css']")) {
+    const lien = document.createElement("link");
+    lien.rel = "stylesheet"; lien.href = "outils.css";
+    document.head.append(lien);
+  }
   const el = (id) => document.getElementById(id);
   let minuteur = null;
 
@@ -50,16 +55,47 @@
   }
 
   const LIBELLES = { en_cours: "En cours", termine: "Terminé", arrete: "Arrêté", limite: "Limite d'usage atteinte", erreur: "Arrêté sur erreur" };
+  const PASTILLES = { en_cours: "p-claude", termine: "p-fini", arrete: "p-neutre", limite: "", erreur: "p-erreur" };
+
+  // Direction Atelier : les éléments existent déjà dans la page (mêmes id); on y ajoute boutons à icône et progression chiffrée.
+  const icone = (e, nom, libelle) => { e.replaceChildren(UI.icone(nom), document.createTextNode(libelle)); };
+  el("lot-lancer").className = "btn primaire";
+  icone(el("lot-lancer"), "play", "Lancer le lot");
+  el("lot-arreter").className = "btn";
+  icone(el("lot-arreter"), "x", "Arrêter");
+  el("lot-arreter").title = "S'arrête après le rapport en cours; les résultats déjà obtenus sont gardés";
+  const prog = noeud("div", ""); prog.className = "progression lot-prog"; prog.hidden = true;
+  const tete = noeud("div", ""); tete.className = "progression-tete";
+  const libelleProg = noeud("span", ""), numProg = noeud("span", ""); numProg.className = "num";
+  tete.append(libelleProg, numProg);
+  const barre = el("lot-barre");
+  barre.replaceWith(prog);
+  prog.append(tete, barre);
+  barre.setAttribute("aria-label", "Progression de l'analyse par lot");
 
   function afficher(e) {
     const actif = e.statut === "en_cours";
     el("lot-lancer").disabled = actif;
     el("lot-arreter").hidden = !actif;
-    el("lot-barre").hidden = !e.total;
+    el("lot-barre").hidden = prog.hidden = !e.total;
     if (e.total) { el("lot-barre").max = e.total; el("lot-barre").value = e.fait; }
-    if (!e.total) { el("lot-etat").textContent = ""; el("lot-erreurs").replaceChildren(); return; }
-    const suite = actif && e.courant ? ` · en cours : ${e.courant}` : "";
-    el("lot-etat").textContent = `${LIBELLES[e.statut] ?? e.statut} : ${e.fait} / ${e.total}${suite}. ${e.message || ""}`;
+    const msg = el("lot-etat");
+    if (!e.total) { msg.textContent = ""; msg.className = ""; el("lot-erreurs").replaceChildren(); return; }
+    // Progression chiffrée « 6 / 10 », pastille d'état et rapport en cours
+    libelleProg.replaceChildren();
+    const p = noeud("span", ""); p.className = "pastille " + (PASTILLES[e.statut] ?? "");
+    if (actif) p.append(UI.icone("sparkles"));
+    p.append(document.createTextNode(LIBELLES[e.statut] ?? e.statut));
+    libelleProg.append(p);
+    if (actif && e.courant) libelleProg.append(noeud("span", ` ${e.courant}`));
+    numProg.textContent = `${e.fait} / ${e.total}`;
+    // Ce qui exige une action : bannière (limite d'usage, erreur); sinon simple phrase
+    msg.replaceChildren();
+    msg.className = e.statut === "limite" ? "banniere attention" : e.statut === "erreur" ? "banniere erreur" : "aide";
+    if (e.statut === "limite" || e.statut === "erreur") {
+      msg.setAttribute("role", "alert");
+      msg.append(UI.icone(e.statut === "limite" ? "triangle-alert" : "circle-alert"), noeud("span", e.message || LIBELLES[e.statut]));
+    } else msg.textContent = e.message || "";
     el("lot-erreurs").replaceChildren(...e.erreurs.map((x) => noeud("li", `${x.nom} : ${x.message}`)));
   }
 

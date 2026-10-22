@@ -1,0 +1,7 @@
+/* Boîtes de dialogue (dialogue.js) : carte centrée, un seul bouton plein à droite. */
+dialog.dialogue { border: 1px solid var(--border); border-radius: var(--r-m); box-shadow: var(--ombre-pop); padding: var(--e5); width: min(30rem, calc(100vw - 32px)); background: var(--surface); color: var(--texte); }
+dialog.dialogue::backdrop { background: rgba(24, 24, 27, .45); }
+dialog.dialogue h2 { margin: 0 0 var(--e2); font-size: 18px; }
+dialog.dialogue p { margin: 0 0 var(--e3); color: var(--texte-2); font-size: var(--t-s); }
+dialog.dialogue .champ { margin: var(--e3) 0 0; }
+.dialogue-pied { display: flex; justify-content: flex-end; gap: var(--e2); margin-top: var(--e4); }

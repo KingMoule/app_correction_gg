@@ -1,6 +1,11 @@
 // Écran « Indices d'IA » : analyse de style par Claude + bouton Pangram.
 // Toujours présenté comme un indice à revérifier, jamais comme un verdict.
 (() => {
+  if (!document.querySelector("link[href='outils.css']")) {
+    const lien = document.createElement("link");
+    lien.rel = "stylesheet"; lien.href = "outils.css";
+    document.head.append(lien);
+  }
   const el = (id) => document.getElementById(id);
   const FORCES = { faible: "Indice faible", moderee: "Indice modéré", marquee: "Indice marqué" };
   let courant = null; // { base, texte }
@@ -18,11 +23,21 @@
     return d.detail || `Erreur ${r.status}`;
   }
 
+  // Direction Atelier : indice d'IA en violet avec une loupe (jamais rouge, jamais « verdict »); Claude = étincelles.
+  const avecIcone = (e, nom, libelle) => e.replaceChildren(UI.icone(nom), document.createTextNode(libelle));
+  el("ia-analyser").className = "btn primaire";
+  avecIcone(el("ia-analyser"), "sparkles", "Analyser le style avec Claude");
+  el("ia-pangram").className = "btn";
+  avecIcone(el("ia-pangram"), "clipboard", "Copier le texte et ouvrir Pangram");
+  el("ia-avertissement").className = "banniere ia-avert";
+
   function afficher(d) {
     const zone = el("ia-resultat");
     zone.replaceChildren();
     if (!d) return;
-    zone.append(noeud("span", FORCES[d.force] ?? FORCES.faible, `ia-force ${d.force}`));
+    const force = noeud("span", "", `ia-force ${d.force}`);
+    force.append(UI.icone("search"), document.createTextNode(`${FORCES[d.force] ?? FORCES.faible} · à revérifier`));
+    zone.append(force);
     zone.append(noeud("p", d.resume));
     for (const s of d.signaux) {
       const b = noeud("div", "", "ia-signal");

@@ -9,7 +9,6 @@
   <link rel="stylesheet" href="design.css">
   <link rel="stylesheet" href="composants.css">
   <link rel="stylesheet" href="coque.css">
-  <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="suivi.css">
   <title>Suivi du lab</title>
 </head>
@@ -18,24 +17,43 @@
   <aside id="coque-lat" class="coque-lat"></aside>
   <div class="coque-corps">
   <main id="suivi-page">
-    <div class="fil"><a href="/#biblio" id="retour-biblio">‹ Bibliothèque</a> <span id="fil"></span></div>
-    <h1 id="titre"></h1>
-    <div id="resume" class="resume"></div>
-    <p id="export" class="aide" aria-live="polite"></p>
-    <div class="filtres" id="filtres">
-      <button data-f="cours">À corriger</button><button data-f="tout">Tous</button>
-      <select id="groupe" aria-label="Groupe"></select>
-      <button data-f="revoir" id="revoir">⚠ À revoir</button>
-      <a class="bk" href="/#outils">Analyse par lot</a>
+    <div class="suivi-haut">
+      <div class="fil"><a href="/#biblio" id="retour-biblio">Bibliothèque</a><span id="fil"></span></div>
+      <span class="esp"></span>
+      <a class="btn" href="/#outils" id="vers-lot"></a>
+      <a class="btn primaire" id="suivant" hidden></a>
     </div>
-    <p class="avert">Les indices d'IA et de plagiat sont des <b>indices à revérifier</b>, jamais un verdict.</p>
+    <div class="suivi-titre">
+      <div>
+        <h1 id="titre"></h1>
+        <p class="sous" id="sous"></p>
+      </div>
+      <div class="progression suivi-prog" id="prog" hidden>
+        <div class="progression-tete"><span id="prog-texte"></span><span class="num" id="prog-pct"></span></div>
+        <div class="barre" id="prog-barre"></div>
+      </div>
+    </div>
+    <div id="export" role="status"></div>
+    <div class="suivi-filtres">
+      <div class="seg" id="filtres" role="group" aria-label="Filtrer les rapports">
+        <button data-f="tout">Tous <span class="n"></span></button>
+        <button data-f="a_corriger">À corriger <span class="n"></span></button>
+        <button data-f="en_cours">En cours <span class="n"></span></button>
+        <button data-f="termine">Terminés <span class="n"></span></button>
+        <button data-f="revoir" id="revoir">À revoir <span class="n"></span></button>
+      </div>
+      <span class="esp"></span>
+      <select id="groupe" class="saisie" aria-label="Groupe"></select>
+    </div>
     <p id="message" class="aide" aria-live="polite"></p>
-    <div class="tab" id="tab"></div>
+    <div class="tableau-defil suivi-tab" id="tab"></div>
+    <div class="banniere suivi-avert" role="note"><span id="ic-avert"></span><div class="corps">Les indices d'IA et de plagiat sont des <b>indices à revérifier</b>, jamais un verdict. Touche une ligne pour ouvrir le rapport; glisse-la vers la gauche pour analyser ou terminer.</div></div>
   </main>
   </div>
 </div>
   <script src="ui.js"></script>
   <script src="coque.js"></script>
+  <script src="dialogue.js"></script>
   <script src="suivi.js"></script>
 </body>
 </html>
