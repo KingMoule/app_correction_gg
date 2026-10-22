@@ -5,7 +5,7 @@
 ## État de l'application
 
 - **PR 1 (faite) : fondations.** Jetons (`design.css`), composants (`composants.css`, `ui.js`), coque (`coque.css`, `coque.js`), catalogue. La coque et la nouvelle typographie sont appliquées à l'accueil, la bibliothèque, l'import, le lot, le suivi et le plagiat, **sans refaire leur contenu**.
-- **PR 2** : accueil (avec le bloc « À faire » de la direction C), bibliothèque, import, code d'accès. **PR 3** : suivi (avec le balayage d'une ligne de la direction B), plagiat, indices d'IA, export. **PR 4** : lecteur (rail d'outils à gauche, inspecteur à onglets, fiche de la faute, page à 700 px).
+- **PR 2 (faite)** : accueil (bloc « À faire » de la direction C, labs avec progression), bibliothèque (cours > lab > groupe repliés, une ligne par rapport avec un menu « … »), import (étapes, zones de dépôt, résultat par fichier, « À trancher »), code d'accès. Rien d'ajouté aux fichiers communs; `style.css` garde une section « Hérité » encore utilisée par le suivi et le plagiat. **PR 3** : suivi (avec le balayage d'une ligne de la direction B), plagiat, indices d'IA, export. **PR 4** : lecteur (rail d'outils à gauche, inspecteur à onglets, fiche de la faute, page à 700 px).
 - Les écrans pas encore refaits utilisent encore les anciens noms (`.bk`, `.gros`, `.pastille`, `.carte`, boutons des `<section>`), restylés par `design.css` pour rester cohérents. Une PR d'écran remplace ces noms par ceux du catalogue et supprime ce qu'elle n'utilise plus.
 
 ## Règles
