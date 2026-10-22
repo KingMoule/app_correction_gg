@@ -49,6 +49,7 @@ body { margin: 0; }
 .suivi-tab td.act { width: 56px; padding: 0 var(--e1); }
 .suivi-tab td.etat-lie { }
 .suivi-tab .pl-multi { max-width: 14rem; overflow: hidden; text-overflow: ellipsis; }
+.suivi-tab .ref-detail { max-width: 13rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .suivi-vide { padding: var(--e5); }
 
 /* Balayage d'une ligne : les cellules glissent, deux actions apparaissent à droite (touch-action: pan-y garde le défilement vertical). */
@@ -69,7 +70,7 @@ body { margin: 0; }
 @media (max-width: 1240px) {
   .suivi-tab td, .suivi-tab th { padding: 0 var(--e2); }
   .suivi-tab .nom-etu small { max-width: 9rem; }
-  .suivi-tab .pastille .suite { display: none; }
+  .suivi-tab .pastille .suite, .suivi-tab td .sous-ligne.ref-detail { display: none; } /* le résumé complet reste en infobulle et dans le lecteur */
   .suivi-tab td.double { white-space: normal; line-height: 1.25; }
 }
 @media (max-width: 900px) {
