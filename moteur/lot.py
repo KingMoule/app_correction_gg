@@ -1,7 +1,7 @@
-"""Analyse par lot : passe Claude sur le français et indices d'IA pour plusieurs rapports d'un lab.
+"""Analyse par lot : français, indices d'IA et références pour plusieurs rapports d'un lab.
 
 Un lot traite au plus `n` rapports (10 par défaut : environ 2 % de la session de 5 h par
-rapport avec Sonnet) qui n'ont pas encore été analysés, un à la fois, en arrière-plan.
+rapport avec Sonnet pour le français et l'IA; les références s'y ajoutent) qui n'ont pas encore été analysés, un à la fois, en arrière-plan.
 Il s'arrête proprement sur une limite d'usage (429) ou si Claude / LanguageTool est
 indisponible : ce qui est déjà obtenu reste enregistré. Il réutilise les analyses d'un
 seul rapport (`francais.analyser_rapport`, `indices_ia.analyser`), donc les décisions
@@ -15,7 +15,7 @@ import threading
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
-from . import bibliotheque, francais, indices_ia, stockage
+from . import bibliotheque, francais, indices_ia, references, stockage
 
 router = APIRouter(prefix="/api/lot")
 
@@ -43,24 +43,26 @@ def _rapports(cours: str, groupe: str, lab: str) -> list[str]:
     return sorted(p.parent.name for p in dossier.glob("*/rapport.pdf"))
 
 
-def a_faire(cours: str, groupe: str, lab: str, etudiant: str, refaire: bool = False) -> tuple[bool, bool]:
-    """(français à faire, indices d'IA à faire). La passe Claude du français est à refaire
-    si elle avait échoué (ex. limite d'usage atteinte en plein lot)."""
+def a_faire(cours: str, groupe: str, lab: str, etudiant: str, refaire: bool = False) -> tuple[bool, bool, bool]:
+    """(français, indices d'IA, références) à faire. La passe Claude du français et celle des
+    références sont à refaire si elles avaient échoué (ex. limite d'usage atteinte en plein lot)."""
     if refaire:
-        return True, True
+        return True, True, True
     dossier = _dossier_lab(cours, groupe, lab) / etudiant
     fr = dossier / "francais.json"
     doc = stockage.lire_json(fr)
     fr_ok = isinstance(doc, dict) and bool(doc.get("claude", {}).get("ok", False))
-    return not fr_ok, not (dossier / "indices_ia.json").is_file()
+    ref = stockage.lire_json(dossier / "references.json")
+    ref_ok = isinstance(ref, dict) and bool((ref.get("claude") or {}).get("ok", False))
+    return not fr_ok, not (dossier / "indices_ia.json").is_file(), not ref_ok
 
 
-def _selection(cours: str, groupe: str, lab: str, refaire: bool) -> list[tuple[str, bool, bool]]:
+def _selection(cours: str, groupe: str, lab: str, refaire: bool) -> list[tuple[str, bool, bool, bool]]:
     sortie = []
     for e in _rapports(cours, groupe, lab):
-        fr, ia = a_faire(cours, groupe, lab, e, refaire)
-        if fr or ia:
-            sortie.append((e, fr, ia))
+        faire = a_faire(cours, groupe, lab, e, refaire)
+        if any(faire):
+            sortie.append((e, *faire))
     return sortie
 
 
@@ -81,10 +83,10 @@ def _arreter_sur(code: int, detail: str) -> str | None:
     return None
 
 
-def _executer(cours: str, groupe: str, lab: str, choisis: list[tuple[str, bool, bool]]) -> None:
+def _executer(cours: str, groupe: str, lab: str, choisis: list[tuple[str, bool, bool, bool]]) -> None:
     noms = _noms(cours, groupe)
     arret = None
-    for e, fr, ia in choisis:
+    for e, fr, ia, ref in choisis:
         if _arret.is_set():
             arret = ("arrete", "Lot arrêté à ta demande : les résultats déjà obtenus sont gardés.")
             break
@@ -98,6 +100,10 @@ def _executer(cours: str, groupe: str, lab: str, choisis: list[tuple[str, bool, 
                     erreur = (c["code"], c["message"])
             if ia and not (erreur and _arreter_sur(*erreur)):
                 indices_ia.analyser(cours, groupe, lab, e)
+            if ref and not (erreur and _arreter_sur(*erreur)):
+                c = (references.analyser_rapport(cours, groupe, lab, e).get("claude") or {}).get("erreur")
+                if c:
+                    erreur = (c["code"], c["message"])
         except HTTPException as x:
             erreur = (x.status_code, str(x.detail))
         except Exception as x:  # noqa: BLE001 : un rapport en échec n'arrête pas le lot
@@ -130,7 +136,7 @@ def apercu(cours: str, groupe: str, lab: str, refaire: bool = False) -> dict:
     return {"total": len(_rapports(cours, groupe, lab)), "a_analyser": len(_selection(cours, groupe, lab, refaire))}
 
 
-def _demarrer(cours: str, groupe: str, lab: str, choisis: list[tuple[str, bool, bool]], refaire: bool) -> dict:
+def _demarrer(cours: str, groupe: str, lab: str, choisis: list[tuple[str, bool, bool, bool]], refaire: bool) -> dict:
     with _verrou:
         if _etat["statut"] == "en_cours":
             raise HTTPException(409, "Un lot est déjà en cours.")
@@ -155,10 +161,10 @@ def lancer_un(cours: str, groupe: str, lab: str, etudiant: str) -> dict:
     """Analyse un seul rapport (ce qui lui manque), avec la même progression que le lot (`GET /api/lot`)."""
     if etudiant not in _rapports(cours, groupe, lab):
         raise HTTPException(404, "Rapport introuvable.")
-    fr, ia = a_faire(cours, groupe, lab, etudiant)
-    if not (fr or ia):
+    faire = a_faire(cours, groupe, lab, etudiant)
+    if not any(faire):
         raise HTTPException(409, "Ce rapport est déjà analysé.")
-    return _demarrer(cours, groupe, lab, [(etudiant, fr, ia)], False)
+    return _demarrer(cours, groupe, lab, [(etudiant, *faire)], False)
 
 
 @router.get("")

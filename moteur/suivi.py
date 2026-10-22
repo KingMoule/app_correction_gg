@@ -1,7 +1,7 @@
 """Tableau de suivi d'un lab : l'état de chaque rapport en un seul appel.
 
 Ne calcule rien de nouveau : relit les fichiers déjà écrits à côté de chaque rapport
-(annotations, français, indices d'IA, statut) et les décisions de plagiat. Les indices
+(annotations, français, indices d'IA, références, statut) et les décisions de plagiat. Les indices
 d'IA et de plagiat sont des indices à revérifier, jamais un verdict.
 """
 
@@ -49,6 +49,16 @@ def _francais(doc: dict | None, bareme: dict) -> dict:
             "claude_manquant": not claude_fait(doc)}  # passe Claude échouée ou jamais faite (voir export_lot)
 
 
+def _references(doc: dict | None) -> dict:
+    """Résumé de la vérification des références (un indice à revérifier, sans effet sur l'état ni la note)."""
+    if not isinstance(doc, dict) or not isinstance(doc.get("resume"), dict):
+        return {"etat": "non_analyse"}
+    r = doc["resume"]
+    signale = sum(r.get(k, 0) for k in ("introuvables", "divergentes", "douteuses", "sans_lien", "erreurs_forme", "liaison"))
+    return {"etat": "a_revoir" if signale or not (doc.get("section") or {}).get("trouvee") else "ok",
+            "texte": r.get("texte", ""), "resume": r, "claude_ok": bool((doc.get("claude") or {}).get("ok"))}
+
+
 def _commence(cours: str, groupe: str, lab: str, etudiant: str) -> bool:
     try:
         pages = lire_annotations(cours, groupe, lab, etudiant).pages
@@ -86,7 +96,8 @@ def suivi(cours: str, lab: str, groupe: str | None = None) -> dict:
             rapports.append({
                 "groupe": c["groupe"], "etudiant": e["id"], "nom": e["nom"], "prenom": e["prenom"],
                 "equipe": [f"{m['prenom']} {m['nom']}" for m in _json(dossier / "equipe.json") or []],
-                "annotation": annote, "francais": fr, "ia": ia, "plagiat": p, "termine": termine,
+                "annotation": annote, "francais": fr, "ia": ia,
+                "references": _references(_json(dossier / "references.json")), "plagiat": p, "termine": termine,
                 "note": bibliotheque.lire_note(dossier),
                 "etat": etat_global(termine, annote, fr, ia),
                 "a_revoir": bool(fr["etat"] == "a_trancher" or ia == "marquee" or (p and p["etat"] != "ecartee")),

@@ -149,10 +149,21 @@ def test_analyses_et_decisions_jamais_ecrasees(labo, monkeypatch):
                      "claude": {"ok": True, "erreur": None, "ajoutees": 0}}
     (dossier / "francais.json").write_text(json.dumps(francais_json), encoding="utf-8")
     (dossier / "indices_ia.json").write_text('{"force":"marquee"}', encoding="utf-8")
-    avant = [(dossier / n).read_bytes() for n in ("francais.json", "indices_ia.json")]
+    (dossier / "references.json").write_text('{"claude":{"ok":true},"entrees":[]}', encoding="utf-8")
+    noms = ("francais.json", "indices_ia.json", "references.json")
+    avant = [(dossier / n).read_bytes() for n in noms]
     labo.post(f"/api/lot/{LAB}")
     assert attendre(labo)["fait"] == 3
-    assert avant == [(dossier / n).read_bytes() for n in ("francais.json", "indices_ia.json")]
+    assert avant == [(dossier / n).read_bytes() for n in noms]
+
+
+def test_le_lot_verifie_aussi_les_references(labo, monkeypatch):
+    brancher(monkeypatch, FileFausse())
+    labo.post(f"/api/lot/{LAB}")
+    assert attendre(labo)["fait"] == 4
+    for e in rapports(labo):
+        doc = json.loads((lot._dossier_lab("202SNURE", "00002", "lab-3") / e / "references.json").read_text(encoding="utf-8"))
+        assert doc["section"]["trouvee"] is False and doc["claude"]["ok"] is True  # rapport sans section : rien à envoyer
 
 
 def test_refaire_retraite_tous_les_rapports(labo, monkeypatch):
