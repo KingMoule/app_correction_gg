@@ -4,94 +4,141 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="theme-color" content="#20242b">
+  <meta name="theme-color" content="#ffffff">
   <script src="acces.js"></script>
   <link rel="stylesheet" href="design.css">
+  <link rel="stylesheet" href="composants.css">
   <link rel="stylesheet" href="lecteur.css">
   <title>Lecteur — Correction de labs</title>
 </head>
 <body>
-  <div id="barre">
-  <div class="ligne">
-    <div class="grp">
-      <a id="retour" class="bouton" href="/#biblio"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>Bibliothèque</a>
-      <span id="titre"></span>
+  <!-- Une seule ligne : retour, étudiant, état d'enregistrement, panneau, menu, navigation, action principale. -->
+  <header id="barre">
+    <a id="retour" class="btn-ico" href="/#biblio" aria-label="Retour au tableau du lab" title="Retour au tableau du lab"><svg class="ic l" aria-hidden="true"><use href="vendor/lucide-sprite.svg#chevron-left"/></svg></a>
+    <div id="identite">
+      <span id="avatar" class="avatar" aria-hidden="true"></span>
+      <b id="titre"></b>
+      <span id="sous-titre" class="mu"></span>
+      <span id="statut" class="pastille" hidden></span>
     </div>
-    <div class="grp" id="suivi">
-      <a id="tableau" class="bouton" href="/#biblio" title="Retour au tableau de suivi du lab"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg>Tableau</a>
-      <button id="prec" title="Rapport précédent, dans l'ordre du tableau"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>Précédent</button>
-      <span id="position"></span>
-      <button id="suiv" class="principal" title="Enregistre, puis ouvre le prochain rapport non terminé du lab">Rapport suivant<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button>
-      <span id="statut" class="etiquette"></span>
-      <button id="termine">✔ Terminé</button>
-      <button id="termine-suivant" class="principal">✔ Terminé et suivant</button>
+    <span class="esp"></span>
+    <span id="enreg" class="enreg ok" role="status" aria-live="polite"><svg class="ic s" aria-hidden="true"><use href="vendor/lucide-sprite.svg#check"/></svg><span id="sauvegarde">Enregistré</span></span>
+    <button id="panneau-bouton" class="btn-ico" type="button" aria-label="Afficher ou masquer le panneau de correction" title="Panneau de correction" aria-pressed="true"><svg class="ic" aria-hidden="true"><use href="vendor/lucide-sprite.svg#panel-right"/></svg></button>
+    <button id="plus" class="btn-ico" type="button" aria-label="Plus d'actions : ajuster, exporter, réglages" title="Plus d'actions"><svg class="ic" aria-hidden="true"><use href="vendor/lucide-sprite.svg#ellipsis"/></svg></button>
+    <span class="sep-v" aria-hidden="true"></span>
+    <div id="suivi">
+      <button id="prec" class="btn-ico bord" type="button" aria-label="Rapport précédent, dans l'ordre du tableau" title="Rapport précédent, dans l'ordre du tableau"><svg class="ic" aria-hidden="true"><use href="vendor/lucide-sprite.svg#chevron-left"/></svg></button>
+      <span id="position" class="num" aria-live="polite"></span>
+      <button id="suiv" class="btn-ico bord" type="button" aria-label="Rapport suivant à corriger" title="Enregistre, puis ouvre le prochain rapport non terminé du lab"><svg class="ic" aria-hidden="true"><use href="vendor/lucide-sprite.svg#chevron-right"/></svg></button>
+      <button id="termine" class="btn primaire" type="button"><svg class="ic" aria-hidden="true"><use href="vendor/lucide-sprite.svg#check"/></svg><span>Terminé…</span></button>
     </div>
-    <div class="grp">
-      <button id="ajuster">Ajuster</button>
-      <a id="exporter" class="bouton" title="Télécharger le PDF annoté pour LÉA">Exporter le PDF</a>
-      <button id="francais-bouton">Français</button>
-      <button id="reglages-bouton">Réglages</button>
-    </div>
-    <span id="page-info"></span>
-    <span id="sauvegarde" aria-live="polite"></span>
-    <span id="fr-sauvegarde" aria-live="polite"></span>
-  </div>
-  <div id="outils" class="ligne">
-    <div class="grp">
-      <button id="o-crayon" class="outil on" title="Crayon" aria-label="Crayon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20l1-4.5L16.5 4a1.8 1.8 0 012.5 0l1 1a1.8 1.8 0 010 2.5L8.5 19z"/><path d="M14.5 6l3.5 3.5"/><path d="M4 20l4.5-1"/></svg><i></i></button>
-      <button id="o-surligneur" class="outil" title="Surligneur" aria-label="Surligneur"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15.5 3l5.5 5.5-8 8-5.5-5.5z"/><path d="M7.5 11l5.5 5.5-3 3H6v-3.2L4 14.5z"/><path d="M3 22h18" stroke-width="2.6" opacity=".55"/></svg><i></i></button>
-      <button id="o-gomme" class="outil" title="Gomme" aria-label="Gomme"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 14L14 4.5a2 2 0 012.8 0l3.2 3.2a2 2 0 010 2.8L11 19.5H7z"/><path d="M9.5 9l6 6"/><path d="M12 20h8.5"/></svg></button>
-    </div>
-    <div class="sep"></div>
-    <div class="grp" id="options-trait">
-      <div class="menu">
-        <button id="ep-bouton" title="Épaisseur du trait" aria-label="Épaisseur du trait" aria-haspopup="true" aria-expanded="false"><span class="trait-ap"></span><small>▾</small></button>
-        <div id="epaisseurs" hidden></div>
-      </div>
-      <div class="grp" id="couleurs"></div>
-    </div>
-    <div class="grp" id="options-gomme" hidden>
-      <button id="g-trait">Trait entier</button>
-      <button id="g-partielle">Partielle</button>
-    </div>
-    <div class="sep"></div>
-    <div class="grp">
-      <button id="annuler" title="Annuler" aria-label="Annuler">↶</button>
-      <button id="retablir" title="Rétablir" aria-label="Rétablir">↷</button>
-    </div>
-    <div class="sep"></div>
-    <div class="grp"><button id="bascule" title="Bascule crayon / gomme" aria-label="Bascule crayon / gomme">⇄</button></div>
-    <div id="reglages" hidden>
-      <label>Courbe de pression <input id="r-courbe" type="range" min="0.4" max="2" step="0.1"> <b></b></label>
-      <label>Gomme <input id="r-gomme" type="range" min="2" max="25" step="1"> <b></b></label>
-      <label><input id="r-doigt" type="checkbox"> Le doigt dessine aussi</label>
-    </div>
-  </div>
-</div>
+  </header>
+
   <div id="corps">
-    <div id="fenetre"><div id="taille"><div id="pile"></div></div></div>
-      <aside id="francais" hidden>
-        <div id="detail" hidden></div>
-        <p id="fr-etat"></p>
-        <p id="fr-resume"></p>
-        <div class="fr-actions">
-          <button id="fr-analyser">Analyser le français</button>
-          <button id="fr-tout-accepter">Accepter les fautes à trancher</button>
+    <!-- Rail d'outils : crayon, surligneur, gomme (un 2e toucher sur l'outil actif ouvre ses réglages), couleurs, annuler, rétablir. -->
+    <nav id="rail" aria-label="Outils d'annotation">
+      <button id="o-crayon" class="outil on" type="button" title="Crayon" aria-label="Crayon" aria-pressed="true"><svg class="ic l" aria-hidden="true"><use href="vendor/lucide-sprite.svg#pen"/></svg><u></u></button>
+      <button id="o-surligneur" class="outil" type="button" title="Surligneur" aria-label="Surligneur" aria-pressed="false"><svg class="ic l" aria-hidden="true"><use href="vendor/lucide-sprite.svg#highlighter"/></svg><u></u></button>
+      <button id="o-gomme" class="outil" type="button" title="Gomme" aria-label="Gomme" aria-pressed="false"><svg class="ic l" aria-hidden="true"><use href="vendor/lucide-sprite.svg#eraser"/></svg></button>
+      <hr>
+      <div id="couleurs" role="group" aria-label="Couleur du trait"></div>
+      <hr>
+      <button id="annuler" class="outil" type="button" title="Annuler" aria-label="Annuler"><svg class="ic l" aria-hidden="true"><use href="vendor/lucide-sprite.svg#undo-2"/></svg></button>
+      <button id="retablir" class="outil" type="button" title="Rétablir" aria-label="Rétablir"><svg class="ic l" aria-hidden="true"><use href="vendor/lucide-sprite.svg#redo-2"/></svg></button>
+      <hr>
+      <button id="bascule" class="outil" type="button" title="Bascule crayon / gomme" aria-label="Bascule crayon / gomme"><svg class="ic l" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3 4 7l4 4M4 7h16M16 21l4-4-4-4M20 17H4"/></svg></button>
+      <button id="o-deplacer" class="outil" type="button" title="Déplacer la correction de la faute ouverte" aria-label="Déplacer la correction de la faute ouverte" aria-pressed="false" disabled><svg class="ic l" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2v20M2 12h20M15 19l-3 3-3-3M19 9l3 3-3 3M5 9l-3 3 3 3M9 5l3-3 3 3"/></svg></button>
+    </nav>
+
+    <div id="zone">
+      <div id="vue">
+        <div id="fenetre"><div id="taille"><div id="pile"></div></div></div>
+        <span id="page-info" class="num" aria-live="off"></span>
+      </div>
+
+      <!-- Inspecteur : onglets Français, Indice IA, Plagiat. En portrait, feuille sous le PDF à 3 hauteurs. -->
+      <aside id="inspecteur" aria-label="Correction du rapport">
+        <button id="poignee" type="button" aria-label="Hauteur de la feuille : toucher pour la changer, ou glisser"><i></i></button>
+        <div id="onglets" class="onglets" role="tablist">
+          <button id="onglet-francais" role="tab" type="button" aria-selected="true" aria-controls="francais"><svg class="ic s" aria-hidden="true"><use href="vendor/lucide-sprite.svg#spell-check"/></svg>Français <span id="n-francais" class="n" hidden></span></button>
+          <button id="onglet-ia" role="tab" type="button" aria-selected="false" aria-controls="vue-ia"><svg class="ic s" aria-hidden="true"><use href="vendor/lucide-sprite.svg#scan-search"/></svg>Indice IA <span id="n-ia" class="n pt-ia" role="img" hidden></span></button>
+          <button id="onglet-plagiat" role="tab" type="button" aria-selected="false" aria-controls="vue-plagiat"><svg class="ic s" aria-hidden="true"><use href="vendor/lucide-sprite.svg#copy"/></svg>Plagiat <span id="n-plagiat" class="n" hidden></span></button>
+          <span id="fr-compact" class="mu" hidden></span>
         </div>
-        <fieldset>
-          <legend>Barème du cours</legend>
-          <label>Points par faute <input id="fr-points" type="number" min="0" step="0.25"></label>
-          <label>Plafond <input id="fr-plafond" type="number" min="0" step="0.5" placeholder="aucun"></label>
-        </fieldset>
-        <div id="fr-liste"></div>
+
+        <section id="francais" role="tabpanel" aria-labelledby="onglet-francais">
+          <div class="fr-haut">
+            <div id="fr-vide" class="fr-vide">
+              <svg class="ic l" aria-hidden="true"><use href="vendor/lucide-sprite.svg#spell-check"/></svg>
+              <p>Rapport pas encore analysé.</p>
+              <button id="fr-analyser" class="btn primaire" type="button">Analyser le français</button>
+            </div>
+            <div id="fr-synthese" class="fr-synthese" hidden>
+              <div>
+                <div class="fr-pen num"><b id="fr-pen"></b> <span id="fr-plaf" class="mu"></span></div>
+                <div id="fr-comptes" class="mu"></div>
+              </div>
+              <button id="fr-relancer" class="btn-ico" type="button" aria-label="Relancer l'analyse" title="Relancer l'analyse"><svg class="ic" aria-hidden="true"><use href="vendor/lucide-sprite.svg#refresh-cw"/></svg></button>
+            </div>
+            <p id="fr-etat" role="status" hidden></p>
+            <button id="fr-tout-accepter" class="btn" type="button" hidden>Accepter les fautes à trancher</button>
+          </div>
+          <div id="detail" class="fiche" hidden></div>
+          <div class="fr-colonne">
+            <div id="fr-liste"></div>
+            <details id="fr-bareme">
+              <summary>Barème du cours <span id="fr-bareme-resume" class="mu"></span></summary>
+              <label class="champ"><span class="etiquette">Points par faute</span><input id="fr-points" class="saisie" type="number" min="0" step="0.25"></label>
+              <label class="champ"><span class="etiquette">Plafond</span><input id="fr-plafond" class="saisie" type="number" min="0" step="0.5" placeholder="aucun"></label>
+            </details>
+          </div>
+        </section>
+
+        <section id="vue-ia" role="tabpanel" aria-labelledby="onglet-ia" hidden></section>
+        <section id="vue-plagiat" role="tabpanel" aria-labelledby="onglet-plagiat" hidden></section>
       </aside>
+    </div>
   </div>
+
+  <!-- Fenêtres flottantes : épaisseur du trait (2e toucher sur l'outil), réglages du crayon. -->
+  <div id="pop-outil" class="pop" role="group" hidden></div>
+  <div id="reglages" class="pop" role="group" aria-label="Réglages du crayon" hidden>
+    <label>Courbe de pression <input id="r-courbe" type="range" min="0.4" max="2" step="0.1"> <b></b></label>
+    <label>Gomme <input id="r-gomme" type="range" min="2" max="25" step="1"> <b></b></label>
+    <label class="interrupteur"><input id="r-doigt" type="checkbox"><i></i><span>Le doigt dessine aussi</span></label>
+  </div>
+
+  <!-- « Terminé… » : note du rapport, puis « Terminer et ouvrir le suivant ». -->
+  <div id="termine-fond" class="fond-modal" hidden>
+    <div class="carte dlg" role="dialog" aria-modal="true" aria-labelledby="termine-titre">
+      <div class="dlg-tete"><h2 id="termine-titre"></h2><span id="termine-equipe" class="mu"></span></div>
+      <div class="dlg-cartes">
+        <div><div class="mu">Français</div><b id="t-fr" class="num"></b></div>
+        <div><div class="mu">Fautes</div><b id="t-fautes"></b></div>
+        <div><div class="mu">Indice d'IA</div><b id="t-ia"></b></div>
+      </div>
+      <label class="champ">
+        <span class="etiquette">Note (reportée dans le CSV pour LÉA)</span>
+        <input id="termine-note" class="saisie" type="text" inputmode="decimal" autocomplete="off" maxlength="12">
+        <span id="termine-aide" class="aide">Vide = sans note.</span>
+      </label>
+      <div class="dlg-actions">
+        <button id="termine-annuler" class="btn" type="button">Annuler</button>
+        <span class="esp"></span>
+        <button id="termine-seul" class="btn" type="button">Terminer seulement</button>
+        <button id="termine-suivant" class="btn primaire" type="button"><svg class="ic" aria-hidden="true"><use href="vendor/lucide-sprite.svg#check"/></svg><span>Terminer et ouvrir le suivant</span></button>
+      </div>
+    </div>
+  </div>
+
   <p id="message" hidden></p>
   <script src="vendor/pdf.min.js"></script>
+  <script src="ui.js"></script>
   <script src="annotations-fusion.js"></script>
   <script src="lecteur.js"></script>
   <script src="envoi-francais.js"></script>
   <script src="francais.js"></script>
+  <script src="inspecteur.js"></script>
   <script src="navigation-lecteur.js"></script>
 </body>
 </html>
