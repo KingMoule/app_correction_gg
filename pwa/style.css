@@ -1,25 +1,10 @@
-/* Mise en page commune (accueil, bibliothèque, import, outils, suivi, plagiat). Couleurs et tailles : voir design.css. */
+/* Mise en page commune (accueil, bibliothèque, import, outils, suivi, plagiat). Couleurs et tailles : voir design.css; navigation : coque.css. */
 body { margin: 0; padding: 0; }
-main { max-width: 60rem; margin: 0 auto; padding: var(--e2) var(--e5) var(--e6); }
+main { max-width: 60rem; margin: 0 auto; padding: var(--e5) var(--e5) var(--e6); }
 section { margin-top: var(--e5); }
 section input, section select, section button { display: block; margin: var(--e2) 0; }
 section h2:first-child { margin-top: 0; }
 .attente-item { padding: var(--e3) var(--e4); margin: var(--e2) 0; }
-
-/* Barre de navigation */
-#barre-nav { position: sticky; top: 0; z-index: 5; display: flex; gap: var(--e1); align-items: center; flex-wrap: wrap; background: var(--surface);
-  border-bottom: 1px solid var(--border); padding: env(safe-area-inset-top) var(--e4) 0; min-height: 60px; }
-#barre-nav b { margin-right: var(--e4); font-size: 18px; display: inline-flex; align-items: center; gap: var(--e2); }
-#barre-nav b::before { content: ""; width: 26px; height: 26px; border-radius: 8px; background: var(--accent); }
-#nav { display: flex; flex-wrap: wrap; gap: var(--e1); }
-#nav button { min-height: var(--cible); padding: 0 var(--e4); border: 0; border-radius: var(--r-s); background: none; font-size: 16px; font-weight: 500; color: var(--texte-2); cursor: pointer; }
-#nav button:hover { background: var(--surface-2); }
-#nav button.on { background: var(--accent-doux); color: var(--accent-fort); }
-.etat { margin-left: auto; font-size: 14px; display: inline-flex; align-items: center; gap: 6px; }
-.etat::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
-#nav .badge { background: var(--danger); color: #fff; padding: 0 7px; font-size: 12px; margin-left: 4px; }
-#nav .badge::before { display: none; }
-#nav .on .badge { background: var(--danger); color: #fff; }
 
 /* Accueil */
 .cartes { display: grid; grid-template-columns: repeat(auto-fit, minmax(17rem, 1fr)); gap: var(--e3); }

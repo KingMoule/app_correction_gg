@@ -1,124 +1,73 @@
 # Design de l'interface
 
-Objectif : une app plus belle et plus sobre, **sans changer le comportement ni les API**, sans compilation (CSS et JS simples). Maquette à ouvrir dans un navigateur : [`maquette-design.html`](maquette-design.html) (3 écrans, avant / après, 2 directions, format iPad).
+**Direction en vigueur : « Atelier » en sarcelle** (choisie par Guillaume le 2026-10-21, elle remplace la direction « chaleureuse » du 2026-10-20). Outil pro sobre : barre latérale, neutres froids, un seul accent, Inter. Catalogue vivant : [`pwa/composants.html`](../pwa/composants.html) (ouvrir via le moteur : `http://localhost:8001/composants.html`). Maquettes de référence, raisonnement et critiques : [`design/propositions-2026-10/`](design/propositions-2026-10/README.md) (direction A, section « A avec ta sarcelle » de `comparaison.html`).
 
-État : **choix faits** (section 5); application en cours, une PR par groupe d'écrans.
+## État de l'application
 
-Nouvelle étape (2026-10-21) : 3 directions visuelles pour toute l'app, à choisir, dans [`design/propositions-2026-10/`](design/propositions-2026-10/README.md).
+- **PR 1 (faite) : fondations.** Jetons (`design.css`), composants (`composants.css`, `ui.js`), coque (`coque.css`, `coque.js`), catalogue. La coque et la nouvelle typographie sont appliquées à l'accueil, la bibliothèque, l'import, le lot, le suivi et le plagiat, **sans refaire leur contenu**.
+- **PR 2** : accueil (avec le bloc « À faire » de la direction C), bibliothèque, import, code d'accès. **PR 3** : suivi (avec le balayage d'une ligne de la direction B), plagiat, indices d'IA, export. **PR 4** : lecteur (rail d'outils à gauche, inspecteur à onglets, fiche de la faute, page à 700 px).
+- Les écrans pas encore refaits utilisent encore les anciens noms (`.bk`, `.gros`, `.pastille`, `.carte`, boutons des `<section>`), restylés par `design.css` pour rester cohérents. Une PR d'écran remplace ces noms par ceux du catalogue et supprime ce qu'elle n'utilise plus.
 
-## 1. Constats sur l'app actuelle
+## Règles
 
-Captures « avant » (bibliothèque fictive) : `docs/design/avant/<écran>-<ipad-paysage|ipad-portrait|pc>.png`. Exemples : [bibliothèque](design/avant/biblio-ipad-paysage.png), [suivi](design/avant/suivi-ipad-paysage.png), [lecteur + fautes](design/avant/lecteur-fautes-ipad-paysage.png), [import](design/avant/import-ipad-paysage.png).
+1. **Un seul accent**, la sarcelle : action principale, sélection, outil actif, lien actif. Avatars, labs et pastilles restent neutres.
+2. **Couleurs d'état fixes** : rouge = faute ou erreur bloquante, **jamais autre chose**; bleu-vert = plagiat; violet + loupe = indice d'IA; neutre + étincelles = Claude (l'outil), pour ne pas confondre « analysé par Claude » et « écrit par une IA »; vert = fait; ambre = à trancher. Jamais la couleur seule : toujours un mot.
+3. **Les 5 couleurs d'annotation et le rouge des fautes (`--faute`) ne changent pas.**
+4. **Un seul bouton plein par zone**, à droite. Libellé visible partout; **icône seule** seulement pour crayon, gomme, annuler, rétablir, partager (avec `aria-label`).
+5. **Cibles d'au moins 44 px**, 8 px entre cibles voisines; texte d'au moins 13 px; contraste WCAG AA (texte ≥ 4,5:1, contour de champ ≥ 3:1).
+6. **Hors ligne** : aucune ressource externe. Inter et Lucide sont dans `pwa/vendor/` avec leur licence.
+7. **Pas de mode sombre** (décision du 2026-10-20). Tout passe par des variables : un thème sombre n'aurait qu'à les redéfinir. Le lecteur garde ses variables propres.
+8. **Retours** : toast bref avec « Annuler » pour un succès ou une action réversible; bannière persistante pour ce qui exige une action; progression chiffrée (« 9 / 12 »); état vide avec une phrase qui dit quoi faire et un bouton.
 
-1. **Le rouge a trois sens à la fois** : couleur de marque (onglet actif, bouton « Ouvrir »), couleur d'erreur, couleur des fautes de français. Un bouton principal rouge ressemble à un danger.
-2. **Pas de système** : couleurs, rayons et espacements écrits en dur dans 4 feuilles de style (`style.css`, `suivi.css`, `lecteur.css`, `plagiat.css`). Les gris et les beiges changent d'un écran à l'autre (`#eee`, `#f1f1ee`, `#fafafa`…).
-3. **Hiérarchie faible** : tous les titres sont presque pareils, le fond est blanc partout, les cartes ne se détachent pas ; l'accueil et la bibliothèque laissent les deux tiers de l'écran vides, sans état vide soigné.
-4. **Tableau de suivi** : « pas commencée » se coupe sur deux lignes, l'état « en cours » aussi, les pastilles n'ont pas de couleurs d'état cohérentes, quatre boutons de poids égal par ligne (seul « Ouvrir » ressort).
-5. **Formulaires natifs** (import, lot, plagiat) : champs et boutons du navigateur, non alignés avec le reste, sans zone de dépôt ni retour de progression clair.
-6. **Lecteur** : réussi (sombre, le PDF ressort, cibles de 44 px), mais le panneau des fautes mélange boutons natifs (« Relancer l'analyse ») et boutons maison, et les icônes sont mélangées (SVG, symboles ✓ ✗ ‹, emojis 📊 🔍 ⚙ sur l'accueil).
-7. **Retours** : aucun message de succès uniforme (« enregistré », « importé »), erreurs en simple texte rouge.
+## Jetons (`pwa/design.css`)
 
-À garder : cibles de 44 px, rouge des fautes, couleurs des outils d'annotation, lisibilité du PDF, lecteur sombre.
-
-## 2. Sources consultées et principes retenus
-
-| Source | Ce qu'on en retient |
+| Famille | Jetons |
 |---|---|
-| [Apple HIG — Layout](https://developer.apple.com/design/human-interface-guidelines/layout) et [Typography](https://developer.apple.com/design/human-interface-guidelines/typography) | Cibles d'au moins 44 × 44 pt, marges et zones de sécurité, police système, un seul élément principal par zone. |
-| [Refactoring UI](https://www.refactoringui.com/) (Wathan & Schoger) | Hiérarchie par la taille, la graisse et la couleur (pas seulement la taille) ; échelle d'espacement fixe ; peu de couleurs, une d'accent ; ombres légères ; un bouton principal, les autres secondaires. |
-| [Material Design 3](https://m3.material.io/) | Rôles de couleur (principale, surface, erreur) plutôt que des teintes en dur ; états (survol, pression, désactivé) ; échelle typographique. |
-| [Radix Colors](https://www.radix-ui.com/colors/docs/palette-composition/understanding-the-scale) | Échelle de 12 étapes : fonds (1-2), composants (3-5), bordures (6-8), plein (9), texte (11-12). Sert à choisir des fonds d'état pâles avec un texte foncé lisible. |
-| [Primer (GitHub)](https://primer.style/product/getting-started/) | Jetons (variables), composants Button / Banner / Blankslate (état vide) : un état vide dit quoi faire ensuite. |
-| [Fluent 2 (Microsoft)](https://fluent2.microsoft.design/) et [Atlassian Design System](https://atlassian.design/foundations/) | Espacements en multiples de 4, rayons peu nombreux, statuts (« lozenge ») en pastilles colorées avec texte, notifications éphémères pour les succès. |
-| [WCAG 2.2, contraste minimum](https://www.w3.org/WAI/WCAG22/Understanding/contrast-minimum.html) | Texte normal ≥ 4,5:1, grand texte et composants ≥ 3:1. Ne jamais coder un état par la couleur seule (toujours un mot). |
-| [10 heuristiques de Nielsen Norman](https://www.nngroup.com/articles/ten-usability-heuristics/) | Visibilité de l'état du système (chargement, enregistré), prévention des erreurs, messages d'erreur clairs avec une solution, design minimaliste. |
-| [Laws of UX](https://lawsofux.com/) | Fitts (grandes cibles pour les actions fréquentes), Hick (peu de choix visibles), Jakob (conventions connues), Doherty (réponse sous 400 ms : afficher un état « en cours »). |
-| Outils pros sobres (consultés pour l'esprit, rien de copié) : [Gradescope](https://www.gradescope.com/), [Linear](https://linear.app/), [GitHub](https://github.com/) | Tableau dense mais aéré avec statuts en pastilles ; barre d'outils compacte ; accent unique ; fond gris très clair avec cartes blanches. |
+| Neutres | `--bg #fafafa`, `--side #f4f4f5`, `--surface #fff`, `--surface-2/-3`, `--border`, `--border-fort`, `--border-champ` (contour des champs), `--texte`, `--texte-2`, `--texte-3` |
+| Accent sarcelle | `--accent #0f6f66`, `--accent-fort #0a554e`, `--accent-doux #e1f0ed`, `--accent-bord #a9d3cc`, `--sur-accent` |
+| États | `--ok`/`--ok-fond`/`--ok-point`, `--attention`/`-fond`/`-point`, `--danger`/`-fond`, `--plagiat`/`-fond`, `--ia`/`-fond`, `--claude`/`-fond`, `--neutre`/`-fond`, `--faute` |
+| Typographie | `Inter` variable (latin), 15 px (`--t`), minimum 13 px (`--t-min`), 14 px (`--t-s`), titres en 600 (24 px d'écran, 18 px de section), `.num` = chiffres tabulaires |
+| Espacements | `--e1` 4, `--e2` 8, `--e3` 12, `--e4` 16, `--e5` 24, `--e6` 32 |
+| Rayons, ombres | `--r-xs` 6, `--r-s` 8, `--r-m` 12; `--ombre` (fine), `--ombre-pop` (menus, toasts) |
+| Tailles | `--cible` 44, `--ligne` 48 (listes), `--ligne-tableau` 52, `--lateral` 248 |
 
-Principes retenus :
+Anciens noms conservés : `--info`, `--info-fond`, `--neutre-fond`, `--e1…e6`, `--ligne`, etc.
 
-1. **Une couleur d'accent**, jamais rouge ; le rouge ne dit que « faute / erreur / danger ».
-2. **Fond gris clair, cartes blanches, bordure fine + ombre légère** : la hiérarchie vient du contraste fond/carte.
-3. **Échelle typographique courte** (12 à 28 px), titres en 600-700, police système (hors ligne, aucune police à télécharger).
-4. **Espacements en multiples de 4**, rayons 8 et 12 px.
-5. **Badges d'état = pastille + mot** (jamais la couleur seule), contraste ≥ 4,5:1.
-6. **Un bouton principal par zone**, les autres en contour ou discrets.
-7. **Retours systématiques** : notification brève (succès), barre de progression, message d'erreur avec quoi faire, états vides avec une action.
-8. **Icônes SVG filaires d'un seul style** (traits de 1,8 px, `currentColor`), plus d'emojis.
-9. **Tactile d'abord** : 44 px minimum, 8 px entre cibles voisines.
+## Composants (guide d'usage)
 
-## 3. Système de design minimal
+Chargement d'une page : `design.css`, `composants.css`, puis `coque.css` (si coque), puis les feuilles de l'écran. Scripts : `ui.js` puis `coque.js` avant ceux de l'écran. Le lecteur ne charge que `design.css` (plus ses feuilles).
 
-Un seul fichier `pwa/design.css` (jetons + composants), chargé avant les feuilles existantes ; elles s'y raccordent écran par écran. Les valeurs ci-dessous sont celles de la maquette (direction « sobre ») ; la direction « chaleureuse » ne change que les lignes marquées ◆.
+| Composant | Balisage | Quand |
+|---|---|---|
+| Bouton primaire / secondaire / tertiaire / danger | `.btn.primaire`, `.btn`, `.btn.tertiaire`, `.btn.danger` (+ icône `svg.ic` avant le libellé) | Primaire : l'action de la zone. Secondaire : les autres. Tertiaire : lien d'action discret. Danger : écarter, remplacer (avec confirmation). |
+| Bouton icône seule | `.btn-ico` (+ `.on` ou `aria-pressed`) avec `aria-label` | Les 5 usages ci-dessus et le déclencheur « … » d'un menu. |
+| Contrôle segmenté | `.seg` > `button.on` + `.n` (compteur); `UI.segmente(seg, rappel)` | Filtres exclusifs avec compteurs. |
+| Onglets | `.onglets` > `[role=tab][aria-selected]` | Inspecteur (Français, Indice IA, Plagiat). |
+| Pastille d'état | `.pastille` (+ `.p-fini`, `.p-nouv`, `.p-neutre`, `.p-erreur`, `.p-plagiat`, `.p-ia`, `.p-claude`) | Défaut = à trancher. `p-ia` et `p-claude` portent une icône (loupe, étincelles) à la place du point. |
+| Menu « … » | `UI.menu(bouton, [{libelle, icone, surClic, danger}, {separateur:true}])` | Une ligne de tableau : un menu au lieu de 3 ou 4 boutons. |
+| Toast | `UI.toast(texte, {action:{libelle:"Annuler", surClic}, erreur})` | Succès bref et actions réversibles; 3,5 s (6 s avec action). |
+| Bannière | `.banniere` (+ `.attention`, `.erreur`, `.ok`) avec `role="status"` (ou `alert`) | Ce qui exige une action ou une précaution (« indice, jamais un verdict »). |
+| Champ | `label.champ` > `.etiquette` + `.saisie` + `.aide` / `.message` (`.invalide`); `.champ-icone`; `.interrupteur` | Tout formulaire : 44 px, 16 px de texte. |
+| Zone de dépôt | `label.depot` > `input[type=file]`; `UI.depot(zone, rappel)`; `.depot-liste` | Import de PDF, liste de classe, énoncé. Une ligne par fichier avec sa pastille. |
+| Tableau dense | `.tableau-defil` > `table.tableau` (`tr.groupe`, `tr.sel`, `td.nombre`, `.avatar`, `.nom-etu`) | Suivi, plagiat, export : lignes de 52 px. |
+| Progression chiffrée | `.progression` (`.progression-tete` + `progress` ou `.barre > i.fait/.cours`) | Lot, export, avancement d'un lab. |
+| État vide | `.vide.carte` : icône, phrase, bouton | Toute liste vide. |
+| Icônes | `<svg class="ic"><use href="vendor/lucide-sprite.svg#nom"/></svg>` ou `UI.icone("nom")` (`.s` 16 px, `.l` 20 px) | Trait de 1,75 px, `currentColor`. |
 
-### Jetons
+Ajouter une icône : l'ajouter à la liste de `scripts/sprite_lucide.mjs`, relancer le script (instructions en tête), commiter le sprite. Ne jamais éditer le sprite à la main.
 
-```css
-:root {
-  --font: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, Roboto, sans-serif;
-  /* surfaces et texte */
-  --bg: #f5f6f8;      --surface: #fff;    --surface-2: #eef0f4;     /* ◆ chaleureuse : #f8f5f0 / #fffefb / #f0ebe2 */
-  --border: #dde1e7;  --border-fort: #b9c0cb;
-  --texte: #1b2430;   --texte-2: #566070;                            /* 15,6:1 et 6,6:1 sur blanc */
-  /* accent (une seule couleur) */
-  --accent: #2f55d4;  --accent-fort: #2443ad;  --accent-doux: #e6ecfc;  /* ◆ chaleureuse : #0f6f66 / #0a554e / #dcf0ec */
-  /* états (texte sur fond pâle, ≥ 4,5:1) */
-  --ok: #17692e;        --ok-fond: #dcf2e2;
-  --attention: #7a4b00; --attention-fond: #fdeccb;
-  --danger: #b42318;    --danger-fond: #fde3e0;
-  --info: var(--accent-fort); --info-fond: var(--accent-doux);
-  --faute: rgba(229, 57, 53, .26);   /* inchangé : zones de fautes dans le PDF */
-  /* espacements, rayons, ombre, cible */
-  --e1: 4px; --e2: 8px; --e3: 12px; --e4: 16px; --e5: 24px; --e6: 32px;
-  --r-s: 8px; --r-m: 12px; --r-pilule: 999px;                        /* ◆ chaleureuse : 10 / 16 */
-  --ombre: 0 1px 2px rgba(20,30,50,.08), 0 2px 8px rgba(20,30,50,.06);
-  --cible: 44px;
-}
-```
+### Coque (`coque.css`, `coque.js`)
 
-Typographie (échelle) : 12 légende · 13 badge, en-tête de tableau · 14 secondaire · **16 texte** · 20 titre de section · 24 titre d'écran · 28 gros chiffres. Chiffres en `font-variant-numeric: tabular-nums`.
+Page : `<body class="avec-coque"><div class="coque"><aside id="coque-lat" class="coque-lat"></aside><div class="coque-corps"><main>…</main></div></div>`, puis `ui.js`, `coque.js`. `coque.js` construit la barre : Accueil, Bibliothèque, Importer (badge `#badge-attente`, rempli par `app.js`), Analyse par lot (progression `n / total` et barre tant qu'un lot tourne), Plagiat, Export LÉA (mène à la bibliothèque : l'export se lance depuis un lab, jamais marqué actif), « Labs en cours » (lien vers le suivi, `faits / total`), et en pied Réglages (pas encore de page : désactivé, à brancher) et « Ordi connecté » avec « Se déconnecter » (`#deconnexion`, géré par `acces.js`). Sous 900 px (iPad en portrait) la barre devient un tiroir ouvert par « Menu ». Le lecteur n'a pas de coque. Une page à vue interne (l'accueil) appelle `Coque.marquer(vue)`; une page qui connaît déjà la bibliothèque appelle `Coque.labs(arbre)`.
 
-États : survol = fond `--surface-2` ; pression = `--accent-doux` ; focus = anneau 2 px `--accent` ; désactivé = opacité .45 (pas de survol).
+## Vérification d'un écran refait
 
-### Composants de base
+- Captures à 1180 × 820 (iPad paysage), 820 × 1180 (portrait) et PC, moteur en `--local` sur une bibliothèque **fictive** (dossier temporaire, jamais `C:\correction_donnees`), console sans erreur, serveur arrêté ensuite.
+- `pytest` (inclut `tests/test_js_syntaxe.py`).
+- Aucun comportement retiré : mêmes `id` que les scripts de l'écran attendent.
 
-| Composant | Règle |
-|---|---|
-| Bouton | `.btn` (contour), `.btn.principal` (accent plein, un seul par zone), `.btn.discret` (sans bordure), `.btn.danger` ; hauteur 44 px ; icône SVG facultative à gauche. |
-| Champ | Étiquette au-dessus (14 px, 600), saisie 44 px, aide en 13 px dessous, erreur en `--danger` avec une phrase qui dit quoi faire. |
-| Carte | Fond `--surface`, bordure `--border`, rayon 12, `--ombre`, marge intérieure 16-24. |
-| Tableau | En-tête 13 px majuscules `--texte-2` sur `--surface-2`, lignes de 60 px, séparateur fin, ligne de groupe grisée ; en portrait, une carte par ligne. |
-| Barre d'outils | Hauteur 60 px (navigation) ; contrôle segmenté pour les filtres exclusifs ; séparateurs verticaux fins. |
-| Panneau | Latéral (paysage) ou bas (portrait), jamais par-dessus le PDF ; titre 16 px 600, résumé 14 px. |
-| Badge d'état | Pastille + mot : ok (terminé, tranché), attention (à trancher), danger (indice marqué, plagiat confirmé), info (en cours), neutre (non analysé, à corriger). |
-| Notification | Bande sombre en bas à droite, 3 s, avec icône ; erreurs : bandeau persistant en haut du contenu. |
-| Bandeau (note) | `--attention-fond`, icône, une phrase (ex. « indices à revérifier, jamais un verdict »). |
-| État vide | Icône, une phrase, un bouton d'action (« Importer des rapports »). |
-| Progression | Barre de 8 px arrondie, `--accent`, avec le compte (« 9 / 12 »). |
+## Historique des décisions de design
 
-Lecteur : reste sombre (variables propres `--l-*` : fond `#20242b`, barres `#262b33`, boutons `#353b45`, sélection `#7d9bff`), mêmes rayons, mêmes cibles, mêmes icônes SVG.
-
-Mode sombre global : non proposé par défaut (voir questions) ; les jetons le permettraient plus tard en redéfinissant les variables dans `@media (prefers-color-scheme: dark)`.
-
-## 4. Maquette
-
-Ouvrir [`maquette-design.html`](maquette-design.html) : boutons en haut pour changer d'écran (suivi, lecteur + fautes, import) et de version (avant, sobre, chaleureuse). Captures de la maquette : `docs/design/maquette/<écran>-<sobre|chaleureuse>.png`.
-
-![Suivi, sobre](design/maquette/suivi-sobre.png)
-![Lecteur, chaleureuse](design/maquette/lecteur-chaleureuse.png)
-
-## 5. Décisions de Guillaume (2026-10-20)
-
-1. **Direction** : chaleureuse et éducative.
-2. **Accent** : sarcelle `#0f6f66` (fort `#0a554e`, doux `#dcf0ec`).
-3. **Mode sombre** : non (fond clair; le lecteur reste sombre). Les jetons permettront de l'ajouter plus tard.
-4. **Densité** : compacte, lignes de **48 px** (cibles de 44 px gardées à l'intérieur).
-
-Les jetons à appliquer sont donc ceux marqués ◆ ci-dessus, avec `--ligne: 48px`.
-
-## 6. Plan d'application (après accord)
-
-- **PR 1** : `pwa/design.css` (jetons + composants) et barre de navigation, accueil, bibliothèque, import.
-- **PR 2** : tableau de suivi, plagiat, lot.
-- **PR 3** : lecteur et panneau des fautes (variables, icônes, boutons ; aucun changement de comportement).
-- Chaque PR : captures avant/après, `pytest` si le moteur est touché (il ne devrait pas l'être), fusion de `origin/main` avant d'annoncer.
+- 2026-10-20 : direction « chaleureuse » (sarcelle `#0f6f66`, fond crème), pas de mode sombre, lignes de 48 px. Maquette : `maquette-design.html`, constats sur l'ancienne app : `design/avant/`.
+- 2026-10-21 : trois directions comparées (A « Atelier », B « Natif iPad », C « Salle des profs »). **A retenue en sarcelle**, avec deux emprunts (bloc « À faire » de C à l'accueil, balayage d'une ligne du suivi de B). Le pas de mode sombre est maintenu.
+- Principes de recherche (Refactoring UI, HIG, Material, Radix, Primer, Atlassian, WCAG 2.2, NN/g) : voir `design/propositions-2026-10/README.md`.

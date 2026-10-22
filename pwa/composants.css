@@ -1,0 +1,111 @@
+/* Composants réutilisables de la direction « Atelier » (guide : docs/DESIGN.md, catalogue : composants.html).
+   Jetons : design.css (boutons, champs, pastilles et icônes y sont déjà). Comportements : ui.js. Aucun nom ne recoupe les
+   classes des écrans existants (.tab, .fil, .ligne, .etat, .carte…) : ces écrans adopteront ces composants un par un. */
+
+/* Contrôle segmenté avec compteurs : <div class="seg" role="group"><button class="on" aria-pressed="true">À corriger <span class="n">9</span></button>… */
+.seg { display: inline-flex; background: var(--surface-2); border: 1px solid var(--border); border-radius: 10px; padding: 2px; gap: 2px; max-width: 100%; overflow-x: auto; }
+.seg > button, .seg > a { min-height: var(--cible); display: inline-flex; align-items: center; gap: 6px; padding: 0 13px; border: 0; border-radius: var(--r-s); background: transparent;
+  color: var(--texte-2); font-size: var(--t-s); font-weight: 500; text-decoration: none; cursor: pointer; white-space: nowrap; box-shadow: none; }
+.seg > button:hover, .seg > a:hover { color: var(--texte); background: var(--surface-3); }
+.seg > .on, .seg > [aria-pressed="true"], .seg > [aria-current] { background: var(--surface); color: var(--texte); font-weight: 600; box-shadow: var(--ombre), 0 0 0 1px var(--border); }
+.seg .n { color: var(--texte-2); font-size: var(--t-min); font-weight: 500; font-variant-numeric: tabular-nums; }
+
+/* Onglets (inspecteur, sections) : <div class="onglets" role="tablist"><button role="tab" aria-selected="true">Français <span class="n">12</span></button>… */
+.onglets { display: flex; gap: 2px; border-bottom: 1px solid var(--border); }
+.onglets > [role=tab] { min-height: var(--cible); display: inline-flex; align-items: center; gap: 6px; padding: 0 var(--e3); border: 0; border-bottom: 2px solid transparent; margin-bottom: -1px;
+  background: transparent; color: var(--texte-2); font-size: var(--t-s); font-weight: 500; cursor: pointer; border-radius: 0; box-shadow: none; }
+.onglets > [aria-selected="true"] { color: var(--texte); border-color: var(--accent); font-weight: 600; }
+.onglets .n { font-size: 12px; background: var(--surface-2); border-radius: 10px; padding: 1px 7px; color: var(--texte-2); }
+
+/* Champ : étiquette au-dessus, aide en dessous, erreur avec une phrase qui dit quoi faire */
+.champ { display: block; margin: 0 0 var(--e4); }
+.champ > .etiquette { display: block; font-size: var(--t-s); font-weight: 600; margin-bottom: 6px; }
+.champ > .aide { margin: 6px 0 0; font-size: var(--t-min); }
+.champ .message { display: none; margin: 6px 0 0; font-size: var(--t-min); color: var(--danger); }
+.champ.invalide .saisie { border-color: var(--danger); box-shadow: 0 0 0 3px var(--danger-fond); }
+.champ.invalide .message { display: flex; align-items: center; gap: 6px; }
+.champ-icone { position: relative; display: block; }
+.champ-icone > svg.ic { position: absolute; left: 12px; top: 13px; color: var(--texte-2); pointer-events: none; }
+.champ-icone > .saisie { padding-left: 38px; }
+select.saisie { padding-right: var(--e2); }
+
+/* Menu « … » : <div class="menu" role="menu" hidden><button role="menuitem">…</button><hr><button role="menuitem" class="danger">…</button></div> (voir UI.menu) */
+.menu { position: absolute; z-index: 60; min-width: 224px; max-width: 320px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; box-shadow: var(--ombre-pop); padding: 6px; }
+.menu > button, .menu > a { display: flex; align-items: center; gap: 10px; width: 100%; min-height: var(--cible); padding: 0 10px; border: 0; border-radius: var(--r-xs); background: transparent;
+  color: var(--texte); font-size: var(--t); font-weight: 500; text-align: left; text-decoration: none; cursor: pointer; box-shadow: none; box-sizing: border-box; }
+.menu > button:hover, .menu > a:hover, .menu > button:focus-visible { background: var(--surface-2); outline: none; }
+.menu > .danger { color: var(--danger); }
+.menu > :disabled { opacity: .45; pointer-events: none; }
+.menu > hr { border: 0; border-top: 1px solid var(--border); margin: 6px 0; }
+
+/* Toast : bref, avec « Annuler » (UI.toast). Conteneur fixe en bas, au-dessus de tout. */
+.toasts { position: fixed; z-index: 1000; left: 50%; bottom: max(var(--e5), env(safe-area-inset-bottom)); transform: translateX(-50%); display: flex; flex-direction: column; gap: var(--e2); align-items: center; pointer-events: none; width: max-content; max-width: calc(100vw - 32px); }
+.toast { pointer-events: auto; display: flex; align-items: center; gap: var(--e3); background: var(--encre); color: var(--sur-encre); border-radius: 10px; padding: 8px 8px 8px 14px; box-shadow: var(--ombre-pop); font-size: var(--t); }
+.toast svg.ic { color: #86efac; }
+.toast.erreur svg.ic { color: #fca5a5; }
+.toast .btn { min-height: var(--cible); background: transparent; color: var(--sur-encre); border-color: #71717a; box-shadow: none; }
+.toast .btn:hover { background: #3f3f46; }
+
+/* Bannière persistante : ce qui exige une action (erreur, avertissement, information). role="status", ou "alert" pour une erreur. */
+.banniere { display: flex; align-items: flex-start; gap: var(--e3); padding: var(--e3) var(--e4); border-radius: var(--r-m); border: 1px solid var(--accent-bord); background: var(--accent-doux); color: var(--accent-fort); font-size: var(--t-s); }
+.banniere > svg.ic { margin-top: 2px; }
+.banniere > .corps { flex: 1; min-width: 0; color: var(--texte); }
+.banniere > .corps b { color: inherit; }
+.banniere .btn { min-height: var(--cible); }
+.banniere.attention { background: var(--attention-fond); border-color: #fcd34d; color: var(--attention); }
+.banniere.erreur { background: var(--danger-fond); border-color: #fca5a5; color: var(--danger); }
+.banniere.ok { background: var(--ok-fond); border-color: #86efac; color: var(--ok); }
+
+/* Zone de dépôt de fichiers : <label class="depot"><input type="file" multiple>… (voir UI.depot pour le glisser-déposer sur PC) */
+.depot { display: flex; flex-direction: column; align-items: center; gap: var(--e2); text-align: center; padding: var(--e6) var(--e4); border: 2px dashed var(--border-champ); border-radius: var(--r-m);
+  background: var(--surface); color: var(--texte-2); cursor: pointer; }
+.depot:hover, .depot.survol { border-color: var(--accent); background: var(--accent-doux); color: var(--accent-fort); }
+.depot:focus-within { outline: 2px solid var(--accent); outline-offset: 2px; }
+.depot > input[type=file] { position: absolute; width: 1px; height: 1px; opacity: 0; overflow: hidden; }
+.depot > svg.ic { width: 28px; height: 28px; color: var(--accent); }
+.depot > b { color: var(--texte); font-size: var(--t-h2); }
+.depot .btn { pointer-events: none; }
+.depot-liste { list-style: none; margin: var(--e3) 0 0; padding: 0; border: 1px solid var(--border); border-radius: var(--r-m); background: var(--surface); overflow: hidden; }
+.depot-liste li { display: flex; align-items: center; gap: var(--e3); min-height: var(--ligne); padding: 0 var(--e4); border-top: 1px solid var(--border); }
+.depot-liste li:first-child { border-top: 0; }
+.depot-liste .nom { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500; }
+.depot-liste .taille { color: var(--texte-2); font-size: var(--t-min); }
+
+/* Tableau dense : lignes de 52 px, en-tête de 40 px, ligne de groupe grisée. Dans un <div class="tableau-defil"> pour le défilement horizontal. */
+.tableau-defil { overflow-x: auto; background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-m); box-shadow: var(--ombre); }
+table.tableau { width: 100%; border-collapse: separate; border-spacing: 0; font-size: var(--t); }
+.tableau th { height: 40px; padding: 0 var(--e3); text-align: left; font-size: var(--t-min); font-weight: 600; color: var(--texte-2); background: var(--surface); border-bottom: 1px solid var(--border); white-space: nowrap; }
+.tableau td { height: var(--ligne-tableau); padding: 0 var(--e3); border-bottom: 1px solid var(--border); vertical-align: middle; }
+.tableau tr:last-child td { border-bottom: 0; }
+.tableau tbody tr:hover td { background: #fcfcfd; }
+.tableau tr.groupe td { height: 36px; background: var(--surface-2); font-size: var(--t-min); font-weight: 600; color: var(--texte-2); }
+.tableau tr.sel td { background: var(--accent-doux); }
+.tableau .nombre { text-align: right; font-variant-numeric: tabular-nums; }
+.tableau .actions { text-align: right; white-space: nowrap; }
+.tableau .nom-etu { display: flex; align-items: center; gap: 10px; font-weight: 500; white-space: nowrap; }
+.avatar { width: 30px; height: 30px; border-radius: 50%; display: inline-grid; place-items: center; font-size: 12px; font-weight: 600; color: var(--neutre); background: var(--surface-3); flex: none; } /* neutre : l'accent n'est pas pour les avatars */
+
+/* Progression chiffrée : libellé, compte « 9 / 12 », barre. Barre à segments (.barre > i) pour plusieurs états. */
+.progression-tete { display: flex; justify-content: space-between; align-items: baseline; gap: var(--e3); font-size: var(--t-s); margin-bottom: 6px; }
+.progression-tete .num { color: var(--texte-2); font-weight: 600; }
+.progression > progress { display: block; width: 100%; }
+.barre { height: 6px; border-radius: 3px; background: var(--surface-3); overflow: hidden; display: flex; }
+.barre > i { display: block; height: 100%; }
+.barre > .fait { background: var(--accent); }
+.barre > .cours { background: var(--attention-point); }
+
+/* État vide : une icône, une phrase qui dit quoi faire, un bouton */
+.vide { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; padding: var(--e5); }
+.vide > svg.ic { width: 28px; height: 28px; color: var(--texte-3); }
+.vide p { margin: 0; color: var(--texte-2); }
+
+/* Interrupteur et case : cibles de 44 px */
+.interrupteur { display: inline-flex; align-items: center; gap: var(--e3); min-height: var(--cible); cursor: pointer; }
+.interrupteur > input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.interrupteur > i { width: 44px; height: 26px; border-radius: 13px; background: #a1a1aa; position: relative; flex: none; transition: background .15s; }
+.interrupteur > i::after { content: ""; position: absolute; left: 3px; top: 3px; width: 20px; height: 20px; border-radius: 50%; background: #fff; box-shadow: var(--ombre); transition: transform .15s; }
+.interrupteur > input:checked + i { background: var(--accent); }
+.interrupteur > input:checked + i::after { transform: translateX(18px); }
+.interrupteur > input:focus-visible + i { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+@media (prefers-reduced-motion: reduce) { .interrupteur > i, .interrupteur > i::after { transition: none; } }

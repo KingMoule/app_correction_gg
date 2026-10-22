@@ -20,7 +20,8 @@
 .tab .act .pastille { margin-right: auto; margin-left: 0; }
 .tab .pastille { margin-left: 0; }
 .lib { display: none; font-size: 12px; color: var(--texte-2); }
-@media (max-width: 900px) {
+/* 1240 px : la barre latérale (248 px) prend la place des colonnes; la refonte du suivi (PR 3) rendra le tableau à nouveau en paysage. */
+@media (max-width: 1240px) {
   #suivi-page { padding: var(--e3); }
   .tab .tete { display: none; }
   .tab .ligne { grid-template-columns: repeat(4, 1fr); padding: var(--e2) var(--e3); }

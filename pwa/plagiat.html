@@ -6,11 +6,16 @@
   <meta name="theme-color" content="#0f6f66">
   <script src="acces.js"></script>
   <link rel="stylesheet" href="design.css">
+  <link rel="stylesheet" href="composants.css">
+  <link rel="stylesheet" href="coque.css">
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="plagiat.css">
   <title>Plagiat · Correction de labs</title>
 </head>
-<body>
+<body class="avec-coque">
+<div class="coque">
+  <aside id="coque-lat" class="coque-lat"></aside>
+  <div class="coque-corps">
   <main>
     <p><a href="/#outils">← Lot et plagiat</a></p>
     <h1>Plagiat</h1>
@@ -48,6 +53,10 @@
       <div id="detail-passages"></div>
     </section>
   </main>
+  </div>
+</div>
+  <script src="ui.js"></script>
+  <script src="coque.js"></script>
   <script src="plagiat.js"></script>
 </body>
 </html>

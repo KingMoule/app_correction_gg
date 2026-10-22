@@ -9,7 +9,7 @@ Tout est fusionné dans `main` jusqu'à la PR #56. Les 4 étapes sont faites cô
 
 ## Reste à faire
 
-- [ ] **Refonte visuelle : choisir une direction** parmi les 3 proposées (`docs/design/propositions-2026-10/`, comparaison `comparaison.html`), puis l'implémenter dans un fil à part.
+- [ ] **Refonte visuelle, direction A « Atelier » en sarcelle** (choisie le 2026-10-21) : PR 1 fondations (jetons, composants, coque, `pwa/composants.html`) faite; restent 3 PR d'écrans : (2) accueil, bibliothèque, import, code d'accès; (3) suivi, plagiat, indices d'IA, export; (4) lecteur. Guide : `docs/DESIGN.md`.
 - [ ] **Essais de Guillaume sur l'iPad** : crayon dans l'app, tap sur une faute, export du PDF depuis l'app installée, design, tableau de suivi (portrait compris), code d'accès (saisie dans l'app installée, coupure du Wi-Fi puis reconnexion), annotations iPad + PC sur le même rapport, décision de français après coupure du Wi-Fi.
 - [ ] **Essais sur de vrais fichiers** : liste Omnivox réimportée, import de vrais PDF (rangement, coéquipiers), lot sur de vrais rapports, jugement des fautes de français gardées (seuils dans `francais_filtre.py`), `Travaux.zip` dans LÉA (nom des fichiers; les rapports importés avant l'export n'ont pas de nom d'origine), plagiat sur la vraie bibliothèque, `demarrer.bat` (mise à jour auto, sauvegarde).
 - [ ] **M8 mémoire des canvas du lecteur** : mesurer sur l'iPad (rapport de 10 pages) avant de corriger.
@@ -47,7 +47,7 @@ Tout est fusionné dans `main` jusqu'à la PR #56. Les 4 étapes sont faites cô
 - Barre fixe en haut sur 2 lignes (navigation / outils), 3 épaisseurs prédéfinies, réglage par outil gardé sur l'appareil, cibles de 44 px.
 - Panneau des fautes : colonne à droite (sous le PDF en portrait), fiche de la faute en haut du panneau; correction manuscrite déplaçable (décalage enregistré); pas de trait de rappel.
 - Accueil : « Continuer » + « À corriger »; onglets Accueil / Bibliothèque / Importer / Lot et plagiat.
-- **Design** (`docs/DESIGN.md`) : chaleureux, accent sarcelle, fond clair, lignes de 48 px.
+- **Design** (`docs/DESIGN.md`) : direction « Atelier » (barre latérale de 248 px, neutres froids, accent sarcelle, Inter, lignes de 52 px), appliquée écran par écran.
 
 ### Export et exploitation
 - **Export LÉA** : `Travaux_<date>.zip` (PDF au nom d'origine + `_corrige`) et CSV (`;`, UTF-8 avec BOM, virgule décimale); inachevés exclus sauf case « inclure » et signalés; « Claude manquant » compte comme inachevé; l'export se déclare périmé si un rapport change; note saisie à « Terminé ».
