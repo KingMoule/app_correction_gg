@@ -115,3 +115,20 @@ def test_corrections_manuscrites_sur_toutes_les_pages(rapport):
 def test_export_rapport_inconnu(rapport):
     client, _ = rapport
     assert client.get("/api/export/202SNURE/00002/lab-3/personne").status_code == 404
+
+
+def test_export_apres_une_coupe_de_gomme(rapport):
+    """Un trait coupé (original en pierre tombale, deux morceaux) s'exporte avec le trou, comme à l'écran."""
+    client, _ = rapport
+    base = {"outil": "crayon", "couleur": "#d32f2f", "largeur_min": 2, "largeur_max": 2, "courbe": 1}
+    entier = {**base, "id": "a", "points": [[100, 300, 0.5], [300, 300, 0.5]]}
+    client.put(URL, json={"revision": 0, "pages": {"1": [entier]}})
+    avant = client.get(URL_EXPORT).content
+    gauche = {**base, "id": "a1", "points": [[100, 300, 0.5], [180, 300, 0.5]]}
+    droite = {**base, "id": "a2", "points": [[220, 300, 0.5], [300, 300, 0.5]]}
+    assert client.put(URL, json={"revision": 1, "pages": {"1": [gauche, droite]}, "supprimes": ["a"]}).status_code == 200
+    apres = client.get(URL_EXPORT).content
+    assert pixels_colores(avant, (190, 295, 210, 305))                    # avant : le trait passe au milieu
+    assert not pixels_colores(apres, (190, 295, 210, 305))                # après : trou
+    assert pixels_colores(apres, (110, 295, 170, 305)) and pixels_colores(apres, (230, 295, 290, 305))
+    assert pixels_colores(avant, (110, 295, 170, 305)) == pixels_colores(apres, (110, 295, 170, 305))  # morceaux identiques à l'original

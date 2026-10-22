@@ -43,7 +43,7 @@ Tout est fusionné dans `main` jusqu'à la PR #56. Les 4 étapes sont faites cô
 - **Fiabilité** : tout JSON passe par `stockage.py` (écriture atomique, verrou); annotations et décisions de français ont une `revision` (409 sur révision périmée, fusion côté lecteur; un lot de décisions refusé est abandonné et l'état du moteur rechargé avec un avertissement).
 
 ### Lecteur et annotation
-- Défilement continu, zoom à deux doigts; le doigt défile, **seul le crayon dessine**. Outils : crayon (pression), surligneur (redressé si le crayon reste immobile), gomme (trait entier par défaut, ou partielle), 5 couleurs, annuler/rétablir. **Pas de texte tapé** : la note finale reste dans LÉA. Annotations stockées à part du PDF; le PDF annoté n'existe qu'à l'export.
+- Défilement continu, zoom à deux doigts; le doigt défile, **seul le crayon dessine**. Outils : crayon (pression), surligneur (redressé si le crayon reste immobile), gomme partielle (efface seulement la partie touchée; plus de mode « trait entier », décidé le 2026-10-22), 5 couleurs, annuler/rétablir. **Pas de texte tapé** : la note finale reste dans LÉA. Annotations stockées à part du PDF; le PDF annoté n'existe qu'à l'export.
 - Barre fixe en haut sur 2 lignes (navigation / outils), 3 épaisseurs prédéfinies, réglage par outil gardé sur l'appareil, cibles de 44 px.
 - Panneau des fautes : colonne à droite (sous le PDF en portrait), fiche de la faute en haut du panneau; correction manuscrite déplaçable (décalage enregistré); pas de trait de rappel.
 - Accueil : « Continuer » + « À corriger »; onglets Accueil / Bibliothèque / Importer / Lot et plagiat.
