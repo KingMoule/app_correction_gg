@@ -24,13 +24,12 @@ const DELAI_DROIT = 550; // ms d'immobilité en fin de trait pour redresser le s
 
 // Réglage par outil, gardé sur l'appareil. Au chargement : le dernier outil de trait (jamais la gomme).
 const reglages = {
-  outil: "crayon", courbe: 1, gomme: 6, gommeMode: "trait", doigt: false,
+  outil: "crayon", courbe: 1, gomme: 6, doigt: false,
   crayon: { couleur: 0, epaisseur: 1 }, surligneur: { couleur: 3, epaisseur: 1 },
 };
 try {
   const m = JSON.parse(localStorage.getItem("reglages-lecteur") || "{}");
   for (const k of ["courbe", "gomme", "doigt"]) if (typeof m[k] === typeof reglages[k]) reglages[k] = m[k];
-  if (m.gommeMode === "trait" || m.gommeMode === "partielle") reglages.gommeMode = m.gommeMode;
   for (const o of ["crayon", "surligneur"]) {
     const t = m[o] || {};
     if (Number.isInteger(t.couleur) && t.couleur >= 0 && t.couleur < 5) reglages[o].couleur = t.couleur;
@@ -65,31 +64,21 @@ function majBarre() {
     b.setAttribute("aria-pressed", String(!gomme && i === t.couleur));
   });
 }
-// Fenêtre de l'outil actif, au 2e toucher : épaisseur du trait (crayon, surligneur) ou mode de la gomme.
+// Fenêtre de l'outil actif, au 2e toucher : épaisseur du trait (crayon, surligneur); pour la gomme, le réglage de sa taille.
 const hauteurTrait = (o, i) => Math.max(2, EPAISSEURS[o][i].max * (o === "surligneur" ? 0.7 : 1.4)) + "px";
 let outilPop = null;
 function fermerPop() { $("pop-outil").hidden = true; if (outilPop) outilPop.setAttribute("aria-expanded", "false"); outilPop = null; }
 function ouvrirPop(bouton) {
   const o = reglages.outil, pop = $("pop-outil");
   pop.replaceChildren();
-  if (o === "gomme") {
-    pop.setAttribute("aria-label", "Mode de la gomme");
-    for (const [mode, libelle] of [["trait", "Trait entier"], ["partielle", "Partielle"]]) {
-      const b = document.createElement("button");
-      b.type = "button"; b.className = "mode" + (reglages.gommeMode === mode ? " on" : ""); b.textContent = libelle;
-      b.onclick = () => { reglages.gommeMode = mode; majBarre(); garderReglages(); };
-      pop.append(b);
-    }
-  } else {
-    pop.setAttribute("aria-label", "Épaisseur du trait");
-    for (let i = 0; i < 3; i++) {
-      const b = document.createElement("button"), trait = document.createElement("i");
-      b.type = "button"; b.className = i === reglages[o].epaisseur ? "on" : ""; b.setAttribute("aria-label", `Épaisseur ${i + 1}`);
-      trait.style.height = hauteurTrait(o, i);
-      b.append(trait);
-      b.onclick = () => { reglages[o].epaisseur = i; majBarre(); garderReglages(); };
-      pop.append(b);
-    }
+  pop.setAttribute("aria-label", "Épaisseur du trait");
+  for (let i = 0; i < 3; i++) {
+    const b = document.createElement("button"), trait = document.createElement("i");
+    b.type = "button"; b.className = i === reglages[o].epaisseur ? "on" : ""; b.setAttribute("aria-label", `Épaisseur ${i + 1}`);
+    trait.style.height = hauteurTrait(o, i);
+    b.append(trait);
+    b.onclick = () => { reglages[o].epaisseur = i; majBarre(); garderReglages(); };
+    pop.append(b);
   }
   pop.hidden = false;
   const r = bouton.getBoundingClientRect();
@@ -118,6 +107,7 @@ for (const k of OUTILS) {
   $("o-" + k).title += " : touchez à nouveau pour ses réglages";
   $("o-" + k).onclick = () => {
     if (reglages.outil !== k) { choisirOutil(k); return; }
+    if (k === "gomme") { $("reglages").hidden = !$("reglages").hidden; return; } // sa taille est dans les réglages
     if (outilPop === $("o-" + k)) fermerPop(); else { fermerPop(); ouvrirPop($("o-" + k)); }
   };
 }
@@ -309,46 +299,10 @@ for (const type of ["touchstart", "touchmove"]) {
   }, { passive: false });
 }
 
-// ----- gomme partielle : retire les points sous la gomme et coupe le trait -----
-function distSegment(p, a, b) {
-  const dx = b.x - a.x, dy = b.y - a.y, l2 = dx * dx + dy * dy;
-  const u = l2 ? Math.max(0, Math.min(1, ((p.x - a.x) * dx + (p.y - a.y) * dy) / l2)) : 0;
-  return Math.hypot(p.x - (a.x + u * dx), p.y - (a.y + u * dy));
-}
-function densifier(pts, pas) {
-  const out = [pts[0]];
-  for (let i = 1; i < pts.length; i++) {
-    const a = pts[i - 1], b = pts[i], n = Math.ceil(Math.hypot(b.x - a.x, b.y - a.y) / pas);
-    for (let k = 1; k < n; k++) { const f = k / n; out.push({ x: a.x + (b.x - a.x) * f, y: a.y + (b.y - a.y) * f, p: a.p + (b.p - a.p) * f }); }
-    out.push(b);
-  }
-  return out;
-}
+// ----- gomme partielle : retire les points sous la gomme et coupe le trait (pwa/gomme.js) -----
 function gommerEn(d, p) {
-  const pg = d.pg, r = reglages.gomme;
-  let touche = false;
-  const reste = [];
-  for (const s of pg.traits) {
-    const pts = s.pts, rr = r + s.largeur_max / 2;
-    let atteint = pts.length === 1 ? Math.hypot(pts[0].x - p.x, pts[0].y - p.y) < rr : false;
-    for (let i = 1; !atteint && i < pts.length; i++) atteint = distSegment(p, pts[i - 1], pts[i]) < rr;
-    if (!atteint) { reste.push(s); continue; }
-    touche = true;
-    const dense = densifier(pts, 1.5), morceaux = [];
-    const entier = reglages.gommeMode === "trait";
-    let courant = [];
-    for (const q of entier ? [] : dense) {
-      if (Math.hypot(q.x - p.x, q.y - p.y) < rr) { if (courant.length) morceaux.push(courant); courant = []; } else courant.push(q);
-    }
-    if (courant.length) morceaux.push(courant);
-    const i = d.ajoutes.indexOf(s);
-    if (i >= 0) d.ajoutes.splice(i, 1); else d.retires.push(s);
-    for (const m of morceaux) {
-      if (m.length < 2 && dense.length > 1) continue; // miettes d'un seul point
-      const n = { ...s, id: FusionAnnotations.nouvelId(), pts: m }; reste.push(n); d.ajoutes.push(n);
-    }
-  }
-  if (touche) { pg.traits = reste; redessiner(pg); marquerModifie(); }
+  const pg = d.pg, reste = Gomme.gommer(pg.traits, p, reglages.gomme, d, FusionAnnotations.nouvelId);
+  if (reste) { pg.traits = reste; redessiner(pg); marquerModifie(); }
 }
 function gommerVers(d, p) { // comble les trous si la gomme va vite
   const dernier = d.dernier; d.dernier = p;

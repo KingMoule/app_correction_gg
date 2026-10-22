@@ -62,7 +62,6 @@ a.btn-ico { text-decoration: none; }
 .pop { position: fixed; z-index: 40; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; box-shadow: var(--ombre-pop); padding: 6px; display: flex; flex-direction: column; gap: 4px; }
 #pop-outil { flex-direction: row; }
 #pop-outil button { width: 52px; height: var(--cible); padding: 0; border: 1px solid transparent; border-radius: var(--r-s); background: transparent; display: grid; place-items: center; cursor: pointer; }
-#pop-outil button.mode { width: auto; padding: 0 var(--e3); font-size: var(--t-s); font-weight: 600; color: var(--texte); }
 #pop-outil button.on { background: var(--surface-2); border-color: var(--border-fort); }
 #pop-outil button i { display: block; width: 28px; border-radius: 99px; background: var(--texte); }
 #reglages { top: 64px; right: 12px; padding: var(--e3) var(--e4); gap: var(--e3); font-size: var(--t-s); }

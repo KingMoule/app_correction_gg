@@ -171,3 +171,31 @@ def test_export_identique_apres_migration(rapport, tmp_path):
     apres = rapport.get(URL_EXPORT).content
     zone = (8, 18, 20, 40)
     assert pixels_colores(avant, zone) and pixels_colores(avant, zone) == pixels_colores(apres, zone)
+
+
+def morceau(id_, x0, x1):
+    return {**TRAIT, "id": id_, "points": [[x0, 20, 0.5], [x1, 20, 0.5]]}
+
+
+def test_trait_coupe_sur_un_appareil_pendant_qu_un_autre_ajoute(rapport):
+    """Gomme partielle : l'original passe en pierre tombale, deux morceaux le remplacent; l'ajout de l'autre appareil reste."""
+    rapport.put(URL, json={"revision": 0, "pages": {"1": [morceau("a", 0, 100)]}})
+    rapport.put(URL, json={"revision": 1, "pages": {"1": [morceau("a", 0, 100), trait("pc")]}})  # le PC ajoute « pc »
+    # l'iPad coupe « a » en « a1 » et « a2 » à partir de la révision 1 : 409, fusion, rien de perdu
+    coupe = {"1": [morceau("a1", 0, 40), morceau("a2", 60, 100)]}
+    assert rapport.put(URL, json={"revision": 1, "pages": coupe, "supprimes": ["a"]}).status_code == 409
+    assert fusion_comme_le_lecteur(rapport, coupe, ["a"]).status_code == 200
+    final = rapport.get(URL).json()
+    assert ids(final) == ["a1", "a2", "pc"] and final["supprimes"] == ["a"]
+
+
+def test_trait_coupe_des_deux_cotes_ne_ressuscite_pas_l_original(rapport):
+    rapport.put(URL, json={"revision": 0, "pages": {"1": [morceau("a", 0, 100)]}})
+    # le PC coupe d'abord (enregistré), puis l'iPad coupe le même trait autrement
+    rapport.put(URL, json={"revision": 1, "pages": {"1": [morceau("pc1", 0, 30), morceau("pc2", 50, 100)]}, "supprimes": ["a"]})
+    ipad = {"1": [morceau("ip1", 0, 60), morceau("ip2", 80, 100)]}
+    assert rapport.put(URL, json={"revision": 1, "pages": ipad, "supprimes": ["a"]}).status_code == 409
+    assert fusion_comme_le_lecteur(rapport, ipad, ["a"]).status_code == 200
+    final = rapport.get(URL).json()
+    assert "a" not in ids(final) and final["supprimes"] == ["a"]
+    assert ids(final) == ["ip1", "ip2", "pc1", "pc2"]  # les deux coupes sont gardées, aucun trait perdu
