@@ -9,6 +9,7 @@ Tout est fusionné dans `main` jusqu'à la PR #56. Les 4 étapes sont faites cô
 
 ## Reste à faire
 
+- [ ] **Refonte visuelle : choisir une direction** parmi les 3 proposées (`docs/design/propositions-2026-10/`, comparaison `comparaison.html`), puis l'implémenter dans un fil à part.
 - [ ] **Essais de Guillaume sur l'iPad** : crayon dans l'app, tap sur une faute, export du PDF depuis l'app installée, design, tableau de suivi (portrait compris), code d'accès (saisie dans l'app installée, coupure du Wi-Fi puis reconnexion), annotations iPad + PC sur le même rapport, décision de français après coupure du Wi-Fi.
 - [ ] **Essais sur de vrais fichiers** : liste Omnivox réimportée, import de vrais PDF (rangement, coéquipiers), lot sur de vrais rapports, jugement des fautes de français gardées (seuils dans `francais_filtre.py`), `Travaux.zip` dans LÉA (nom des fichiers; les rapports importés avant l'export n'ont pas de nom d'origine), plagiat sur la vraie bibliothèque, `demarrer.bat` (mise à jour auto, sauvegarde).
 - [ ] **M8 mémoire des canvas du lecteur** : mesurer sur l'iPad (rapport de 10 pages) avant de corriger.

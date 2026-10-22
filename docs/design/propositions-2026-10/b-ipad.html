@@ -1,0 +1,625 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Direction B · Natif iPad</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@700&display=swap" rel="stylesheet">
+<style>
+/* ---- Planche de maquettes (commune aux 3 directions) ---- */
+html{-webkit-text-size-adjust:100%}
+body.planche-corps{margin:0;background:#cfd2d8;font-family:system-ui,sans-serif}
+.planche{padding:32px 24px 64px;display:flex;flex-direction:column;align-items:center;gap:14px}
+.planche>h1{font:700 22px/1.2 system-ui,sans-serif;margin:0 0 6px;color:#1d2027}
+.etiq{width:1180px;max-width:100%;font:600 14px/1.3 system-ui,sans-serif;color:#2b2f38;margin-top:26px}
+.etiq small{font-weight:400;color:#555b66}
+.ecran{display:flex;width:1180px;height:820px;flex:none;overflow:hidden;position:relative;border-radius:18px;box-shadow:0 12px 40px rgba(20,25,35,.25)}
+.ecran.portrait{width:820px;height:1180px}
+.ecran *{box-sizing:border-box}
+body.seul{background:transparent}
+body.seul .planche{padding:0;gap:0}
+body.seul .planche>h1,body.seul .etiq{display:none}
+body.seul .ecran{display:none;border-radius:0;box-shadow:none}
+body.seul .ecran.vu{display:flex}
+/* ---- Page de rapport fictive (PDF rendu) ---- */
+.page{width:var(--pw,560px);height:calc(var(--pw,560px)*1.294);font-size:calc(var(--pw,560px)/46);padding:7% 9% 6%;background:#fff;color:#1a1a1a;
+  font-family:Calibri,Carlito,"Segoe UI",Arial,sans-serif;line-height:1.45;position:relative;box-shadow:0 1px 3px rgba(0,0,0,.12),0 8px 24px rgba(0,0,0,.10);flex:none}
+.page .pg-h{border-bottom:.08em solid #999;padding-bottom:.5em;margin-bottom:1em}
+.page .pg-h b{display:block;font-size:1.35em}
+.page .pg-h span{font-size:.85em;color:#444}
+.page h4{font-size:1.05em;margin:.9em 0 .55em}
+.page p{margin:0 0 .6em;text-align:justify;line-height:1.8}
+.page table{border-collapse:collapse;font-size:.85em;margin:.4em 0 .8em;width:70%}
+.page td,.page th{border:.06em solid #888;padding:.15em .5em;text-align:center}
+.page mark.f{background:rgba(229,57,53,.26);color:inherit;position:relative;border-radius:.15em;padding:0 .05em}
+.page mark.f.sel{outline:.14em solid #d32f2f;outline-offset:.05em}
+.page mark.f.non{background:rgba(120,120,120,.16);text-decoration:line-through;text-decoration-color:#888}
+.page .mn{position:absolute;left:-.1em;top:-.95em;font:700 1.15em/1 Caveat,"Bradley Hand",cursive;color:#c62828;white-space:nowrap;font-style:normal}
+.page .cercle{position:relative;white-space:nowrap}
+.page .cercle .note-main{font-style:normal}
+.page mark.f.sel .mn{opacity:.6}
+.page .hl{background:rgba(255,214,0,.45);border-radius:.1em}
+.page .note-main{position:absolute;font:700 1.5em/1 Caveat,"Bradley Hand",cursive;white-space:nowrap}
+.page svg.trait{position:absolute;overflow:visible;fill:none;stroke-linecap:round;stroke-linejoin:round}
+.page .num{position:absolute;bottom:3%;left:0;right:0;text-align:center;font-size:.8em;color:#666}
+</style>
+<script>
+(function(){function m(){var r=location.hash.match(/^#seul-(.+)$/);document.body.classList.toggle('seul',!!r);
+document.querySelectorAll('.ecran').forEach(function(e){e.classList.toggle('vu',!!r&&e.id===r[1])});}
+addEventListener('hashchange',m);addEventListener('DOMContentLoaded',m);})();
+</script>
+
+<style>
+/* ===== Direction B « Natif iPad » : conventions iPadOS, barre d'onglets flottante, feuilles, listes groupées ===== */
+.B{--bg:#f2f2f7;--cell:#fff;--lbl:#1c1c1e;--lbl2:#636366;--lbl3:#8e8e93;--lbl-f:#3a3a3c;--fill:#e9e9ee;
+  --tint:#0062d1;--tint-d:#e5effb;
+  --vert:#18732f;--orange:#a64b00;--rouge:#c4001a;--violet:#8233a6;--sarc:#00737f;--indigo:#4b49c8;--gris:#6e6e73;
+  font:400 17px/1.3 -apple-system,"SF Pro Text",BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;color:var(--lbl);background:var(--bg);flex-direction:column;letter-spacing:-.01em}
+.B .i{width:22px;height:22px;flex:none;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.B .i.s{width:18px;height:18px}.B .i.l{width:26px;height:26px}
+.B .etat{height:24px;flex:none;display:flex;align-items:center;padding:0 20px;font-size:14px;font-weight:600}
+.B .etat span:last-child{margin-left:auto;display:flex;gap:6px;align-items:center}
+.B .batt{width:25px;height:12px;border:1.5px solid currentColor;border-radius:4px;position:relative;opacity:.9}
+.B .batt::after{content:"";position:absolute;left:1.5px;top:1.5px;bottom:1.5px;width:70%;background:currentColor;border-radius:1.5px}
+/* Barre d'onglets flottante : navigation seulement */
+.B .tete{height:60px;flex:none;display:flex;align-items:center;padding:0 16px;gap:8px;position:relative}
+.B .onglets{position:absolute;left:50%;transform:translateX(-50%);display:flex;background:rgba(255,255,255,.92);border-radius:26px;padding:4px;box-shadow:0 2px 12px rgba(0,0,0,.08),0 0 0 .5px rgba(0,0,0,.06)}
+.B .onglets a{height:44px;padding:0 20px;display:flex;align-items:center;border-radius:22px;font-size:15px;font-weight:600;color:var(--lbl)}
+.B .onglets a.on{background:var(--tint-d);color:var(--tint)}
+.B .rond{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;color:var(--tint);flex:none}
+.B .rond.f{background:rgba(255,255,255,.92);box-shadow:0 2px 12px rgba(0,0,0,.08),0 0 0 .5px rgba(0,0,0,.06)}
+.B .esp{flex:1}
+.B .gt{font-size:34px;font-weight:700;letter-spacing:.01em;line-height:41px;margin:0}
+.B .t2{font-size:22px;font-weight:700;line-height:28px;margin:0}
+.B .hd{font-size:20px;font-weight:700;margin:0}
+.B .sh{font-size:15px;color:var(--lbl2)}
+.B .fn{font-size:13px;color:var(--lbl2)}
+.B .sub{font-size:15px;color:var(--lbl-f)}
+.B .lien{color:var(--tint);font-size:17px;min-height:44px;display:inline-flex;align-items:center}
+.B .grp{background:var(--cell);border-radius:12px;overflow:hidden}
+.B .sect{font-size:13px;color:var(--lbl2);text-transform:uppercase;letter-spacing:.02em;padding:0 16px 7px;margin-top:22px}
+.B .rg{display:flex;align-items:center;gap:12px;min-height:52px;padding:0 16px;position:relative}
+.B .rg+.rg::before{content:"";position:absolute;top:0;right:0;left:var(--ind,16px);border-top:.5px solid #c6c6c8}
+.B .rg .v{margin-left:auto;color:var(--lbl2);display:flex;align-items:center;gap:6px}
+.B .rg .v.lien{color:var(--tint)}
+.B .rg .chev{width:14px;height:14px;color:#aeaeb2;stroke-width:3}
+.B .tuile{width:30px;height:30px;border-radius:7px;display:grid;place-items:center;color:#fff;flex:none;background:var(--gris)}
+.B .tuile .i{width:18px;height:18px;stroke-width:2}
+.B .mono{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;color:#fff;font-size:14px;font-weight:600;flex:none;background:linear-gradient(#8e8e93,#6e6e73)}
+.B .btn{height:50px;border-radius:25px;display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:0 22px;font-size:17px;font-weight:600;white-space:nowrap}
+.B .btn.f{background:var(--tint);color:#fff}
+.B .btn.t{background:var(--tint-d);color:var(--tint)}
+.B .btn.m{height:44px;border-radius:22px;font-size:16px;padding:0 16px}
+.B .btn.blk{width:100%}
+/* États : point + texte coloré, sans fond (les capsules restent des boutons) */
+.B .st{display:inline-flex;align-items:center;gap:6px;font-size:15px;font-weight:600;white-space:nowrap}
+.B .st::before{content:"";width:8px;height:8px;border-radius:50%;background:currentColor;flex:none}
+.B .st.v{color:var(--vert)}.B .st.o{color:var(--orange)}.B .st.r{color:var(--rouge)}.B .st.p{color:var(--violet)}
+.B .st.s{color:var(--sarc)}.B .st.i{color:var(--indigo)}.B .st.g{color:var(--gris)}
+.B .seg{display:flex;background:#e3e3e8;border-radius:11px;padding:2px;height:48px}
+.B .seg a{flex:1;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:500;border-radius:8px;padding:0 12px;white-space:nowrap}
+.B .seg a.on{background:#fff;font-weight:600;box-shadow:0 3px 8px rgba(0,0,0,.12),0 0 0 .5px rgba(0,0,0,.04)}
+.B .rech{height:44px;border-radius:10px;background:#e3e3e8;display:flex;align-items:center;gap:6px;padding:0 10px;color:var(--lbl2)}
+/* Tableau façon Fichiers (vue liste) */
+.B .tab{width:100%;border-collapse:collapse;background:var(--cell)}
+.B .tab th{height:40px;text-align:left;font-size:13px;font-weight:600;color:var(--lbl2);padding:0 12px;border-bottom:.5px solid #c6c6c8;white-space:nowrap}
+.B .tab th.tri{color:var(--tint)}
+.B .tab td{height:56px;padding:0 12px;border-bottom:.5px solid #d8d8dc;font-size:15px;white-space:nowrap}
+.B .tab tr:last-child td{border-bottom:0}
+.B .tab tr.grp-l td{height:34px;background:#f7f7fa;font-size:13px;font-weight:600;color:var(--lbl2);text-transform:uppercase;letter-spacing:.02em}
+.B .voile{position:absolute;inset:0;background:rgba(0,0,0,.28);z-index:4}
+.B .feuille{position:absolute;z-index:5;left:50%;transform:translateX(-50%);background:var(--bg);border-radius:14px;box-shadow:0 20px 60px rgba(0,0,0,.25);overflow:hidden;display:flex;flex-direction:column}
+.B .fnav{height:56px;display:flex;align-items:center;padding:0 8px;background:#f9f9f9;border-bottom:.5px solid #c6c6c8;position:relative;flex:none}
+.B .fnav b{position:absolute;left:0;right:0;text-align:center;font-weight:600;pointer-events:none}
+.B .fnav a{height:44px;display:flex;align-items:center;padding:0 12px;color:var(--tint);position:relative}
+.B .alerte{position:absolute;z-index:7;left:50%;top:50%;transform:translate(-50%,-50%);width:300px;background:#f2f2f7;border-radius:14px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.25);overflow:hidden}
+.B .alerte .c{padding:20px 16px 16px}
+.B .alerte .bt{display:flex;border-top:.5px solid #c6c6c8}
+.B .alerte .bt a{flex:1;height:48px;display:grid;place-items:center;color:var(--tint)}
+.B .alerte .bt a+a{border-left:.5px solid #c6c6c8;font-weight:600}
+.B .inter{width:51px;height:31px;border-radius:16px;background:#e3e3e8;position:relative;flex:none;box-shadow:inset 0 0 0 1px #8e8e93}
+.B .inter::after{content:"";position:absolute;left:2px;top:2px;width:27px;height:27px;border-radius:50%;background:#fff;box-shadow:0 3px 8px rgba(0,0,0,.15),0 0 0 .5px rgba(0,0,0,.1)}
+.B .popover{position:absolute;z-index:6;background:#fff;border-radius:13px;box-shadow:0 10px 40px rgba(0,0,0,.18),0 0 0 .5px rgba(0,0,0,.08);padding:8px}
+.B .popover::after{content:"";position:absolute;left:var(--fl,50%);width:14px;height:14px;background:inherit;transform:translateX(-50%) rotate(45deg)}
+.B .popover.bas::after{bottom:-7px}.B .popover.haut::after{top:-7px}
+.B .banniere{position:absolute;z-index:6;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:10px;background:#fff;border-radius:26px;box-shadow:0 8px 30px rgba(0,0,0,.16),0 0 0 .5px rgba(0,0,0,.06);padding:0 4px 0 16px;height:52px;font-size:15px;white-space:nowrap}
+.B .nav{height:60px;flex:none;display:flex;align-items:center;padding:0 10px;gap:2px;background:#f9f9f9;border-bottom:.5px solid #c6c6c8;position:relative;z-index:2}
+.B .nav .titre{position:absolute;left:0;right:0;text-align:center;pointer-events:none;line-height:1.2}
+.B .nav .titre b{font-size:17px;display:block}
+.B .nav .titre span{font-size:13px;color:var(--lbl2)}
+.B .nav .ret{display:flex;align-items:center;color:var(--tint);height:44px;padding-right:8px}
+.B .nav .ret .i{width:26px;height:26px;stroke-width:2.2}
+.B .toile{flex:1;background:#e5e5ea;position:relative;display:flex;justify-content:center;align-items:flex-start;padding-top:18px;overflow:hidden}
+.B .palette{position:absolute;bottom:20px;left:50%;transform:translateX(-50%);height:76px;display:flex;align-items:flex-end;gap:2px;padding:0 14px;background:#fff;border-radius:24px;box-shadow:0 8px 30px rgba(0,0,0,.16),0 0 0 .5px rgba(0,0,0,.08);z-index:3}
+.B .stylo{width:44px;height:70px;display:flex;align-items:flex-end;justify-content:center;overflow:hidden}
+.B .stylo svg{width:26px;height:64px;transform:translateY(16px)}
+.B .stylo.on svg{transform:translateY(4px)}
+.B .palette .sepv{width:1px;height:40px;background:#d1d1d6;margin:0 8px 18px}
+.B .palette .cl{width:44px;height:76px;display:grid;place-items:center}
+.B .palette .cl i{width:28px;height:28px;border-radius:50%}
+.B .palette .cl.on i{box-shadow:0 0 0 2.5px #fff,0 0 0 4.5px currentColor}
+.B .palette .rond{color:var(--lbl);margin-bottom:16px}
+.B .insp{width:380px;flex:none;background:var(--bg);border-left:.5px solid #c6c6c8;display:flex;flex-direction:column;overflow:hidden}
+.B .fiche{background:var(--cell);border-radius:12px;padding:8px 12px 16px 16px;margin:0 16px}
+.B .fiche .mot{display:flex;align-items:baseline;gap:10px;font-size:24px;font-weight:700;margin:2px 0 6px}
+.B .fiche del{color:var(--rouge);text-decoration-thickness:2px}
+.B .fiche .hw{font:700 30px/1 Caveat,cursive;color:#c62828}
+.B .ctx{font-size:15px;background:var(--bg);border-radius:10px;padding:10px 12px;margin:10px 0;color:var(--lbl-f)}
+.B .ctx mark{background:rgba(255,59,48,.2);color:inherit;border-radius:3px;padding:0 2px}
+.B .pass{font-size:15px;line-height:1.55}
+.B .pass mark{background:#d4f0f4;color:inherit;border-radius:3px}
+.B .pass mark.on{background:#9fdde6}
+.B .anneau{position:relative;flex:none;display:grid;place-items:center}
+.B .anneau b{position:absolute;font-size:12px;font-weight:700}
+</style>
+</head>
+<body class="planche-corps">
+<!-- Pictogrammes au trait 24 px, dessinés d'après la géométrie de Lucide (licence ISC). -->
+<svg xmlns="http://www.w3.org/2000/svg" style="position:absolute;width:0;height:0" aria-hidden="true">
+<symbol id="i-home" viewBox="0 0 24 24"><path d="m3 10 9-7 9 7v10a2 2 0 0 1-2 2h-4v-7H9v7H5a2 2 0 0 1-2-2z"/></symbol>
+<symbol id="i-books" viewBox="0 0 24 24"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/><path d="M9 7h6"/></symbol>
+<symbol id="i-upload" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m17 8-5-5-5 5"/><path d="M12 3v12"/></symbol>
+<symbol id="i-download" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/><path d="M12 15V3"/></symbol>
+<symbol id="i-play" viewBox="0 0 24 24"><path d="M6 4l14 8-14 8z"/></symbol>
+<symbol id="i-layers" viewBox="0 0 24 24"><path d="m12 2 10 5-10 5L2 7z"/><path d="m2 17 10 5 10-5"/><path d="m2 12 10 5 10-5"/></symbol>
+<symbol id="i-sparkles" viewBox="0 0 24 24"><path d="M11 3l1.9 5.1L18 10l-5.1 1.9L11 17l-1.9-5.1L4 10l5.1-1.9z"/><path d="M19 3v4M21 5h-4M19 17v4M21 19h-4"/></symbol>
+<symbol id="i-copy" viewBox="0 0 24 24"><rect x="8" y="8" width="13" height="13" rx="2"/><path d="M4 16V5a2 2 0 0 1 2-2h11"/></symbol>
+<symbol id="i-sliders" viewBox="0 0 24 24"><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/></symbol>
+<symbol id="i-lock" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></symbol>
+<symbol id="i-left" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></symbol>
+<symbol id="i-right" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></symbol>
+<symbol id="i-down" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+<symbol id="i-up" viewBox="0 0 24 24"><path d="m18 15-6-6-6 6"/></symbol>
+<symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
+<symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></symbol>
+<symbol id="i-check-circle" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></symbol>
+<symbol id="i-circle" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/></symbol>
+<symbol id="i-half" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 2a10 10 0 0 1 0 20z" fill="currentColor"/></symbol>
+<symbol id="i-pen" viewBox="0 0 24 24"><path d="M21.2 6.8a2.8 2.8 0 0 0-4-4L3.8 16.2a2 2 0 0 0-.5.8L2 21.4a.5.5 0 0 0 .6.6l4.4-1.3a2 2 0 0 0 .8-.5z"/><path d="m15 5 4 4"/></symbol>
+<symbol id="i-highlighter" viewBox="0 0 24 24"><path d="m9 11-6 6v3h9l3-3"/><path d="m22 12-4.6 4.6a2 2 0 0 1-2.8 0l-5.2-5.2a2 2 0 0 1 0-2.8L14 4"/></symbol>
+<symbol id="i-eraser" viewBox="0 0 24 24"><path d="m7 21-4.3-4.3c-1-1-1-2.5 0-3.4l9.6-9.6c1-1 2.5-1 3.4 0l5.6 5.6c1 1 1 2.5 0 3.4L13 21"/><path d="M22 21H7"/><path d="m5 11 9 9"/></symbol>
+<symbol id="i-undo" viewBox="0 0 24 24"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></symbol>
+<symbol id="i-redo" viewBox="0 0 24 24"><path d="m15 14 5-5-5-5"/><path d="M20 9H9.5a5.5 5.5 0 0 0 0 11H13"/></symbol>
+<symbol id="i-spell" viewBox="0 0 24 24"><path d="m4 16 6-12 6 12"/><path d="M6 12h8"/><path d="m15 20 2 2 5-5"/></symbol>
+<symbol id="i-file" viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M16 13H8M16 17H8M10 9H8"/></symbol>
+<symbol id="i-list" viewBox="0 0 24 24"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></symbol>
+<symbol id="i-table" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18"/></symbol>
+<symbol id="i-columns" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18M15 3v18"/></symbol>
+<symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></symbol>
+<symbol id="i-users" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8"/></symbol>
+<symbol id="i-alert" viewBox="0 0 24 24"><path d="m21.7 18-8-14a2 2 0 0 0-3.5 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.7-3"/><path d="M12 9v4M12 17h.01"/></symbol>
+<symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></symbol>
+<symbol id="i-fit" viewBox="0 0 24 24"><path d="M8 3H5a2 2 0 0 0-2 2v3M21 8V5a2 2 0 0 0-2-2h-3M3 16v3a2 2 0 0 0 2 2h3M16 21h3a2 2 0 0 0 2-2v-3"/></symbol>
+<symbol id="i-more" viewBox="0 0 24 24"><circle cx="12" cy="12" r="1.2"/><circle cx="19" cy="12" r="1.2"/><circle cx="5" cy="12" r="1.2"/></symbol>
+<symbol id="i-panel" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M15 3v18"/></symbol>
+<symbol id="i-sidebar" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18"/></symbol>
+<symbol id="i-folder" viewBox="0 0 24 24"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.7-.9l-.8-1.2A2 2 0 0 0 7.9 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/></symbol>
+<symbol id="i-archive" viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="5" rx="1"/><path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8M10 12h4"/></symbol>
+<symbol id="i-refresh" viewBox="0 0 24 24"><path d="M3 12a9 9 0 0 1 15.7-6L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15.7 6L3 16"/><path d="M8 16H3v5"/></symbol>
+<symbol id="i-wifi" viewBox="0 0 24 24"><path d="M12 20h.01M2 8.8a15 15 0 0 1 20 0M5 12.9a10 10 0 0 1 14 0M8.5 16.4a5 5 0 0 1 7 0"/></symbol>
+<symbol id="i-plus" viewBox="0 0 24 24"><path d="M5 12h14M12 5v14"/></symbol>
+<symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></symbol>
+<symbol id="i-swap" viewBox="0 0 24 24"><path d="m16 3 4 4-4 4M20 7H4M8 21l-4-4 4-4M4 17h16"/></symbol>
+<symbol id="i-cap" viewBox="0 0 24 24"><path d="M21.4 10.9a1 1 0 0 0 0-1.8l-8.6-3.9a2 2 0 0 0-1.7 0L2.6 9.1a1 1 0 0 0 0 1.8l8.6 3.9a2 2 0 0 0 1.7 0z"/><path d="M22 10v6M6 12.5V16a6 3 0 0 0 12 0v-3.5"/></symbol>
+<symbol id="i-logout" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5M21 12H9"/></symbol>
+<symbol id="i-eye" viewBox="0 0 24 24"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></symbol>
+<symbol id="i-filter" viewBox="0 0 24 24"><path d="M22 3H2l8 9.5V19l4 2v-8.5z"/></symbol>
+<symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></symbol>
+<symbol id="i-clipboard" viewBox="0 0 24 24"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/></symbol>
+<symbol id="i-external" viewBox="0 0 24 24"><path d="M15 3h6v6M10 14 21 3M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></symbol>
+<symbol id="i-shield" viewBox="0 0 24 24"><path d="M20 13c0 5-3.5 7.5-7.7 9a1 1 0 0 1-.6 0C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.2-2.7a1.2 1.2 0 0 1 1.6 0C14.5 3.8 17 5 19 5a1 1 0 0 1 1 1z"/></symbol>
+<symbol id="i-save" viewBox="0 0 24 24"><path d="M15.2 3a2 2 0 0 1 1.4.6l3.8 3.8a2 2 0 0 1 .6 1.4V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/><path d="M17 21v-7a1 1 0 0 0-1-1H8a1 1 0 0 0-1 1v7M7 3v4a1 1 0 0 0 1 1h7"/></symbol>
+<symbol id="i-flag" viewBox="0 0 24 24"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><path d="M4 22v-7"/></symbol>
+<symbol id="i-zoom" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3M11 8v6M8 11h6"/></symbol>
+<symbol id="i-share" viewBox="0 0 24 24"><path d="M12 3v12M8 7l4-4 4 4"/><path d="M20 13v6a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-6"/></symbol>
+<symbol id="i-book-open" viewBox="0 0 24 24"><path d="M12 7v14"/><path d="M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z"/></symbol>
+<symbol id="i-grip" viewBox="0 0 24 24"><path d="M9 5h.01M9 12h.01M9 19h.01M15 5h.01M15 12h.01M15 19h.01"/></symbol>
+<symbol id="i-key" viewBox="0 0 24 24"><circle cx="7.5" cy="15.5" r="5.5"/><path d="m21 2-9.6 9.6M15.5 7.5l3 3L22 7l-3-3"/></symbol>
+<symbol id="i-trash" viewBox="0 0 24 24"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></symbol>
+<symbol id="i-sheet" viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4M8 13h8M8 17h8M12 11v8"/></symbol>
+<symbol id="i-cmd" viewBox="0 0 24 24"><path d="M15 6v12a3 3 0 1 0 3-3H6a3 3 0 1 0 3 3V6a3 3 0 1 0-3 3h12a3 3 0 1 0-3-3"/></symbol>
+<symbol id="i-scan" viewBox="0 0 24 24"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"/><circle cx="11.5" cy="11.5" r="3.5"/><path d="m16.5 16.5-2.5-2.5"/></symbol>
+<symbol id="i-wifi-off" viewBox="0 0 24 24"><path d="M12 20h.01M8.5 16.4a5 5 0 0 1 7 0M2 8.8a15 15 0 0 1 4.2-2.7M10.7 5.1A15 15 0 0 1 22 8.8M5 12.9a10 10 0 0 1 5.2-2.8M2 2l20 20"/></symbol>
+<symbol id="i-redo2" viewBox="0 0 24 24"><path d="m15 14 5-5-5-5"/><path d="M20 9H9.5a5.5 5.5 0 0 0 0 11H13"/></symbol>
+</svg>
+
+<div class="planche">
+<h1>Direction B — « Natif iPad » : l'app comme si Apple l'avait faite</h1>
+
+<!-- ================= 1. ACCUEIL ================= -->
+<div class="etiq">1. Accueil et bibliothèque <small>· iPad paysage 1180 × 820 · barre d'onglets flottante (iPadOS 18), navigation seulement</small></div>
+<section class="ecran B" id="accueil">
+  <div class="etat"><span>9:41&nbsp;&nbsp;mar. 21 oct.</span><span><svg class="i s"><use href="#i-wifi"/></svg>82 %<i class="batt"></i></span></div>
+  <div class="tete">
+    <div class="onglets"><a class="on">Accueil</a><a>Bibliothèque</a><a>Plagiat</a><a>Réglages</a></div>
+    <span class="esp"></span><a class="rond f"><svg class="i"><use href="#i-search"/></svg></a>
+  </div>
+  <div style="flex:1;padding:4px 40px 0;overflow:hidden">
+    <h1 class="gt">Accueil</h1>
+    <div class="sh" style="margin-top:2px">42 rapports restants dans 3 labs · ordi connecté</div>
+    <div style="display:flex;gap:20px;margin-top:18px">
+      <div class="grp" style="flex:1.3;display:flex;gap:18px;padding:18px;align-items:center">
+        <div style="width:96px;height:124px;border-radius:6px;background:#fff;box-shadow:0 2px 10px rgba(0,0,0,.12),0 0 0 .5px rgba(0,0,0,.08);flex:none;position:relative;overflow:hidden">
+          <div style="position:absolute;left:10px;top:12px;height:5px;background:#3a3a3c;border-radius:2px;width:60%"></div>
+          <div style="position:absolute;left:10px;right:10px;top:26px;height:70px;background:repeating-linear-gradient(#d1d1d6 0 2px,transparent 2px 8px)"></div>
+          <div style="position:absolute;left:30px;top:56px;width:20px;height:6px;background:rgba(255,59,48,.35)"></div></div>
+        <div style="flex:1;min-width:0">
+          <div class="fn" style="font-weight:600;color:var(--tint)">CONTINUER</div>
+          <div class="t2" style="margin:2px 0 4px">Noé Lavoie</div>
+          <div class="sub">Lab 4 — Pendule simple · page 2 sur 3</div>
+          <div style="display:flex;gap:14px;margin-top:10px"><span class="st o">1 faute à trancher</span><span class="fn" style="align-self:center">il y a 12 min</span></div>
+        </div>
+        <a class="btn f" style="align-self:flex-end"><svg class="i"><use href="#i-play"/></svg>Reprendre</a>
+      </div>
+      <div class="grp" style="flex:1">
+        <div class="rg">À corriger<span class="v"><b style="color:var(--lbl);font-size:20px">38</b><svg class="i chev"><use href="#i-right"/></svg></span></div>
+        <div class="rg">Fautes à trancher<span class="v"><b style="color:var(--orange);font-size:20px">9</b><svg class="i chev"><use href="#i-right"/></svg></span></div>
+        <div class="rg">Terminés cette semaine<span class="v"><b style="color:var(--vert);font-size:20px">23</b><svg class="i chev"><use href="#i-right"/></svg></span></div>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;margin-top:22px"><h2 class="hd">À corriger</h2><span class="esp"></span><a class="lien">Tout afficher</a></div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:6px">
+      <div class="grp" style="padding:14px 16px;display:flex;gap:14px;align-items:center">
+        <span class="anneau"><svg width="60" height="60" viewBox="0 0 36 36"><circle cx="18" cy="18" r="15" fill="none" stroke="#e5e5ea" stroke-width="4"/><circle cx="18" cy="18" r="15" fill="none" stroke="#18732f" stroke-width="4" stroke-dasharray="27.3 94.2" transform="rotate(-90 18 18)"/><circle cx="18" cy="18" r="15" fill="none" stroke="#4b49c8" stroke-width="4" stroke-dasharray="16 94.2" stroke-dashoffset="-27.3" transform="rotate(-90 18 18)"/></svg><b>7/24</b></span>
+        <div style="min-width:0"><b style="font-weight:600">Lab 4 — Pendule simple</b><div class="fn">203-NYA-05 · 4 en cours</div></div><svg class="i" style="margin-left:auto;width:14px;height:14px;color:#aeaeb2;stroke-width:3"><use href="#i-right"/></svg></div>
+      <div class="grp" style="padding:14px 16px;display:flex;gap:14px;align-items:center">
+        <span class="anneau"><svg width="60" height="60" viewBox="0 0 36 36"><circle cx="18" cy="18" r="15" fill="none" stroke="#e5e5ea" stroke-width="4"/></svg><b>0/22</b></span>
+        <div style="min-width:0"><b style="font-weight:600">Lab 5 — Collisions</b><div class="fn">203-NYA-05 · importé hier</div></div><svg class="i" style="margin-left:auto;width:14px;height:14px;color:#aeaeb2;stroke-width:3"><use href="#i-right"/></svg></div>
+      <div class="grp" style="padding:14px 16px;display:flex;gap:14px;align-items:center">
+        <span class="anneau"><svg width="60" height="60" viewBox="0 0 36 36"><circle cx="18" cy="18" r="15" fill="none" stroke="#e5e5ea" stroke-width="4"/><circle cx="18" cy="18" r="15" fill="none" stroke="#18732f" stroke-width="4" stroke-dasharray="78.5 94.2" transform="rotate(-90 18 18)"/></svg><b>15/18</b></span>
+        <div style="min-width:0"><b style="font-weight:600">Lab 2 — Circuits RC</b><div class="fn">203-NYB-05 · export à refaire</div></div><svg class="i" style="margin-left:auto;width:14px;height:14px;color:#aeaeb2;stroke-width:3"><use href="#i-right"/></svg></div>
+    </div>
+    <div class="sect">Bibliothèque</div>
+    <div class="grp" style="--ind:58px">
+      <div class="rg"><span class="tuile"><svg class="i"><use href="#i-folder"/></svg></span>203-NYA-05 · Mécanique<span class="v">3 labs · 2 groupes<svg class="i chev"><use href="#i-right"/></svg></span></div>
+      <div class="rg"><span class="tuile"><svg class="i"><use href="#i-folder"/></svg></span>203-NYB-05 · Électricité<span class="v">1 lab · 1 groupe<svg class="i chev"><use href="#i-right"/></svg></span></div>
+      <div class="rg"><span class="tuile"><svg class="i"><use href="#i-archive"/></svg></span>Labs terminés<span class="v">4<svg class="i chev"><use href="#i-right"/></svg></span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= 2. IMPORT ================= -->
+<div class="etiq">2. Importer <small>· « + Importer » dans la barre de la bibliothèque ouvre une feuille modale</small></div>
+<section class="ecran B" id="import">
+  <div class="etat"><span>9:41&nbsp;&nbsp;mar. 21 oct.</span><span><svg class="i s"><use href="#i-wifi"/></svg>82 %<i class="batt"></i></span></div>
+  <div class="tete">
+    <div class="onglets"><a>Accueil</a><a class="on">Bibliothèque</a><a>Plagiat</a><a>Réglages</a></div>
+    <span class="esp"></span><a class="btn t m"><svg class="i s"><use href="#i-plus"/></svg>Importer</a>
+  </div>
+  <div style="padding:4px 40px"><h1 class="gt">Bibliothèque</h1>
+    <div class="grp" style="margin-top:20px;--ind:58px"><div class="rg"><span class="tuile"><svg class="i"><use href="#i-folder"/></svg></span>203-NYA-05 · Mécanique</div><div class="rg"><span class="tuile"><svg class="i"><use href="#i-folder"/></svg></span>203-NYB-05 · Électricité</div></div></div>
+  <div class="voile"></div>
+  <div class="feuille" style="top:58px;width:680px;height:740px">
+    <div class="fnav"><a>Annuler</a><b>Importer des rapports</b><span class="esp"></span><a style="font-weight:600">Importer (10)</a></div>
+    <div style="padding:0 20px;overflow:hidden;flex:1">
+      <div class="sect">Liste de classe</div>
+      <div class="grp" style="--ind:58px"><div class="rg"><span class="tuile" style="background:var(--vert)"><svg class="i"><use href="#i-check"/></svg></span><div><div>ListeEtudiants_cours203NYA05_gr1010</div><div class="sub">28 étudiants · fusionnée le 15 oct.</div></div><span class="v lien">Remplacer</span></div></div>
+      <div class="sect">Destination</div>
+      <div class="grp">
+        <div class="rg">Cours<span class="v" style="color:var(--tint)">203-NYA-05 · Mécanique<svg class="i s"><use href="#i-down"/></svg></span></div>
+        <div class="rg">Lab<span class="v" style="color:var(--tint)">Lab 4 — Pendule simple<svg class="i s"><use href="#i-down"/></svg></span></div>
+        <div class="rg" style="min-height:60px">Groupe<div class="seg" style="margin-left:auto;width:290px"><a class="on">Tous</a><a>1010</a><a>1020</a></div></div>
+      </div>
+      <div class="fn" style="padding:7px 16px 0">« Tous » range chaque rapport dans le groupe de son étudiant (n° de DA).</div>
+      <div class="sect">Fichiers · 12</div>
+      <div class="grp" style="--ind:58px">
+        <div class="rg" style="color:var(--tint)"><span class="tuile" style="background:var(--tint)"><svg class="i"><use href="#i-plus"/></svg></span>Choisir des PDF…</div>
+        <div class="rg"><span class="tuile" style="background:#e5e5ea;color:#636366"><svg class="i"><use href="#i-file"/></svg></span><div><div>Lavoie_Noe_Lab4.pdf</div><div class="sub">Noé Lavoie · équipe avec Inès Caron</div></div><span class="v"><span class="st v">Par DA</span></span></div>
+        <div class="rg"><span class="tuile" style="background:#e5e5ea;color:#636366"><svg class="i"><use href="#i-file"/></svg></span><div><div>rapport_final(2).pdf</div><div class="sub">Aucun nom ni DA reconnu : touche pour choisir</div></div><span class="v"><span class="st o">À trancher</span><svg class="i chev"><use href="#i-right"/></svg></span></div>
+        <div class="rg"><span class="tuile" style="background:#e5e5ea;color:#636366"><svg class="i"><use href="#i-file"/></svg></span><div><div>scan_lab4.pdf</div><div class="sub">PDF numérisé : pas de texte à lire</div></div><span class="v"><span class="st r">Refusé</span></span></div>
+      </div>
+      <div class="fn" style="padding:7px 16px 0">+ 9 autres fichiers associés par DA ou par nom. 1 à trancher et 1 refusé ne seront pas importés.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= 3. SUIVI ================= -->
+<div class="etiq">3. Tableau de suivi <small>· vue en liste façon Fichiers, colonnes triables, balayage vers la gauche sur une ligne</small></div>
+<section class="ecran B" id="suivi">
+  <div class="etat"><span>9:41&nbsp;&nbsp;mar. 21 oct.</span><span><svg class="i s"><use href="#i-wifi"/></svg>82 %<i class="batt"></i></span></div>
+  <div class="nav" style="background:transparent;border:0">
+    <a class="ret"><svg class="i"><use href="#i-left"/></svg>203-NYA-05</a>
+    <span class="esp"></span>
+    <a class="btn t m" style="padding:0 14px"><svg width="20" height="20" viewBox="0 0 20 20"><circle cx="10" cy="10" r="8" fill="none" stroke="#b9d0f0" stroke-width="3"/><circle cx="10" cy="10" r="8" fill="none" stroke="currentColor" stroke-width="3" stroke-dasharray="30 50.3" transform="rotate(-90 10 10)"/></svg>Analyse 6 sur 10</a>
+    <a class="rond" title="Analyser avec Claude"><svg class="i"><use href="#i-sparkles"/></svg></a>
+    <a class="rond" title="Exporter pour LÉA"><svg class="i"><use href="#i-share"/></svg></a>
+    <a class="rond" title="Plus"><svg class="i"><use href="#i-more"/></svg></a>
+    <a class="btn f m" style="margin-left:6px"><svg class="i s"><use href="#i-pen"/></svg>Corriger le suivant</a>
+  </div>
+  <div style="padding:0 40px;flex:1;overflow:hidden">
+    <div style="display:flex;align-items:flex-end;gap:20px"><div><h1 class="gt">Lab 4 — Pendule simple</h1><div class="sh">24 rapports · 7 terminés · 4 en cours · 13 à corriger</div></div><span class="esp"></span>
+      <div style="width:240px;height:8px;border-radius:4px;background:#d1d1d6;display:flex;overflow:hidden;margin-bottom:10px"><i style="width:29%;background:var(--vert)"></i><i style="width:17%;background:var(--indigo)"></i></div></div>
+    <div style="display:flex;gap:14px;margin-top:14px;align-items:center">
+      <div class="seg" style="width:600px"><a class="on">Tous</a><a>À corriger</a><a>En cours</a><a>Terminés</a><a>À revoir</a></div>
+      <div class="rech" style="flex:1"><svg class="i s"><use href="#i-search"/></svg>Rechercher un étudiant</div>
+    </div>
+    <div style="margin-top:14px;border-radius:12px;overflow:hidden">
+      <table class="tab">
+        <tr><th class="tri" style="width:30%">Nom ▲</th><th>Français</th><th>Indice d'IA</th><th>Plagiat</th><th>État</th><th>Note</th></tr>
+        <tr class="grp-l"><td colspan="6">Groupe 1010</td></tr>
+        <tr><td><div style="display:flex;gap:12px;align-items:center"><span class="mono">MO</span><b style="font-weight:600">Malik Ouellet</b></div></td><td><span class="st o">3 à trancher</span></td><td><span class="st p">Modéré · à revoir</span></td><td><span class="st s">72 %</span></td><td><span class="st g">À corriger</span></td><td class="fn">—</td></tr>
+        <tr><td colspan="6" style="padding:0;position:relative;overflow:hidden">
+          <div style="display:flex;align-items:center;height:56px">
+            <div style="width:30%;padding:0 12px;display:flex;gap:12px;align-items:center;flex:none"><span class="mono">ZP</span><b style="font-weight:600">Zoé Pelletier</b></div>
+            <span class="sub" style="padding-left:12px">Non analysé</span></div>
+          <div style="position:absolute;right:0;top:0;bottom:0;display:flex;width:216px">
+            <a style="flex:1;background:var(--indigo);color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-size:13px;font-weight:600"><svg class="i"><use href="#i-sparkles"/></svg>Analyser</a>
+            <a style="flex:1;background:#18732f;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-size:13px;font-weight:600"><svg class="i"><use href="#i-check"/></svg>Terminer…</a></div></td></tr>
+        <tr><td><div style="display:flex;gap:12px;align-items:center"><span class="mono">TM</span><b style="font-weight:600">Théo Morin</b></div></td><td><span class="st o">1 à trancher</span></td><td><span class="sub">Faible</span></td><td><span class="st s">72 %</span></td><td><span class="st i">En cours</span></td><td class="fn">—</td></tr>
+        <tr><td><div style="display:flex;gap:12px;align-items:center"><span class="mono">CB</span><b style="font-weight:600">Clara Bergeron</b></div></td><td><span class="sub">4 acceptées, −2 pts</span></td><td><span class="sub">Faible</span></td><td class="fn">—</td><td><span class="st i">En cours</span></td><td class="fn">—</td></tr>
+        <tr class="grp-l"><td colspan="6">Groupe 1020</td></tr>
+        <tr><td><div style="display:flex;gap:12px;align-items:center"><span class="mono">AG</span><b style="font-weight:600">Adam Girard</b></div></td><td><span class="st o">Claude à refaire</span></td><td><span class="sub">Non analysé</span></td><td class="fn">—</td><td><span class="st g">À corriger</span></td><td class="fn">—</td></tr>
+        <tr><td><div style="display:flex;gap:12px;align-items:center"><span class="mono">RL</span><b style="font-weight:600">Rose Leblanc</b></div></td><td><span class="sub">2 acceptées, −1 pt</span></td><td><span class="st p">Marqué · à revoir</span></td><td class="fn">—</td><td><span class="st v">Terminé</span></td><td><b>17,5</b></td></tr>
+      </table>
+    </div>
+    <div class="fn" style="padding:10px 16px">Indices d'IA et de plagiat : toujours à revérifier, jamais un verdict. Appui long sur une ligne : mêmes actions que le balayage.</div>
+  </div>
+</section>
+
+<!-- ================= 4. LECTEUR ================= -->
+<div class="etiq">4. Lecteur : PDF plein écran, palette flottante, inspecteur Français <small>· réglages du crayon ouverts (2e toucher), bannière après « Accepter »</small></div>
+<section class="ecran B" id="lecteur">
+  <div class="etat" style="background:#f9f9f9"><span>9:41&nbsp;&nbsp;mar. 21 oct.</span><span><svg class="i s"><use href="#i-wifi"/></svg>82 %<i class="batt"></i></span></div>
+  <div class="nav">
+    <a class="ret"><svg class="i"><use href="#i-left"/></svg>Lab 4</a>
+    <div class="titre" style="right:520px"><b>Noé Lavoie</b><span>Enregistré</span></div>
+    <span class="esp"></span>
+    <a class="rond" title="Rapport précédent"><svg class="i"><use href="#i-left"/></svg></a><span style="font-size:15px;font-weight:600;min-width:72px;text-align:center">6 sur 24</span><a class="rond" title="Rapport suivant"><svg class="i"><use href="#i-right"/></svg></a>
+    <a class="btn t m" style="margin:0 4px;padding:0 14px"><svg class="i s"><use href="#i-spell"/></svg>Français</a>
+    <a class="rond" title="Partager le PDF annoté"><svg class="i"><use href="#i-share"/></svg></a>
+    <a class="rond" title="Plus"><svg class="i"><use href="#i-more"/></svg></a>
+    <a class="btn f m" style="margin-left:4px"><svg class="i s" style="stroke-width:2.4"><use href="#i-check"/></svg>Terminer…</a>
+  </div>
+  <div style="flex:1;display:flex;min-height:0">
+    <div class="toile">
+      <div class="page">
+  <div class="pg-h"><b>Laboratoire 4 — Pendule simple</b><span>Physique mécanique · Groupe 1010 · Équipe : N. Lavoie, I. Caron</span></div>
+  <h4>2. Résultats</h4>
+  <p>Les mesures <mark class="f">obtenue<em class="mn">obtenues</em></mark> montrent que la période augmente avec la longueur du fil. Pour une longueur de 0,80 m, la période moyenne sur dix oscillations est de 1,79 s.</p>
+  <table><tr><th>L (m)</th><th>T (s)</th><th>T² (s²)</th></tr><tr><td>0,40</td><td>1,27</td><td>1,61</td></tr><tr><td>0,60</td><td>1,55</td><td>2,40</td></tr><tr><td>0,80</td><td>1,79</td><td>3,20</td></tr><tr><td>1,00</td><td>2,01</td><td>4,04</td></tr></table>
+  <p style="position:relative"><span class="hl">La pente du graphique de T² en fonction de L vaut 4,02 s²/m</span>, ce qui donne <span class="cercle">g = 9,82 m/s²<svg class="trait" style="left:-9%;top:-35%;width:118%;height:170%" viewBox="0 0 100 40" preserveAspectRatio="none"><path vector-effect="non-scaling-stroke" d="M5 24 C 4 6, 88 0, 97 16 C 102 34, 24 42, 7 30" stroke="#d32f2f" stroke-width="2"/></svg></span>.<em class="note-main" style="right:-8%;top:.1em;color:#1565c0">± ?</em> La masse n'a pas d'effet mesurable sur la période.</p>
+  <h4>3. Analyse</h4>
+  <p>L'écart avec la valeur attendue est faible. Si nous <mark class="f sel">aurions<em class="mn">avions</em></mark> mesuré vingt oscillations au lieu de dix, l'incertitude serait plus petite. Il faudrait aussi vérifier l'effet de l'angle initial.</p>
+  <p>Le frottement de l'air et le temps de réaction de la personne qui chronomètre sont les principales sources d'erreur. Nos résultats <mark class="f">démontre<em class="mn">démontrent</em></mark> aussi que l'angle initial doit rester petit.</p>
+  <svg class="trait" style="left:92%;top:30%;width:5%;height:4%" viewBox="0 0 20 20"><path d="M2 11 L8 17 L19 3" stroke="#2e7d32" stroke-width="2.6"/></svg>
+  <div class="num">2</div>
+</div>
+
+      <span style="position:absolute;top:18px;right:18px;background:rgba(255,255,255,.95);border-radius:14px;padding:4px 10px;font-size:13px;font-weight:600">page 2 sur 3</span>
+      <div class="banniere" style="top:14px"><svg class="i" style="color:var(--vert)"><use href="#i-check-circle"/></svg>Acceptée : <b>démontre → démontrent</b><a class="btn t m">Annuler</a></div>
+      <div class="popover bas" style="--fl:44px;left:calc(50% - 270px);bottom:110px;width:230px;display:flex;flex-direction:column;gap:2px">
+        <div class="fn" style="padding:4px 10px 6px;font-weight:600">CRAYON · ÉPAISSEUR</div>
+        <a style="height:44px;display:flex;align-items:center;gap:12px;padding:0 10px;border-radius:8px"><i style="width:40px;height:2px;background:#1c1c1e;border-radius:2px"></i>Fine</a>
+        <a style="height:44px;display:flex;align-items:center;gap:12px;padding:0 10px;border-radius:8px;background:var(--tint-d);color:var(--tint)"><i style="width:40px;height:4px;background:currentColor;border-radius:2px"></i>Moyenne<svg class="i s" style="margin-left:auto"><use href="#i-check"/></svg></a>
+        <a style="height:44px;display:flex;align-items:center;gap:12px;padding:0 10px;border-radius:8px"><i style="width:40px;height:7px;background:#1c1c1e;border-radius:4px"></i>Épaisse</a>
+      </div>
+      <div class="palette">
+        <a class="stylo on" title="Crayon"><svg viewBox="0 0 26 64"><path d="M6 64V22l7-16 7 16v42z" fill="#fff" stroke="#aeaeb2"/><path d="M10 13 13 6l3 7z" fill="#d32f2f"/><rect x="6" y="34" width="14" height="6" fill="#d32f2f"/></svg></a>
+        <a class="stylo" title="Surligneur"><svg viewBox="0 0 26 64"><path d="M5 64V24l3-12h10l3 12v40z" fill="#fff" stroke="#aeaeb2"/><path d="M9 12h8V5l-8 3z" fill="#fdd835"/><rect x="5" y="34" width="16" height="6" fill="#fdd835"/></svg></a>
+        <a class="stylo" title="Gomme"><svg viewBox="0 0 26 64"><path d="M5 64V16a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v48z" fill="#fff" stroke="#aeaeb2"/><path d="M5 22V16a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v6z" fill="#ffb4c4"/></svg></a>
+        <span class="sepv"></span>
+        <a class="cl on" style="color:#d32f2f"><i style="background:#d32f2f"></i></a>
+        <a class="cl"><i style="background:#1565c0"></i></a>
+        <a class="cl"><i style="background:#2e7d32"></i></a>
+        <a class="cl"><i style="background:#212121"></i></a>
+        <a class="cl"><i style="background:#ef6c00"></i></a>
+        <span class="sepv"></span>
+        <a class="rond" title="Annuler"><svg class="i"><use href="#i-undo"/></svg></a>
+        <a class="rond" title="Rétablir"><svg class="i"><use href="#i-redo"/></svg></a>
+      </div>
+    </div>
+    <aside class="insp">
+      <div style="padding:14px 16px 0;display:flex;align-items:center"><h2 class="hd">Français</h2><span class="esp"></span><a class="rond" title="Relancer l'analyse"><svg class="i"><use href="#i-refresh"/></svg></a></div>
+      <div style="padding:0 16px 12px"><b style="font-size:28px">−1,0 pt</b> <span class="fn">/ plafond 5 · 0,5 par faute</span>
+        <div style="display:flex;gap:14px;margin-top:6px"><span class="st o">1 à trancher</span><span class="st v">2 acceptées</span><span class="st g">1 refusée</span></div></div>
+      <div class="fiche">
+        <div style="display:flex;align-items:center"><span class="fn">Page 2 · conjugaison · 3 sur 4</span><span class="esp"></span><a class="rond" title="Faute précédente"><svg class="i"><use href="#i-left"/></svg></a><a class="rond" title="Faute suivante"><svg class="i"><use href="#i-right"/></svg></a></div>
+        <div class="mot"><del>aurions</del><svg class="i s" style="color:var(--lbl3)"><use href="#i-arrow"/></svg><span class="hw">avions</span></div>
+        <div style="font-size:15px;color:var(--lbl-f)">Après « si », l'imparfait remplace le conditionnel.</div>
+        <div class="ctx">… Si nous <mark>aurions</mark> mesuré vingt oscillations au lieu de dix …</div>
+        <div style="display:grid;grid-template-columns:1fr 1.3fr;gap:10px;margin-top:4px">
+          <a class="btn t m"><svg class="i s"><use href="#i-x"/></svg>Refuser</a>
+          <a class="btn f m"><svg class="i s" style="stroke-width:2.4"><use href="#i-check"/></svg>Accepter</a></div>
+      </div>
+      <div class="sect" style="margin-top:16px;padding-left:32px">Autres fautes</div>
+      <div class="grp" style="margin:0 16px;--ind:50px">
+        <div class="rg" style="min-height:46px"><svg class="i" style="color:var(--vert)"><use href="#i-check-circle"/></svg>obtenue → obtenues<span class="v fn">p. 2</span></div>
+        <div class="rg" style="min-height:46px"><svg class="i" style="color:var(--vert)"><use href="#i-check-circle"/></svg>démontre → démontrent<span class="v fn">p. 2</span></div>
+        <div class="rg" style="min-height:46px;color:var(--lbl2)"><svg class="i" style="color:var(--gris)"><use href="#i-x"/></svg>mesurable<span class="v fn">refusée</span></div>
+      </div>
+      <div class="sect" style="margin-top:14px;padding-left:32px">Indices · à revérifier</div>
+      <div class="grp" style="margin:0 16px;--ind:58px"><div class="rg"><span class="tuile" style="background:var(--violet)"><svg class="i"><use href="#i-scan"/></svg></span>Indice d'IA<span class="v"><span class="st p">Faible</span><svg class="i chev"><use href="#i-right"/></svg></span></div><div class="rg"><span class="tuile" style="background:var(--sarc)"><svg class="i"><use href="#i-copy"/></svg></span>Plagiat<span class="v">aucune paire<svg class="i chev"><use href="#i-right"/></svg></span></div></div>
+    </aside>
+  </div>
+</section>
+
+<!-- ================= 5. LECTEUR PORTRAIT ================= -->
+<div class="etiq">5. Lecteur en portrait <small>· iPad portrait 820 × 1180 · Français en feuille du bas, cran moyen (crans : bas, moyen, grand)</small></div>
+<section class="ecran B portrait" id="lecteur-portrait">
+  <div class="etat" style="background:#f9f9f9"><span>9:41</span><span><svg class="i s"><use href="#i-wifi"/></svg>82 %<i class="batt"></i></span></div>
+  <div class="nav">
+    <a class="ret"><svg class="i"><use href="#i-left"/></svg>Lab 4</a>
+    <div class="titre"><b>Noé Lavoie</b><span>6 sur 24 · enregistré</span></div><span class="esp"></span>
+    <a class="rond"><svg class="i"><use href="#i-left"/></svg></a><a class="rond"><svg class="i"><use href="#i-right"/></svg></a>
+    <a class="rond"><svg class="i"><use href="#i-more"/></svg></a>
+    <a class="btn f m" style="margin-left:4px"><svg class="i s" style="stroke-width:2.4"><use href="#i-check"/></svg>Terminer…</a>
+  </div>
+  <div class="toile" style="--pw:720px"><div class="page">
+  <div class="pg-h"><b>Laboratoire 4 — Pendule simple</b><span>Physique mécanique · Groupe 1010 · Équipe : N. Lavoie, I. Caron</span></div>
+  <h4>2. Résultats</h4>
+  <p>Les mesures <mark class="f">obtenue<em class="mn">obtenues</em></mark> montrent que la période augmente avec la longueur du fil. Pour une longueur de 0,80 m, la période moyenne sur dix oscillations est de 1,79 s.</p>
+  <table><tr><th>L (m)</th><th>T (s)</th><th>T² (s²)</th></tr><tr><td>0,40</td><td>1,27</td><td>1,61</td></tr><tr><td>0,60</td><td>1,55</td><td>2,40</td></tr><tr><td>0,80</td><td>1,79</td><td>3,20</td></tr><tr><td>1,00</td><td>2,01</td><td>4,04</td></tr></table>
+  <p style="position:relative"><span class="hl">La pente du graphique de T² en fonction de L vaut 4,02 s²/m</span>, ce qui donne <span class="cercle">g = 9,82 m/s²<svg class="trait" style="left:-9%;top:-35%;width:118%;height:170%" viewBox="0 0 100 40" preserveAspectRatio="none"><path vector-effect="non-scaling-stroke" d="M5 24 C 4 6, 88 0, 97 16 C 102 34, 24 42, 7 30" stroke="#d32f2f" stroke-width="2"/></svg></span>.<em class="note-main" style="right:-8%;top:.1em;color:#1565c0">± ?</em> La masse n'a pas d'effet mesurable sur la période.</p>
+  <h4>3. Analyse</h4>
+  <p>L'écart avec la valeur attendue est faible. Si nous <mark class="f sel">aurions<em class="mn">avions</em></mark> mesuré vingt oscillations au lieu de dix, l'incertitude serait plus petite. Il faudrait aussi vérifier l'effet de l'angle initial.</p>
+  <p>Le frottement de l'air et le temps de réaction de la personne qui chronomètre sont les principales sources d'erreur. Nos résultats <mark class="f">démontre<em class="mn">démontrent</em></mark> aussi que l'angle initial doit rester petit.</p>
+  <svg class="trait" style="left:92%;top:30%;width:5%;height:4%" viewBox="0 0 20 20"><path d="M2 11 L8 17 L19 3" stroke="#2e7d32" stroke-width="2.6"/></svg>
+  <div class="num">2</div>
+</div>
+
+    <div style="position:absolute;left:0;right:0;bottom:406px;height:0;z-index:4"><div class="palette">
+        <a class="stylo on" title="Crayon"><svg viewBox="0 0 26 64"><path d="M6 64V22l7-16 7 16v42z" fill="#fff" stroke="#aeaeb2"/><path d="M10 13 13 6l3 7z" fill="#d32f2f"/><rect x="6" y="34" width="14" height="6" fill="#d32f2f"/></svg></a>
+        <a class="stylo" title="Surligneur"><svg viewBox="0 0 26 64"><path d="M5 64V24l3-12h10l3 12v40z" fill="#fff" stroke="#aeaeb2"/><path d="M9 12h8V5l-8 3z" fill="#fdd835"/><rect x="5" y="34" width="16" height="6" fill="#fdd835"/></svg></a>
+        <a class="stylo" title="Gomme"><svg viewBox="0 0 26 64"><path d="M5 64V16a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v48z" fill="#fff" stroke="#aeaeb2"/><path d="M5 22V16a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v6z" fill="#ffb4c4"/></svg></a>
+        <span class="sepv"></span>
+        <a class="cl on" style="color:#d32f2f"><i style="background:#d32f2f"></i></a>
+        <a class="cl"><i style="background:#1565c0"></i></a>
+        <a class="cl"><i style="background:#2e7d32"></i></a>
+        <a class="cl"><i style="background:#212121"></i></a>
+        <a class="cl"><i style="background:#ef6c00"></i></a>
+        <span class="sepv"></span>
+        <a class="rond" title="Annuler"><svg class="i"><use href="#i-undo"/></svg></a>
+        <a class="rond" title="Rétablir"><svg class="i"><use href="#i-redo"/></svg></a>
+      </div></div>
+    <div style="position:absolute;left:0;right:0;bottom:0;height:400px;background:var(--bg);border-radius:14px 14px 0 0;box-shadow:0 -8px 30px rgba(0,0,0,.14);z-index:3;display:flex;flex-direction:column">
+      <i style="display:block;width:40px;height:5px;border-radius:3px;background:#8e8e93;margin:8px auto 6px"></i>
+      <div style="display:flex;align-items:center;padding:0 20px 10px;gap:14px"><h2 class="hd">Français</h2><b style="font-size:20px">−1,0 pt</b><span class="fn">/ plafond 5</span><span class="esp"></span><span class="st o">1 à trancher</span><span class="st v">2 acceptées</span><span class="st g">1 refusée</span></div>
+      <div style="display:flex;gap:16px;padding:0 20px 0 4px">
+        <div style="flex:1.2"><div class="fiche">
+        <div style="display:flex;align-items:center"><span class="fn">Page 2 · conjugaison · 3 sur 4</span><span class="esp"></span><a class="rond" title="Faute précédente"><svg class="i"><use href="#i-left"/></svg></a><a class="rond" title="Faute suivante"><svg class="i"><use href="#i-right"/></svg></a></div>
+        <div class="mot"><del>aurions</del><svg class="i s" style="color:var(--lbl3)"><use href="#i-arrow"/></svg><span class="hw">avions</span></div>
+        <div style="font-size:15px;color:var(--lbl-f)">Après « si », l'imparfait remplace le conditionnel.</div>
+        <div class="ctx">… Si nous <mark>aurions</mark> mesuré vingt oscillations au lieu de dix …</div>
+        <div style="display:grid;grid-template-columns:1fr 1.3fr;gap:10px;margin-top:4px">
+          <a class="btn t m"><svg class="i s"><use href="#i-x"/></svg>Refuser</a>
+          <a class="btn f m"><svg class="i s" style="stroke-width:2.4"><use href="#i-check"/></svg>Accepter</a></div>
+      </div></div>
+        <div style="flex:1">
+          <div class="grp" style="--ind:50px">
+            <div class="rg" style="min-height:48px"><svg class="i" style="color:var(--vert)"><use href="#i-check-circle"/></svg>obtenue → obtenues<span class="v fn">p. 2</span></div>
+            <div class="rg" style="min-height:48px"><svg class="i" style="color:var(--vert)"><use href="#i-check-circle"/></svg>démontre → démontrent<span class="v fn">p. 2</span></div>
+            <div class="rg" style="min-height:48px;color:var(--lbl2)"><svg class="i" style="color:var(--gris)"><use href="#i-x"/></svg>mesurable<span class="v fn">refusée</span></div>
+          </div>
+          <div class="grp" style="margin-top:14px;--ind:58px"><div class="rg"><span class="tuile" style="background:var(--violet)"><svg class="i"><use href="#i-scan"/></svg></span>Indice d'IA<span class="v"><span class="st p">Faible</span><svg class="i chev"><use href="#i-right"/></svg></span></div><div class="rg"><span class="tuile" style="background:var(--sarc)"><svg class="i"><use href="#i-copy"/></svg></span>Plagiat<span class="v">aucune paire</span></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= 6. PLAGIAT ================= -->
+<div class="etiq">6. Plagiat <small>· vue scindée sous la barre d'onglets, confirmation avant l'envoi à Claude (alerte iPadOS)</small></div>
+<section class="ecran B" id="plagiat">
+  <div class="etat"><span>9:41&nbsp;&nbsp;mar. 21 oct.</span><span><svg class="i s"><use href="#i-wifi"/></svg>82 %<i class="batt"></i></span></div>
+  <div class="tete">
+    <div class="onglets"><a>Accueil</a><a>Bibliothèque</a><a class="on">Plagiat</a><a>Réglages</a></div>
+    <span class="esp"></span><a class="rond f" title="Comparer à nouveau"><svg class="i"><use href="#i-refresh"/></svg></a>
+  </div>
+  <div style="flex:1;display:flex;min-height:0">
+    <div style="width:380px;flex:none;padding:0 16px 0 24px;display:flex;flex-direction:column">
+      <h1 class="gt" style="font-size:30px">Plagiat</h1>
+      <div class="sub" style="margin:2px 0 12px">Comparé ce matin · 312 rapports · seuil 20 %</div>
+      <div class="rech"><svg class="i s"><use href="#i-search"/></svg>Rechercher</div>
+      <div class="sect" style="margin-top:16px">À vérifier</div>
+      <div class="grp">
+        <div class="rg" style="min-height:64px;background:var(--tint);color:#fff"><div><b style="font-size:16px">Malik Ouellet et Théo Morin</b><div style="font-size:13px">Lab 4 · même groupe</div></div><span class="v" style="color:#fff;font-weight:700;white-space:nowrap">72 %</span></div>
+        <div class="rg" style="min-height:64px"><div><div style="font-size:16px">Hugo Simard et Emma Poirier</div><div class="fn">Lab 4 · groupes différents</div></div><span class="v"><span class="st s">34 %</span></span></div>
+      </div>
+      <div class="sect">Avis reçus</div>
+      <div class="grp"><div class="rg" style="min-height:64px"><div><div style="font-size:16px">Rose Leblanc et un ancien rapport</div><div class="fn">Claude : paraphrase probable</div></div><span class="v"><span class="st s">41 %</span></span></div></div>
+    </div>
+    <div style="flex:1;display:flex;flex-direction:column;min-width:0;padding:0 28px 0 12px">
+      <div style="display:flex;align-items:center;gap:18px">
+        <span class="anneau"><svg width="76" height="76" viewBox="0 0 36 36"><circle cx="18" cy="18" r="15" fill="none" stroke="#d4f0f4" stroke-width="4"/><circle cx="18" cy="18" r="15" fill="none" stroke="#00737f" stroke-width="4" stroke-dasharray="67.8 94.2" transform="rotate(-90 18 18)"/></svg><b style="font-size:16px">72 %</b></span>
+        <div><h2 class="t2">Malik Ouellet et Théo Morin</h2><div class="sub">3 passages communs · 72 % du rapport de Malik</div></div>
+      </div>
+      <div class="grp" style="margin-top:16px;display:flex;gap:12px;align-items:center;padding:12px 14px"><span class="tuile" style="background:var(--orange)"><svg class="i"><use href="#i-info"/></svg></span><span style="font-size:15px">Indice à revérifier, jamais un verdict. Rien n'est envoyé à Claude sans ta confirmation.</span></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:16px">
+        <div class="grp" style="padding:14px 16px"><div class="fn" style="font-weight:600;margin-bottom:6px">MALIK OUELLET · P. 2</div><div class="pass">Les résultats montrent que la période dépend de la longueur. <mark class="on">L'écart avec la valeur attendue est faible et s'explique surtout par le temps de réaction de la personne qui chronomètre</mark>, qui est d'environ 0,2 s.</div></div>
+        <div class="grp" style="padding:14px 16px"><div class="fn" style="font-weight:600;margin-bottom:6px">THÉO MORIN · P. 3</div><div class="pass">Comme prévu par la théorie, <mark class="on">l'écart avec la valeur attendue est faible et s'explique surtout par le temps de réaction de la personne qui chronomètre</mark>. Il faudrait une photoporte.</div></div>
+      </div>
+      <div style="display:flex;gap:12px;margin-top:20px"><a class="btn t">Écarter la paire</a><span class="esp"></span><a class="btn f"><svg class="i"><use href="#i-sparkles"/></svg>Demander l'avis de Claude</a></div>
+    </div>
+  </div>
+  <div class="voile"></div>
+  <div class="alerte">
+    <div class="c"><b style="font-size:17px">Envoyer les passages à Claude ?</b><div style="font-size:13px;margin-top:6px;line-height:1.4">3 passages communs, sans nom ni DA (environ 1 200 caractères). Compte dans ton forfait.</div></div>
+    <div class="bt"><a>Annuler</a><a>Envoyer</a></div>
+  </div>
+</section>
+
+<!-- ================= 7. EXPORT ================= -->
+<div class="etiq">7. Export pour LÉA <small>· feuille modale ouverte par Partager dans le suivi</small></div>
+<section class="ecran B" id="export">
+  <div class="etat"><span>9:41&nbsp;&nbsp;mar. 21 oct.</span><span><svg class="i s"><use href="#i-wifi"/></svg>82 %<i class="batt"></i></span></div>
+  <div class="nav" style="background:transparent;border:0"><a class="ret"><svg class="i"><use href="#i-left"/></svg>203-NYB-05</a></div>
+  <div style="padding:0 40px"><h1 class="gt">Lab 2 — Circuits RC</h1></div>
+  <div class="voile"></div>
+  <div class="feuille" style="top:40px;width:620px;height:770px">
+    <div class="fnav"><a>Fermer</a><b>Exporter pour LÉA</b></div>
+    <div style="padding:0 20px;flex:1;overflow:hidden">
+      <div class="sect">Contenu · groupe 2030</div>
+      <div class="grp" style="--ind:58px">
+        <div class="rg"><span class="tuile" style="background:var(--vert)"><svg class="i"><use href="#i-check"/></svg></span>Rapports corrigés<span class="v"><b style="color:var(--lbl)">15 inclus</b></span></div>
+        <div class="rg"><span class="tuile" style="background:var(--orange)"><svg class="i"><use href="#i-half"/></svg></span>Fautes à trancher<span class="v">2 rapports exclus</span></div>
+        <div class="rg"><span class="tuile" style="background:var(--orange)"><svg class="i"><use href="#i-alert"/></svg></span><div><div>Passe de Claude à refaire</div><div class="sub">Adam Girard</div></div><span class="v lien">Relancer</span></div>
+        <div class="rg">Inclure les rapports inachevés<span class="v"><i class="inter"></i></span></div>
+      </div>
+      <div class="fn" style="padding:7px 16px 0">Les inachevés partent signalés dans le CSV. PDF nommés comme dans LÉA, avec « _corrige ».</div>
+      <div class="sect">Prêt · remplace l'export du 18 oct.</div>
+      <div class="grp" style="--ind:58px">
+        <div class="rg"><span class="tuile"><svg class="i"><use href="#i-archive"/></svg></span><div><div>Travaux_2026-10-21_14h32.zip</div><div class="sub">15 PDF · 8,4 Mo · il y a 1 min</div></div></div>
+        <div class="rg"><span class="tuile"><svg class="i"><use href="#i-sheet"/></svg></span><div><div>Recapitulatif_203NYB05_lab-2.csv</div><div class="sub">18 lignes, une par coéquipier</div></div></div>
+      </div>
+      <a class="btn f blk" style="margin-top:20px"><svg class="i"><use href="#i-download"/></svg>Télécharger le ZIP</a>
+      <a class="btn t blk" style="margin-top:10px"><svg class="i"><use href="#i-sheet"/></svg>Télécharger le CSV</a>
+      <div class="grp" style="margin-top:16px"><div class="rg" style="color:var(--tint)">Marquer le lab terminé<span class="v"><svg class="i chev"><use href="#i-right"/></svg></span></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= 8. CODE D'ACCÈS ================= -->
+<div class="etiq">8. Code d'accès</div>
+<section class="ecran B" id="acces" style="background:linear-gradient(160deg,#dfe9fb 0%,#eef0fb 45%,#f6eefa 100%)">
+  <div class="etat"><span>9:41&nbsp;&nbsp;mar. 21 oct.</span><span><svg class="i s"><use href="#i-wifi"/></svg>82 %<i class="batt"></i></span></div>
+  <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding-bottom:60px">
+    <div style="width:96px;height:96px;border-radius:22px;background:linear-gradient(160deg,#3d8bff,#0055c9);display:grid;place-items:center;color:#fff;box-shadow:0 10px 30px rgba(0,85,201,.35)"><svg class="i" style="width:52px;height:52px;stroke-width:1.5"><use href="#i-cap"/></svg></div>
+    <h1 class="gt" style="margin-top:22px;font-size:32px">Correction de labs</h1>
+    <div style="margin-top:6px;font-size:17px;color:var(--lbl-f)">Saisis le code d'accès pour ouvrir l'app sur cet iPad.</div>
+    <div style="width:400px;margin-top:28px">
+      <div class="grp" style="display:flex;align-items:center;height:54px;padding:0 4px 0 16px;gap:10px;box-shadow:0 0 0 2px var(--tint)"><svg class="i" style="color:var(--lbl2)"><use href="#i-key"/></svg><span style="letter-spacing:5px;font-size:20px">••••••••••</span><span class="esp"></span><a class="rond" style="color:var(--lbl2)" title="Afficher le code"><svg class="i"><use href="#i-eye"/></svg></a></div>
+      <a class="btn f blk" style="margin-top:16px">Continuer</a>
+      <div style="text-align:center;margin-top:14px;display:flex;gap:6px;justify-content:center;align-items:center;font-size:13px;color:var(--lbl-f)"><svg class="i s"><use href="#i-lock"/></svg>Cet iPad restera connecté un an.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= 9. ÉTATS ET RETOURS ================= -->
+<div class="etiq">9. États et retours <small>· popover de note sur « Terminer… », bibliothèque vide, hors ligne, conflit, limite d'usage, lab terminé</small></div>
+<section class="ecran B" id="etats">
+  <div class="etat"><span>9:41&nbsp;&nbsp;mar. 21 oct.</span><span><svg class="i s"><use href="#i-wifi"/></svg>82 %<i class="batt"></i></span></div>
+  <div class="nav">
+    <a class="ret"><svg class="i"><use href="#i-left"/></svg>Lab 4</a>
+    <div class="titre"><b>Noé Lavoie</b><span style="color:var(--orange);font-weight:600">Hors ligne · 3 traits en attente</span></div>
+    <span class="esp"></span><a class="btn f m"><svg class="i s" style="stroke-width:2.4"><use href="#i-check"/></svg>Terminer…</a>
+  </div>
+  <div style="flex:1;display:flex;gap:24px;padding:24px 28px;position:relative">
+    <div style="width:640px;display:flex;flex-direction:column;gap:18px;min-width:0">
+      <div class="grp" style="padding:28px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:10px">
+        <span style="width:64px;height:64px;border-radius:16px;background:#e5e5ea;display:grid;place-items:center;color:var(--lbl2)"><svg class="i" style="width:34px;height:34px"><use href="#i-books"/></svg></span>
+        <h2 class="t2">Aucun rapport pour l'instant</h2>
+        <div class="sub" style="max-width:420px">Importe d'abord la liste de classe d'Omnivox ou de LÉA, puis les PDF d'un lab.</div>
+        <a class="btn f" style="margin-top:6px"><svg class="i"><use href="#i-plus"/></svg>Importer une liste de classe</a>
+      </div>
+      <div class="grp" style="--ind:58px">
+        <div class="rg"><span class="tuile" style="background:var(--indigo)"><svg class="i"><use href="#i-refresh"/></svg></span><div><div>Rapport modifié sur un autre appareil</div><div class="sub">Traits fusionnés · 1 décision de français rechargée</div></div></div>
+        <div class="rg"><span class="tuile" style="background:var(--orange)"><svg class="i"><use href="#i-alert"/></svg></span><div><div>Limite d'usage de Claude atteinte</div><div class="sub">Lot arrêté après 7 rapports · reprise vers 15 h 40</div></div></div>
+        <div class="rg"><span class="tuile" style="background:var(--vert)"><svg class="i"><use href="#i-check"/></svg></span><div><div>Lab 4 terminé : 24 sur 24</div><div class="sub">Prochaine étape : exporter pour LÉA</div></div><span class="v lien">Exporter</span></div>
+      </div>
+    </div>
+    <div class="popover haut" style="--fl:300px;position:absolute;right:20px;top:6px;width:360px;padding:16px">
+      <b style="font-size:17px">Terminer le rapport</b>
+      <div class="sub" style="margin:4px 0 12px">Français −1,0 pt (plafond 5) · 3 fautes acceptées</div>
+      <div class="fn" style="font-weight:600;margin-bottom:6px">NOTE POUR LÉA</div>
+      <div style="height:48px;border-radius:10px;background:var(--bg);display:flex;align-items:center;padding:0 14px;font-size:20px;font-weight:600;box-shadow:inset 0 0 0 2px var(--tint)">17,5<span class="fn" style="margin-left:auto">/ 20</span></div>
+      <div class="fn" style="margin:6px 0 14px">La même note va à Inès Caron (équipe).</div>
+      <a class="btn f blk m">Terminer et ouvrir le suivant</a>
+      <a class="btn t blk m" style="margin-top:8px">Terminer seulement</a>
+    </div>
+  </div>
+</section>
+
+</div>
+</body>
+</html>

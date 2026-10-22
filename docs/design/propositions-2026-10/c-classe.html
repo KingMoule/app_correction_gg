@@ -1,0 +1,644 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Direction C · Salle des profs</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@700&display=swap" rel="stylesheet">
+<style>
+/* ---- Planche de maquettes (commune aux 3 directions) ---- */
+html{-webkit-text-size-adjust:100%}
+body.planche-corps{margin:0;background:#cfd2d8;font-family:system-ui,sans-serif}
+.planche{padding:32px 24px 64px;display:flex;flex-direction:column;align-items:center;gap:14px}
+.planche>h1{font:700 22px/1.2 system-ui,sans-serif;margin:0 0 6px;color:#1d2027}
+.etiq{width:1180px;max-width:100%;font:600 14px/1.3 system-ui,sans-serif;color:#2b2f38;margin-top:26px}
+.etiq small{font-weight:400;color:#555b66}
+.ecran{display:flex;width:1180px;height:820px;flex:none;overflow:hidden;position:relative;border-radius:18px;box-shadow:0 12px 40px rgba(20,25,35,.25)}
+.ecran.portrait{width:820px;height:1180px}
+.ecran *{box-sizing:border-box}
+body.seul{background:transparent}
+body.seul .planche{padding:0;gap:0}
+body.seul .planche>h1,body.seul .etiq{display:none}
+body.seul .ecran{display:none;border-radius:0;box-shadow:none}
+body.seul .ecran.vu{display:flex}
+/* ---- Page de rapport fictive (PDF rendu) ---- */
+.page{width:var(--pw,560px);height:calc(var(--pw,560px)*1.294);font-size:calc(var(--pw,560px)/46);padding:7% 9% 6%;background:#fff;color:#1a1a1a;
+  font-family:Calibri,Carlito,"Segoe UI",Arial,sans-serif;line-height:1.45;position:relative;box-shadow:0 1px 3px rgba(0,0,0,.12),0 8px 24px rgba(0,0,0,.10);flex:none}
+.page .pg-h{border-bottom:.08em solid #999;padding-bottom:.5em;margin-bottom:1em}
+.page .pg-h b{display:block;font-size:1.35em}
+.page .pg-h span{font-size:.85em;color:#444}
+.page h4{font-size:1.05em;margin:.9em 0 .55em}
+.page p{margin:0 0 .6em;text-align:justify;line-height:1.8}
+.page table{border-collapse:collapse;font-size:.85em;margin:.4em 0 .8em;width:70%}
+.page td,.page th{border:.06em solid #888;padding:.15em .5em;text-align:center}
+.page mark.f{background:rgba(229,57,53,.26);color:inherit;position:relative;border-radius:.15em;padding:0 .05em}
+.page mark.f.sel{outline:.14em solid #d32f2f;outline-offset:.05em}
+.page mark.f.non{background:rgba(120,120,120,.16);text-decoration:line-through;text-decoration-color:#888}
+.page .mn{position:absolute;left:-.1em;top:-.95em;font:700 1.15em/1 Caveat,"Bradley Hand",cursive;color:#c62828;white-space:nowrap;font-style:normal}
+.page .cercle{position:relative;white-space:nowrap}
+.page .cercle .note-main{font-style:normal}
+.page mark.f.sel .mn{opacity:.6}
+.page .hl{background:rgba(255,214,0,.45);border-radius:.1em}
+.page .note-main{position:absolute;font:700 1.5em/1 Caveat,"Bradley Hand",cursive;white-space:nowrap}
+.page svg.trait{position:absolute;overflow:visible;fill:none;stroke-linecap:round;stroke-linejoin:round}
+.page .num{position:absolute;bottom:3%;left:0;right:0;text-align:center;font-size:.8em;color:#666}
+</style>
+<script>
+(function(){function m(){var r=location.hash.match(/^#seul-(.+)$/);document.body.classList.toggle('seul',!!r);
+document.querySelectorAll('.ecran').forEach(function(e){e.classList.toggle('vu',!!r&&e.id===r[1])});}
+addEventListener('hashchange',m);addEventListener('DOMContentLoaded',m);})();
+</script>
+
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* ===== Direction C « Salle des profs » : chaleureux et affirmé, rail foncé, cartes, une table d'états unique ===== */
+.C{--papier:#f6f1e8;--carte:#fffdf9;--trait:#e9e0d2;--bord:#8f8170;--encre:#2b2620;--encre2:#62584c;
+  --sapin:#0f6f66;--sapin-f:#0a4f49;--sapin-n:#123f3b;--sapin-d:#dcefeb;--sapin-c:#8fcfc4;
+  --ambre:#8a5100;--ambre-d:#fdebc8;--prune:#7a3e8f;--prune-d:#f3e6f6;--ciel:#2a62a6;--ciel-d:#e2ecf8;
+  --rouge:#b3261e;--rouge-d:#fbe3e0;--neutre:#4e463c;--neutre-d:#efe8dc;--ocre:#a4561a;--olive:#5f6f1f;
+  --ombre:0 1px 0 rgba(70,45,10,.05),0 6px 18px rgba(70,45,10,.07);
+  font:400 16px/1.45 Figtree,system-ui,sans-serif;color:var(--encre);background:var(--papier);font-variant-numeric:tabular-nums}
+.C .i{width:20px;height:20px;flex:none;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.C .i.s{width:17px;height:17px}.C .i.l{width:26px;height:26px}
+.C .serif{font-family:Fraunces,Georgia,serif;font-weight:650;letter-spacing:-.01em}
+/* Rail de navigation */
+.C .rail{width:92px;flex:none;background:var(--sapin-n);color:#f4efe6;display:flex;flex-direction:column;align-items:center;padding:14px 0 12px;gap:4px}
+.C .rail .logo{width:48px;height:48px;border-radius:14px;background:#f4efe6;color:var(--sapin-n);display:grid;place-items:center;margin-bottom:12px}
+.C .rail a{width:84px;min-height:62px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;font-size:12px;font-weight:600;color:#d5e4e0}
+.C .rail a span{width:56px;height:32px;border-radius:16px;display:grid;place-items:center}
+.C .rail a.on{color:#fff}.C .rail a.on span{background:#e6f2ef;color:var(--sapin-f)}
+.C .rail .bas{margin-top:auto}
+.C .rail .ordi{font-size:12px;color:#d5e4e0;text-align:center;line-height:1.2;display:flex;flex-direction:column;align-items:center;gap:5px;margin-top:6px}
+.C .rail .ordi i{width:8px;height:8px;border-radius:50%;background:#5bd68a}
+.C .zone{flex:1;display:flex;flex-direction:column;min-width:0;padding:22px 28px;gap:16px;overflow:hidden;position:relative}
+.C h1{margin:0;font-size:28px;line-height:34px}
+.C h2{margin:0;font-size:20px}
+.C .sous{color:var(--encre2)}
+.C .p{font-size:14px;color:var(--encre2)}
+.C .esp{flex:1}
+.C .carte{background:var(--carte);border-radius:16px;box-shadow:var(--ombre)}
+/* Boutons plats */
+.C .b{height:48px;border-radius:12px;display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:0 18px;font:600 16px Figtree,system-ui;white-space:nowrap;background:var(--carte);color:var(--sapin-f);box-shadow:inset 0 0 0 1.5px var(--bord)}
+.C .b.p{background:var(--sapin);color:#fff;box-shadow:none}
+.C .b.inv{background:#fff;color:var(--sapin-f);box-shadow:none}
+.C .b.ti{background:var(--sapin-d);color:var(--sapin-f);box-shadow:none}
+.C .b.clair{background:transparent;color:#fff;box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.6)}
+.C .b.sm{height:44px;padding:0 14px;font-size:15px}
+.C .b.ic{width:48px;padding:0}.C .b.ic.sm{width:44px}
+.C .b.blk{width:100%}
+/* Table d'états : à corriger neutre · en cours sapin clair · terminé sapin plein · alerte ambre · IA prune · plagiat ciel · faute rouge */
+.C .pa{display:inline-flex;align-items:center;gap:5px;height:28px;padding:0 10px;border-radius:8px;font-size:13px;font-weight:600;white-space:nowrap}
+.C .pa .i{width:14px;height:14px;stroke-width:2.4}
+.C .pa.ne{background:var(--neutre-d);color:var(--neutre)}.C .pa.ec{background:var(--sapin-d);color:var(--sapin-f)}
+.C .pa.te{background:var(--sapin);color:#fff}.C .pa.al{background:var(--ambre-d);color:var(--ambre)}
+.C .pa.ia{background:var(--prune-d);color:var(--prune)}.C .pa.pl{background:var(--ciel-d);color:var(--ciel)}
+.C .pa.ro{background:var(--rouge-d);color:var(--rouge)}
+.C .tuile{width:44px;height:44px;border-radius:12px;display:grid;place-items:center;flex:none}
+.C .av{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font-weight:600;font-size:13px;flex:none;background:var(--neutre-d);color:var(--neutre)}
+.C .barre{height:8px;border-radius:4px;background:#e9e0d2;overflow:hidden;display:flex}
+.C .barre i{display:block;height:100%}
+.C .seg{display:inline-flex;background:#ece4d6;border-radius:12px;padding:3px;gap:2px}
+.C .seg a{height:44px;display:flex;align-items:center;gap:6px;padding:0 14px;border-radius:10px;font-weight:600;font-size:14px;color:var(--encre2)}
+.C .seg a.on{background:var(--carte);color:var(--encre);box-shadow:0 1px 3px rgba(70,45,10,.15)}
+.C .champ{height:48px;border-radius:12px;background:var(--carte);box-shadow:inset 0 0 0 1.5px var(--bord);display:flex;align-items:center;gap:8px;padding:0 14px}
+.C .champ>.i:last-child{margin-left:auto;color:var(--encre2)}
+.C label.et{display:block;font-weight:600;font-size:14px;margin-bottom:6px}
+.C .inter{width:51px;height:31px;border-radius:16px;background:#e2d8c8;position:relative;flex:none;box-shadow:inset 0 0 0 1.5px var(--bord)}
+.C .inter::after{content:"";position:absolute;left:3px;top:3px;width:25px;height:25px;border-radius:50%;background:#fff;box-shadow:0 2px 4px rgba(0,0,0,.2)}
+/* Lecteur */
+.C .bureau{flex:1;background:#e9e1d3;display:flex;min-height:0;position:relative}
+.C .palette{position:absolute;left:14px;top:14px;width:100px;background:var(--carte);border-radius:20px;box-shadow:var(--ombre),0 0 0 1px rgba(70,45,10,.05);display:flex;flex-direction:column;align-items:center;padding:8px 0;gap:0;z-index:2}
+.C .outil{width:84px;height:60px;border-radius:14px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-size:12px;font-weight:600;color:var(--encre2)}
+.C .outil.on{background:var(--sapin-d);color:var(--sapin-f)}
+.C .outil .i{width:22px;height:22px}
+.C .palette hr{width:52px;border:0;border-top:1.5px solid var(--trait);margin:6px 0}
+.C .cl{width:44px;height:44px;display:grid;place-items:center}
+.C .cl i{width:28px;height:28px;border-radius:50%;box-shadow:inset 0 0 0 1px rgba(0,0,0,.12)}
+.C .cl.on i{box-shadow:0 0 0 3px var(--carte),0 0 0 5.5px var(--sapin)}
+.C .ep{width:56px;height:44px;display:grid;place-items:center;border-radius:12px}
+.C .ep i{display:block;width:26px;background:var(--encre);border-radius:4px}
+.C .ep.on{background:var(--sapin-d);box-shadow:inset 0 0 0 1.5px var(--sapin)}
+.C .duo{display:flex;gap:4px}
+.C .duo a{width:44px;height:48px;border-radius:12px;display:grid;place-items:center;color:var(--encre2)}
+.C .fiche-mot{font:700 34px/1 Caveat,cursive;color:#c62828}
+.C .ctx{font-size:15px;background:var(--papier);border-radius:10px;padding:10px 12px;color:#4e463c}
+.C .ctx mark{background:rgba(229,57,53,.22);color:inherit;border-radius:4px;padding:0 2px}
+.C .faute{display:flex;align-items:center;gap:10px;min-height:48px;padding:0 12px;border-radius:10px}
+.C .faute .pg{margin-left:auto;font-size:13px;color:var(--encre2)}
+.C .pass{font-size:15px;line-height:1.65}
+.C .pass mark{background:var(--ciel-d);color:inherit;border-radius:4px;padding:0 1px}
+.C .pass mark.on{background:#b9d0ee}
+.C .pass sup{display:inline-grid;place-items:center;width:20px;height:20px;border-radius:6px;background:var(--ciel);color:#fff;font-size:11px;font-weight:700;vertical-align:2px;margin-right:3px}
+.C .col{background:#efe7da;border-radius:16px;padding:10px;display:flex;flex-direction:column;gap:6px;overflow:hidden}
+.C .ligne{background:var(--carte);border-radius:10px;min-height:52px;display:flex;align-items:center;gap:10px;padding:0 10px;box-shadow:0 1px 0 rgba(70,45,10,.06)}
+.C .ligne b{font-weight:600;white-space:nowrap}
+.C .ligne .pa{height:24px;padding:0 7px;font-size:12px}
+</style>
+</head>
+<body class="planche-corps">
+<!-- Pictogrammes au trait 24 px, dessinés d'après la géométrie de Lucide (licence ISC). -->
+<svg xmlns="http://www.w3.org/2000/svg" style="position:absolute;width:0;height:0" aria-hidden="true">
+<symbol id="i-home" viewBox="0 0 24 24"><path d="m3 10 9-7 9 7v10a2 2 0 0 1-2 2h-4v-7H9v7H5a2 2 0 0 1-2-2z"/></symbol>
+<symbol id="i-books" viewBox="0 0 24 24"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/><path d="M9 7h6"/></symbol>
+<symbol id="i-upload" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m17 8-5-5-5 5"/><path d="M12 3v12"/></symbol>
+<symbol id="i-download" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/><path d="M12 15V3"/></symbol>
+<symbol id="i-play" viewBox="0 0 24 24"><path d="M6 4l14 8-14 8z"/></symbol>
+<symbol id="i-layers" viewBox="0 0 24 24"><path d="m12 2 10 5-10 5L2 7z"/><path d="m2 17 10 5 10-5"/><path d="m2 12 10 5 10-5"/></symbol>
+<symbol id="i-sparkles" viewBox="0 0 24 24"><path d="M11 3l1.9 5.1L18 10l-5.1 1.9L11 17l-1.9-5.1L4 10l5.1-1.9z"/><path d="M19 3v4M21 5h-4M19 17v4M21 19h-4"/></symbol>
+<symbol id="i-copy" viewBox="0 0 24 24"><rect x="8" y="8" width="13" height="13" rx="2"/><path d="M4 16V5a2 2 0 0 1 2-2h11"/></symbol>
+<symbol id="i-sliders" viewBox="0 0 24 24"><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/></symbol>
+<symbol id="i-lock" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></symbol>
+<symbol id="i-left" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></symbol>
+<symbol id="i-right" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></symbol>
+<symbol id="i-down" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+<symbol id="i-up" viewBox="0 0 24 24"><path d="m18 15-6-6-6 6"/></symbol>
+<symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
+<symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></symbol>
+<symbol id="i-check-circle" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></symbol>
+<symbol id="i-circle" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/></symbol>
+<symbol id="i-half" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 2a10 10 0 0 1 0 20z" fill="currentColor"/></symbol>
+<symbol id="i-pen" viewBox="0 0 24 24"><path d="M21.2 6.8a2.8 2.8 0 0 0-4-4L3.8 16.2a2 2 0 0 0-.5.8L2 21.4a.5.5 0 0 0 .6.6l4.4-1.3a2 2 0 0 0 .8-.5z"/><path d="m15 5 4 4"/></symbol>
+<symbol id="i-highlighter" viewBox="0 0 24 24"><path d="m9 11-6 6v3h9l3-3"/><path d="m22 12-4.6 4.6a2 2 0 0 1-2.8 0l-5.2-5.2a2 2 0 0 1 0-2.8L14 4"/></symbol>
+<symbol id="i-eraser" viewBox="0 0 24 24"><path d="m7 21-4.3-4.3c-1-1-1-2.5 0-3.4l9.6-9.6c1-1 2.5-1 3.4 0l5.6 5.6c1 1 1 2.5 0 3.4L13 21"/><path d="M22 21H7"/><path d="m5 11 9 9"/></symbol>
+<symbol id="i-undo" viewBox="0 0 24 24"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></symbol>
+<symbol id="i-redo" viewBox="0 0 24 24"><path d="m15 14 5-5-5-5"/><path d="M20 9H9.5a5.5 5.5 0 0 0 0 11H13"/></symbol>
+<symbol id="i-spell" viewBox="0 0 24 24"><path d="m4 16 6-12 6 12"/><path d="M6 12h8"/><path d="m15 20 2 2 5-5"/></symbol>
+<symbol id="i-file" viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M16 13H8M16 17H8M10 9H8"/></symbol>
+<symbol id="i-list" viewBox="0 0 24 24"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></symbol>
+<symbol id="i-table" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18"/></symbol>
+<symbol id="i-columns" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18M15 3v18"/></symbol>
+<symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></symbol>
+<symbol id="i-users" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8"/></symbol>
+<symbol id="i-alert" viewBox="0 0 24 24"><path d="m21.7 18-8-14a2 2 0 0 0-3.5 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.7-3"/><path d="M12 9v4M12 17h.01"/></symbol>
+<symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></symbol>
+<symbol id="i-fit" viewBox="0 0 24 24"><path d="M8 3H5a2 2 0 0 0-2 2v3M21 8V5a2 2 0 0 0-2-2h-3M3 16v3a2 2 0 0 0 2 2h3M16 21h3a2 2 0 0 0 2-2v-3"/></symbol>
+<symbol id="i-more" viewBox="0 0 24 24"><circle cx="12" cy="12" r="1.2"/><circle cx="19" cy="12" r="1.2"/><circle cx="5" cy="12" r="1.2"/></symbol>
+<symbol id="i-panel" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M15 3v18"/></symbol>
+<symbol id="i-sidebar" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18"/></symbol>
+<symbol id="i-folder" viewBox="0 0 24 24"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.7-.9l-.8-1.2A2 2 0 0 0 7.9 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/></symbol>
+<symbol id="i-archive" viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="5" rx="1"/><path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8M10 12h4"/></symbol>
+<symbol id="i-refresh" viewBox="0 0 24 24"><path d="M3 12a9 9 0 0 1 15.7-6L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15.7 6L3 16"/><path d="M8 16H3v5"/></symbol>
+<symbol id="i-wifi" viewBox="0 0 24 24"><path d="M12 20h.01M2 8.8a15 15 0 0 1 20 0M5 12.9a10 10 0 0 1 14 0M8.5 16.4a5 5 0 0 1 7 0"/></symbol>
+<symbol id="i-plus" viewBox="0 0 24 24"><path d="M5 12h14M12 5v14"/></symbol>
+<symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></symbol>
+<symbol id="i-swap" viewBox="0 0 24 24"><path d="m16 3 4 4-4 4M20 7H4M8 21l-4-4 4-4M4 17h16"/></symbol>
+<symbol id="i-cap" viewBox="0 0 24 24"><path d="M21.4 10.9a1 1 0 0 0 0-1.8l-8.6-3.9a2 2 0 0 0-1.7 0L2.6 9.1a1 1 0 0 0 0 1.8l8.6 3.9a2 2 0 0 0 1.7 0z"/><path d="M22 10v6M6 12.5V16a6 3 0 0 0 12 0v-3.5"/></symbol>
+<symbol id="i-logout" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5M21 12H9"/></symbol>
+<symbol id="i-eye" viewBox="0 0 24 24"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></symbol>
+<symbol id="i-filter" viewBox="0 0 24 24"><path d="M22 3H2l8 9.5V19l4 2v-8.5z"/></symbol>
+<symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></symbol>
+<symbol id="i-clipboard" viewBox="0 0 24 24"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/></symbol>
+<symbol id="i-external" viewBox="0 0 24 24"><path d="M15 3h6v6M10 14 21 3M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></symbol>
+<symbol id="i-shield" viewBox="0 0 24 24"><path d="M20 13c0 5-3.5 7.5-7.7 9a1 1 0 0 1-.6 0C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.2-2.7a1.2 1.2 0 0 1 1.6 0C14.5 3.8 17 5 19 5a1 1 0 0 1 1 1z"/></symbol>
+<symbol id="i-save" viewBox="0 0 24 24"><path d="M15.2 3a2 2 0 0 1 1.4.6l3.8 3.8a2 2 0 0 1 .6 1.4V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/><path d="M17 21v-7a1 1 0 0 0-1-1H8a1 1 0 0 0-1 1v7M7 3v4a1 1 0 0 0 1 1h7"/></symbol>
+<symbol id="i-flag" viewBox="0 0 24 24"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><path d="M4 22v-7"/></symbol>
+<symbol id="i-zoom" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3M11 8v6M8 11h6"/></symbol>
+<symbol id="i-share" viewBox="0 0 24 24"><path d="M12 3v12M8 7l4-4 4 4"/><path d="M20 13v6a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-6"/></symbol>
+<symbol id="i-book-open" viewBox="0 0 24 24"><path d="M12 7v14"/><path d="M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z"/></symbol>
+<symbol id="i-grip" viewBox="0 0 24 24"><path d="M9 5h.01M9 12h.01M9 19h.01M15 5h.01M15 12h.01M15 19h.01"/></symbol>
+<symbol id="i-key" viewBox="0 0 24 24"><circle cx="7.5" cy="15.5" r="5.5"/><path d="m21 2-9.6 9.6M15.5 7.5l3 3L22 7l-3-3"/></symbol>
+<symbol id="i-trash" viewBox="0 0 24 24"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></symbol>
+<symbol id="i-sheet" viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4M8 13h8M8 17h8M12 11v8"/></symbol>
+<symbol id="i-cmd" viewBox="0 0 24 24"><path d="M15 6v12a3 3 0 1 0 3-3H6a3 3 0 1 0 3 3V6a3 3 0 1 0-3 3h12a3 3 0 1 0-3-3"/></symbol>
+<symbol id="i-scan" viewBox="0 0 24 24"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"/><circle cx="11.5" cy="11.5" r="3.5"/><path d="m16.5 16.5-2.5-2.5"/></symbol>
+<symbol id="i-wifi-off" viewBox="0 0 24 24"><path d="M12 20h.01M8.5 16.4a5 5 0 0 1 7 0M2 8.8a15 15 0 0 1 4.2-2.7M10.7 5.1A15 15 0 0 1 22 8.8M5 12.9a10 10 0 0 1 5.2-2.8M2 2l20 20"/></symbol>
+<symbol id="i-redo2" viewBox="0 0 24 24"><path d="m15 14 5-5-5-5"/><path d="M20 9H9.5a5.5 5.5 0 0 0 0 11H13"/></symbol>
+</svg>
+
+<div class="planche">
+<h1>Direction C — « Salle des profs » : chaleureux, affirmé, en cartes</h1>
+
+<!-- ================= 1. ACCUEIL ================= -->
+<div class="etiq">1. Accueil et bibliothèque <small>· iPad paysage 1180 × 820 · rail de navigation à gauche</small></div>
+<section class="ecran C" id="accueil">
+  <nav class="rail">
+  <span class="logo"><svg class="i l"><use href="#i-cap"/></svg></span>
+  <a class="on"><span><svg class="i"><use href="#i-home"/></svg></span>Accueil</a>
+  <a><span><svg class="i"><use href="#i-books"/></svg></span>Bibliothèque</a>
+  <a><span><svg class="i"><use href="#i-upload"/></svg></span>Importer</a>
+  <a><span><svg class="i"><use href="#i-copy"/></svg></span>Plagiat</a>
+  <a class="bas"><span><svg class="i"><use href="#i-sliders"/></svg></span>Réglages</a>
+  <div class="ordi"><i></i>Ordi<br>connecté</div></nav>
+  <main class="zone">
+    <div><h1 class="serif">Bonjour Guillaume</h1><div class="sous">42 rapports à corriger dans 3 labs.</div></div>
+    <div style="display:flex;gap:16px">
+      <div class="carte" style="flex:1.45;background:var(--sapin);color:#fff;padding:20px 22px;display:flex;gap:20px;align-items:center">
+        <div style="width:84px;height:108px;border-radius:5px;background:#fff;box-shadow:0 8px 20px rgba(0,0,0,.25);flex:none;position:relative">
+          <i style="position:absolute;left:9px;top:12px;width:44px;height:5px;background:#3a3a3c;border-radius:2px"></i>
+          <i style="position:absolute;left:9px;right:9px;top:26px;height:60px;background:repeating-linear-gradient(#d9d2c6 0 2px,transparent 2px 8px)"></i>
+          <i style="position:absolute;left:24px;top:50px;width:22px;height:7px;background:rgba(229,57,53,.4)"></i></div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:13px;font-weight:600;color:#d5ece8;letter-spacing:.04em">REPRENDRE</div>
+          <div class="serif" style="font-size:26px;margin:2px 0">Noé Lavoie</div>
+          <div style="color:#e3f1ee">Lab 4 — Pendule simple · page 2 sur 3 · 1 faute à trancher</div>
+        </div>
+        <a class="b inv"><svg class="i"><use href="#i-pen"/></svg>Reprendre</a>
+      </div>
+      <div class="carte" style="flex:1;padding:8px">
+        <div class="faute"><span class="tuile" style="width:36px;height:36px;border-radius:10px;background:var(--ambre-d);color:var(--ambre)"><svg class="i s"><use href="#i-upload"/></svg></span><div><b style="font-weight:600">1 fichier à associer</b><div class="p">Import du Lab 4</div></div><svg class="i s" style="margin-left:auto;color:var(--encre2)"><use href="#i-right"/></svg></div>
+        <div class="faute"><span class="tuile" style="width:36px;height:36px;border-radius:10px;background:var(--ciel-d);color:var(--ciel)"><svg class="i s"><use href="#i-copy"/></svg></span><div><b style="font-weight:600">3 paires à regarder</b><div class="p">Plagiat · indices</div></div><svg class="i s" style="margin-left:auto;color:var(--encre2)"><use href="#i-right"/></svg></div>
+        <div class="faute"><span class="tuile" style="width:36px;height:36px;border-radius:10px;background:var(--ambre-d);color:var(--ambre)"><svg class="i s"><use href="#i-archive"/></svg></span><div><b style="font-weight:600">Lab 2 à renvoyer</b><div class="p">2 rapports modifiés depuis l'export</div></div><svg class="i s" style="margin-left:auto;color:var(--encre2)"><use href="#i-right"/></svg></div>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center"><h2 class="serif">Mes labs</h2><span class="esp"></span><div class="seg"><a class="on">En cours 3</a><a>Terminés 4</a></div></div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px">
+      <div class="carte" style="box-shadow:var(--ombre),inset 4px 0 0 var(--ocre);padding:16px 18px 16px 22px">
+        <div class="p">203-NYA-05 · Mécanique</div><div class="serif" style="font-size:20px">Lab 4 — Pendule simple</div>
+        <div style="display:flex;justify-content:space-between;font-weight:600;margin-top:12px"><span>7 sur 24 terminés</span><span class="p">4 en cours</span></div>
+        <div class="barre" style="margin:8px 0 12px"><i style="width:29%;background:var(--sapin)"></i><i style="width:17%;background:var(--sapin-c)"></i></div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap"><span class="pa al">9 fautes à trancher</span><span class="pa pl">3 paires</span></div>
+        <div style="display:flex;gap:8px;margin-top:14px"><a class="b sm" style="flex:1">Suivi</a><a class="b p sm" style="flex:1.3"><svg class="i s"><use href="#i-pen"/></svg>Corriger</a></div></div>
+      <div class="carte" style="box-shadow:var(--ombre),inset 4px 0 0 var(--ocre);padding:16px 18px 16px 22px">
+        <div class="p">203-NYA-05 · Mécanique</div><div class="serif" style="font-size:20px">Lab 5 — Collisions</div>
+        <div style="display:flex;justify-content:space-between;font-weight:600;margin-top:12px"><span>0 sur 22 terminés</span><span class="p">importé hier</span></div>
+        <div class="barre" style="margin:8px 0 12px"></div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap"><span class="pa ne">Pas encore analysé</span></div>
+        <div style="display:flex;gap:8px;margin-top:14px"><a class="b sm" style="flex:1">Suivi</a><a class="b ti sm" style="flex:1.3"><svg class="i s"><use href="#i-sparkles"/></svg>Analyser</a></div></div>
+      <div class="carte" style="box-shadow:var(--ombre),inset 4px 0 0 var(--olive);padding:16px 18px 16px 22px">
+        <div class="p">203-NYB-05 · Électricité</div><div class="serif" style="font-size:20px">Lab 2 — Circuits RC</div>
+        <div style="display:flex;justify-content:space-between;font-weight:600;margin-top:12px"><span>15 sur 18 terminés</span><span class="p">83 %</span></div>
+        <div class="barre" style="margin:8px 0 12px"><i style="width:83%;background:var(--sapin)"></i></div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap"><span class="pa al">Export à refaire</span></div>
+        <div style="display:flex;gap:8px;margin-top:14px"><a class="b sm" style="flex:1">Suivi</a><a class="b p sm" style="flex:1.3"><svg class="i s"><use href="#i-pen"/></svg>Corriger</a></div></div>
+    </div>
+    <div style="display:flex;align-items:center;margin-top:4px"><h2 class="serif">Bibliothèque</h2></div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px">
+      <div class="carte" style="padding:12px 16px;display:flex;gap:12px;align-items:center;box-shadow:var(--ombre),inset 4px 0 0 var(--ocre)"><span class="tuile" style="background:var(--neutre-d);color:var(--neutre)"><svg class="i"><use href="#i-folder"/></svg></span><div style="flex:1"><b style="font-weight:600">203-NYA-05 · Mécanique</b><div class="p">3 labs · groupes 1010, 1020</div></div><svg class="i s" style="color:var(--encre2)"><use href="#i-right"/></svg></div>
+      <div class="carte" style="padding:12px 16px;display:flex;gap:12px;align-items:center;box-shadow:var(--ombre),inset 4px 0 0 var(--olive)"><span class="tuile" style="background:var(--neutre-d);color:var(--neutre)"><svg class="i"><use href="#i-folder"/></svg></span><div style="flex:1"><b style="font-weight:600">203-NYB-05 · Électricité</b><div class="p">1 lab · groupe 2030</div></div><svg class="i s" style="color:var(--encre2)"><use href="#i-right"/></svg></div>
+      <div class="carte" style="padding:12px 16px;display:flex;gap:12px;align-items:center"><span class="tuile" style="background:var(--sapin);color:#fff"><svg class="i"><use href="#i-archive"/></svg></span><div style="flex:1"><b style="font-weight:600">Labs terminés</b><div class="p">4 labs, déjà remis dans LÉA</div></div><svg class="i s" style="color:var(--encre2)"><use href="#i-right"/></svg></div>
+    </div>
+    <div class="p" style="display:flex;gap:16px;align-items:center"><span style="display:flex;gap:6px;align-items:center"><i style="width:4px;height:16px;border-radius:2px;background:var(--ocre)"></i>203-NYA-05</span><span style="display:flex;gap:6px;align-items:center"><i style="width:4px;height:16px;border-radius:2px;background:var(--olive)"></i>203-NYB-05</span><span style="display:flex;gap:6px;align-items:center"><i style="width:12px;height:8px;border-radius:2px;background:var(--sapin)"></i>terminés</span><span style="display:flex;gap:6px;align-items:center"><i style="width:12px;height:8px;border-radius:2px;background:var(--sapin-c)"></i>en cours</span></div>
+  </main>
+</section>
+
+<!-- ================= 2. IMPORT ================= -->
+<div class="etiq">2. Importer <small>· assistant en 3 étapes</small></div>
+<section class="ecran C" id="import">
+  <nav class="rail">
+  <span class="logo"><svg class="i l"><use href="#i-cap"/></svg></span>
+  <a><span><svg class="i"><use href="#i-home"/></svg></span>Accueil</a>
+  <a><span><svg class="i"><use href="#i-books"/></svg></span>Bibliothèque</a>
+  <a class="on"><span><svg class="i"><use href="#i-upload"/></svg></span>Importer</a>
+  <a><span><svg class="i"><use href="#i-copy"/></svg></span>Plagiat</a>
+  <a class="bas"><span><svg class="i"><use href="#i-sliders"/></svg></span>Réglages</a>
+  <div class="ordi"><i></i>Ordi<br>connecté</div></nav>
+  <main class="zone">
+    <h1 class="serif">Importer des rapports</h1>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px">
+      <div class="carte" style="padding:12px 16px;display:flex;gap:12px;align-items:center"><span class="tuile" style="background:var(--sapin);color:#fff"><svg class="i"><use href="#i-check"/></svg></span><div><b style="font-weight:600">1. Liste de classe</b><div class="p">28 étudiants · gr. 1010</div></div></div>
+      <div class="carte" style="padding:12px 16px;display:flex;gap:12px;align-items:center;box-shadow:var(--ombre),inset 0 0 0 2px var(--sapin)"><span class="tuile" style="background:var(--sapin-d);color:var(--sapin-f);font-weight:700;font-size:18px">2</span><div><b style="font-weight:600">2. Rapports PDF</b><div class="p">Choisis le lab et les fichiers</div></div></div>
+      <div class="carte" style="padding:12px 16px;display:flex;gap:12px;align-items:center;background:#f3ede3;box-shadow:none"><span class="tuile" style="background:var(--neutre-d);color:var(--neutre);font-weight:700;font-size:18px">3</span><div><b style="font-weight:600;color:var(--encre2)">3. Vérifier</b><div class="p">Associer les cas douteux</div></div></div>
+    </div>
+    <div style="display:flex;gap:16px;flex:1;min-height:0">
+      <div class="carte" style="flex:1;padding:18px 20px;display:flex;flex-direction:column;gap:14px">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <div><label class="et">Cours</label><div class="champ">203-NYA-05<svg class="i"><use href="#i-down"/></svg></div></div>
+          <div><label class="et">Lab</label><div class="champ">Lab 4 — Pendule simple<svg class="i"><use href="#i-down"/></svg></div></div>
+        </div>
+        <div><label class="et">Groupe</label><div class="seg"><a class="on">Tous les groupes</a><a>1010</a><a>1020</a></div><div class="p" style="margin-top:6px">« Tous » range chaque rapport dans le groupe de son étudiant.</div></div>
+        <div style="flex:1;border:2px dashed #b9ab95;border-radius:16px;background:#fbf7f0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;text-align:center">
+          <span class="tuile" style="width:60px;height:60px;border-radius:18px;background:var(--sapin-d);color:var(--sapin)"><svg class="i l" style="width:30px;height:30px"><use href="#i-upload"/></svg></span>
+          <b style="font-size:18px;font-weight:600">Dépose les PDF ici</b><span class="p">PDF exportés de Word, avec du texte · 1 à 5 pages</span>
+          <a class="b sm"><svg class="i s"><use href="#i-folder"/></svg>Choisir des fichiers</a>
+        </div>
+      </div>
+      <div class="carte" style="width:400px;flex:none;padding:16px 18px;display:flex;flex-direction:column;gap:8px">
+        <div style="display:flex;align-items:baseline"><b style="font-weight:600">12 fichiers</b><span class="esp"></span><span class="p">10 prêts</span></div>
+        <div class="faute" style="background:var(--papier)"><span class="av">NL</span><div style="min-width:0"><b style="font-weight:600">Noé Lavoie</b><div class="p">+ Inès Caron (équipe)</div></div><span class="pa ec" style="margin-left:auto"><svg class="i"><use href="#i-check"/></svg>Par DA</span></div>
+        <div class="faute" style="background:var(--ambre-d)"><span class="av" style="background:#f6dcae;color:var(--ambre)">?</span><div style="min-width:0"><b style="font-weight:600">rapport_final(2).pdf</b><div class="p" style="color:var(--ambre)">Aucun nom reconnu : touche pour choisir</div></div><svg class="i" style="margin-left:auto;color:var(--ambre)"><use href="#i-right"/></svg></div>
+        <div class="faute" style="background:var(--papier)"><span class="av">HS</span><div><b style="font-weight:600">Hugo Simard</b><div class="p">trouvé par le nom</div></div><span class="pa ec" style="margin-left:auto"><svg class="i"><use href="#i-check"/></svg>Par nom</span></div>
+        <div class="faute" style="background:var(--rouge-d)"><span class="av" style="background:#f4c9c4;color:var(--rouge)"><svg class="i s"><use href="#i-x"/></svg></span><div><b style="font-weight:600">scan_lab4.pdf</b><div class="p" style="color:var(--rouge)">Numérisé : aucun texte à lire</div></div></div>
+        <div class="p" style="padding:4px 2px">+ 8 autres associés par n° de DA. Le cas douteux et le refusé ne seront pas importés.</div>
+        <a class="b p blk" style="margin-top:auto"><svg class="i"><use href="#i-upload"/></svg>Importer 10 rapports</a>
+      </div>
+    </div>
+  </main>
+</section>
+
+<!-- ================= 3. SUIVI ================= -->
+<div class="etiq">3. Tableau de suivi <small>· colonnes compactes qui se remplissent seules (pas de glisser-déposer), bascule en tableau</small></div>
+<section class="ecran C" id="suivi">
+  <nav class="rail">
+  <span class="logo"><svg class="i l"><use href="#i-cap"/></svg></span>
+  <a><span><svg class="i"><use href="#i-home"/></svg></span>Accueil</a>
+  <a class="on"><span><svg class="i"><use href="#i-books"/></svg></span>Bibliothèque</a>
+  <a><span><svg class="i"><use href="#i-upload"/></svg></span>Importer</a>
+  <a><span><svg class="i"><use href="#i-copy"/></svg></span>Plagiat</a>
+  <a class="bas"><span><svg class="i"><use href="#i-sliders"/></svg></span>Réglages</a>
+  <div class="ordi"><i></i>Ordi<br>connecté</div></nav>
+  <main class="zone" style="padding:0;gap:0">
+    <div style="background:var(--sapin-n);color:#fff;padding:16px 28px;display:flex;align-items:center;gap:12px">
+      <div style="flex:1;min-width:0"><div style="font-size:13px;color:#cfe5e0;display:flex;gap:6px;align-items:center"><svg class="i s"><use href="#i-left"/></svg>Bibliothèque · 203-NYA-05</div>
+        <h1 class="serif" style="font-size:26px;line-height:32px">Lab 4 — Pendule simple</h1>
+        <div style="display:flex;align-items:center;gap:12px;margin-top:6px"><div class="barre" style="width:220px;background:rgba(255,255,255,.2)"><i style="width:29%;background:#fff"></i><i style="width:17%;background:var(--sapin-c)"></i></div><span style="color:#e3f1ee;font-size:14px"><b style="color:#fff">7</b> terminés · <b style="color:#fff">4</b> en cours · <b style="color:#fff">13</b> à corriger</span></div></div>
+      <a class="b clair sm"><svg class="i s"><use href="#i-sparkles"/></svg>Analyser le lot</a>
+      <a class="b clair sm"><svg class="i s"><use href="#i-archive"/></svg>Exporter pour LÉA</a>
+      <a class="b inv sm"><svg class="i s"><use href="#i-pen"/></svg>Corriger le suivant</a>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;padding:12px 28px 0">
+      <div class="seg"><a class="on"><svg class="i s"><use href="#i-columns"/></svg>Colonnes</a><a><svg class="i s"><use href="#i-table"/></svg>Tableau</a></div>
+      <div class="seg"><a class="on">Tous les groupes</a><a>1010</a><a>1020</a></div><span class="esp"></span>
+      <span class="p" style="display:flex;gap:6px;align-items:center"><svg class="i s"><use href="#i-info"/></svg>IA et plagiat : des indices, jamais un verdict</span>
+    </div>
+    <div style="flex:1;display:grid;grid-template-columns:repeat(3,1fr);gap:14px;padding:12px 28px 18px;min-height:0">
+      <div class="col">
+        <div style="display:flex;align-items:center;gap:8px;padding:2px 4px 4px"><b style="font-weight:600">À corriger</b><span class="pa ne">13</span><span class="esp"></span><span class="p">par nom</span></div>
+        <div class="ligne" style="background:var(--sapin-d)"><svg class="i s" style="color:var(--sapin-f)"><use href="#i-sparkles"/></svg><b style="color:var(--sapin-f)">Analyse par lot · 6 sur 10</b><span class="esp"></span><a class="b sm" style="height:44px;background:transparent">Arrêter</a></div>
+        <div class="ligne"><span class="av">AG</span><b>Adam Girard</b><span class="esp"></span><span class="pa al"><svg class="i"><use href="#i-refresh"/></svg>Claude</span></div>
+        <div class="ligne"><span class="av">LF</span><b>Liam Fournier</b><span class="esp"></span><span class="pa al">2</span><span class="pa ia">IA</span></div>
+        <div class="ligne"><span class="av">JM</span><b>Juliette Martel</b><span class="esp"></span><span class="pa ne">non analysé</span></div>
+        <div class="ligne"><span class="av">MO</span><b>Malik Ouellet</b><span class="esp"></span><span class="pa al">3</span><span class="pa ia">IA</span><span class="pa pl">72 %</span></div>
+        <div class="ligne"><span class="av">ZP</span><b>Zoé Pelletier</b><span class="esp"></span><span class="pa ne">non analysé</span></div>
+        <div class="ligne"><span class="av">EP</span><b>Emma Poirier</b><span class="esp"></span><span class="pa al">1</span><span class="pa pl">23 %</span></div>
+        <div class="ligne"><span class="av">HS</span><b>Hugo Simard</b><span class="esp"></span><span class="pa al">1</span></div>
+        <div class="p" style="padding:2px 6px">+ 5 autres</div>
+      </div>
+      <div class="col">
+        <div style="display:flex;align-items:center;gap:8px;padding:2px 4px 4px"><b style="font-weight:600">En cours</b><span class="pa ec">4</span></div>
+        <div class="ligne" style="box-shadow:inset 0 0 0 2px var(--sapin)"><span class="av">NL</span><b>Noé Lavoie</b><span class="esp"></span><span class="pa al">1</span><span class="p">p. 2</span></div>
+        <div class="ligne"><span class="av">CB</span><b>Clara Bergeron</b><span class="esp"></span><span class="pa ec">−2 pts</span></div>
+        <div class="ligne"><span class="av">TM</span><b>Théo Morin</b><span class="esp"></span><span class="pa al">1</span><span class="pa pl">72 %</span></div>
+        <div class="ligne"><span class="av">AB</span><b>Ariane Bédard</b><span class="esp"></span><span class="pa ec">−1 pt</span></div>
+      </div>
+      <div class="col">
+        <div style="display:flex;align-items:center;gap:8px;padding:2px 4px 4px"><b style="font-weight:600">Terminés</b><span class="pa te">7</span></div>
+        <div class="ligne"><span class="av">IC</span><b>Inès Caron</b><span class="esp"></span><span class="p">avec N. Lavoie</span><b style="font-size:17px">17,5</b></div>
+        <div class="ligne"><span class="av">RL</span><b>Rose Leblanc</b><span class="esp"></span><span class="pa ia">IA</span><b style="font-size:17px">17,5</b></div>
+        <div class="ligne"><span class="av">GT</span><b>Gabriel Tessier</b><span class="esp"></span><b style="font-size:17px">18</b></div>
+        <div class="ligne"><span class="av">SV</span><b>Sarah Vachon</b><span class="esp"></span><b style="font-size:17px">16</b></div>
+        <div class="ligne"><span class="av">OD</span><b>Olivier Drolet</b><span class="esp"></span><b style="font-size:17px">15,5</b></div>
+        <div class="p" style="padding:2px 6px">+ 2 autres</div>
+      </div>
+    </div>
+  </main>
+</section>
+
+<!-- ================= 4. LECTEUR ================= -->
+<div class="etiq">4. Lecteur : palette d'outils en carte, fiche de la faute et cartes à droite</div>
+<section class="ecran C" id="lecteur" style="flex-direction:column">
+  <div style="height:72px;flex:none;display:flex;align-items:center;gap:10px;padding:0 14px;background:var(--papier);border-bottom:1.5px solid var(--trait)">
+    <a class="b ic"><svg class="i"><use href="#i-left"/></svg></a>
+    <span class="av" style="width:44px;height:44px">NL</span>
+    <div style="line-height:1.25"><b style="font-size:18px;font-weight:600">Noé Lavoie</b> <span class="pa ec" style="height:24px;margin-left:4px">En cours</span><div class="p">Lab 4 — Pendule simple · avec Inès Caron</div></div>
+    <span class="esp"></span>
+    <span class="p" style="display:flex;gap:6px;align-items:center;margin-right:6px"><svg class="i s" style="color:var(--sapin)"><use href="#i-check"/></svg>Enregistré</span>
+    <a class="b ic sm" title="Rapport précédent"><svg class="i"><use href="#i-left"/></svg></a><b style="white-space:nowrap">6 sur 24</b><a class="b ic sm" title="Rapport suivant"><svg class="i"><use href="#i-right"/></svg></a>
+    <a class="b sm"><svg class="i s"><use href="#i-download"/></svg>PDF</a>
+    <a class="b p"><svg class="i"><use href="#i-check"/></svg>Terminé…</a>
+  </div>
+  <div class="bureau">
+    <div class="palette">
+      <a class="outil on"><svg class="i"><use href="#i-pen"/></svg>Crayon</a>
+      <a class="outil"><svg class="i"><use href="#i-highlighter"/></svg>Surligneur</a>
+      <a class="outil"><svg class="i"><use href="#i-eraser"/></svg>Gomme</a>
+      <hr>
+      <a class="cl on"><i style="background:#d32f2f"></i></a><a class="cl"><i style="background:#1565c0"></i></a><a class="cl"><i style="background:#2e7d32"></i></a><a class="cl"><i style="background:#212121"></i></a><a class="cl"><i style="background:#ef6c00"></i></a>
+      <hr>
+      <a class="ep"><i style="height:2px"></i></a><a class="ep on"><i style="height:4px"></i></a><a class="ep"><i style="height:7px"></i></a>
+      <hr>
+      <span class="duo"><a title="Annuler"><svg class="i"><use href="#i-undo"/></svg></a><a title="Rétablir"><svg class="i"><use href="#i-redo"/></svg></a></span>
+    </div>
+    <div style="flex:1;display:flex;justify-content:center;padding:16px 0 0 110px;overflow:hidden;--pw:640px"><div class="page">
+  <div class="pg-h"><b>Laboratoire 4 — Pendule simple</b><span>Physique mécanique · Groupe 1010 · Équipe : N. Lavoie, I. Caron</span></div>
+  <h4>2. Résultats</h4>
+  <p>Les mesures <mark class="f">obtenue<em class="mn">obtenues</em></mark> montrent que la période augmente avec la longueur du fil. Pour une longueur de 0,80 m, la période moyenne sur dix oscillations est de 1,79 s.</p>
+  <table><tr><th>L (m)</th><th>T (s)</th><th>T² (s²)</th></tr><tr><td>0,40</td><td>1,27</td><td>1,61</td></tr><tr><td>0,60</td><td>1,55</td><td>2,40</td></tr><tr><td>0,80</td><td>1,79</td><td>3,20</td></tr><tr><td>1,00</td><td>2,01</td><td>4,04</td></tr></table>
+  <p style="position:relative"><span class="hl">La pente du graphique de T² en fonction de L vaut 4,02 s²/m</span>, ce qui donne <span class="cercle">g = 9,82 m/s²<svg class="trait" style="left:-9%;top:-35%;width:118%;height:170%" viewBox="0 0 100 40" preserveAspectRatio="none"><path vector-effect="non-scaling-stroke" d="M5 24 C 4 6, 88 0, 97 16 C 102 34, 24 42, 7 30" stroke="#d32f2f" stroke-width="2"/></svg></span>.<em class="note-main" style="right:-8%;top:.1em;color:#1565c0">± ?</em> La masse n'a pas d'effet mesurable sur la période.</p>
+  <h4>3. Analyse</h4>
+  <p>L'écart avec la valeur attendue est faible. Si nous <mark class="f sel">aurions<em class="mn">avions</em></mark> mesuré vingt oscillations au lieu de dix, l'incertitude serait plus petite. Il faudrait aussi vérifier l'effet de l'angle initial.</p>
+  <p>Le frottement de l'air et le temps de réaction de la personne qui chronomètre sont les principales sources d'erreur. Nos résultats <mark class="f">démontre<em class="mn">démontrent</em></mark> aussi que l'angle initial doit rester petit.</p>
+  <svg class="trait" style="left:92%;top:30%;width:5%;height:4%" viewBox="0 0 20 20"><path d="M2 11 L8 17 L19 3" stroke="#2e7d32" stroke-width="2.6"/></svg>
+  <div class="num">2</div>
+</div>
+</div>
+    <aside style="width:340px;flex:none;padding:14px 14px 14px 0;display:flex;flex-direction:column;gap:10px;overflow:hidden">
+      <div class="carte" style="padding:6px 16px 6px 8px;display:flex;align-items:center;gap:12px">
+        <span class="tuile" style="background:var(--rouge-d);color:var(--rouge)"><svg class="i"><use href="#i-spell"/></svg></span>
+        <div style="flex:1"><b style="font-weight:600">Français</b><div class="p">1 à trancher sur 4</div></div>
+        <b style="font-size:22px">−1 pt</b><span class="p">/ 5</span>
+      </div>
+      <div class="carte" style="padding:14px 16px;box-shadow:var(--ombre),inset 0 0 0 2px var(--sapin);flex:1">
+        <div style="display:flex;align-items:center;gap:8px"><span class="pa al">À trancher</span><span class="p">Conjugaison · p. 2</span><span class="esp"></span><span class="p">3 / 4</span></div>
+        <div style="display:flex;align-items:baseline;gap:12px;margin:10px 0 6px"><span style="font-size:22px;font-weight:700;color:var(--rouge);text-decoration:line-through">aurions</span><svg class="i" style="color:var(--encre2)"><use href="#i-arrow"/></svg><span class="fiche-mot">avions</span></div>
+        <div>Après « si », on emploie l'imparfait, pas le conditionnel.</div>
+        <div class="ctx" style="margin:10px 0 12px">… Si nous <mark>aurions</mark> mesuré vingt oscillations au lieu de dix …</div>
+        <div style="display:grid;grid-template-columns:1fr 1.3fr;gap:10px"><a class="b sm"><svg class="i s"><use href="#i-x"/></svg>Refuser</a><a class="b p sm"><svg class="i s"><use href="#i-check"/></svg>Accepter</a></div>
+        <div class="p" style="margin-top:10px;display:flex;gap:6px;align-items:center"><svg class="i s"><use href="#i-arrow"/></svg>Ensuite : « démontre », page 2</div>
+      </div>
+      <div class="carte" style="padding:8px;flex:1">
+        <div style="display:flex;gap:6px;padding:0 4px 6px"><a class="b sm" style="height:44px;padding:0 10px;font-size:14px;box-shadow:inset 0 0 0 1.5px var(--sapin);background:var(--sapin-d)">Tout · 4</a><a class="b sm" style="height:44px;padding:0 10px;font-size:14px">Accords · 2</a><a class="b sm" style="height:44px;padding:0 10px;font-size:14px">Conjug. · 1</a></div>
+        <div class="faute"><svg class="i" style="color:var(--sapin)"><use href="#i-check-circle"/></svg>obtenue → <b style="font-weight:600">obtenues</b><span class="pg">p. 2</span></div>
+        <div class="faute"><svg class="i" style="color:var(--sapin)"><use href="#i-check-circle"/></svg>démontre → <b style="font-weight:600">démontrent</b><span class="pg">p. 2</span></div>
+        <div class="faute" style="background:var(--sapin-d)"><svg class="i" style="color:var(--ambre)"><use href="#i-half"/></svg><b style="font-weight:600">aurions → avions</b><span class="pg">p. 2</span></div>
+      </div>
+      <div class="carte" style="padding:10px 16px;display:flex;align-items:center;gap:12px;background:var(--prune-d);box-shadow:none;min-height:56px"><svg class="i" style="color:var(--prune)"><use href="#i-scan"/></svg><div style="flex:1"><b style="color:var(--prune);font-weight:600">Indice d'IA : faible</b><div class="p">à revérifier, jamais un verdict</div></div><svg class="i s" style="color:var(--prune)"><use href="#i-right"/></svg></div>
+    </aside>
+  </div>
+</section>
+
+<!-- ================= 5. LECTEUR PORTRAIT ================= -->
+<div class="etiq">5. Lecteur en portrait <small>· iPad portrait 820 × 1180 · palette en bandeau, cartes en bas</small></div>
+<section class="ecran C portrait" id="lecteur-portrait" style="flex-direction:column">
+  <div style="height:72px;flex:none;display:flex;align-items:center;gap:8px;padding:0 12px;background:var(--papier);border-bottom:1.5px solid var(--trait)">
+    <a class="b ic sm"><svg class="i"><use href="#i-left"/></svg></a>
+    <span class="av" style="width:40px;height:40px">NL</span>
+    <div style="line-height:1.25;min-width:0"><b style="font-size:17px;font-weight:600">Noé Lavoie</b><div class="p" style="display:flex;gap:6px;align-items:center"><svg class="i s" style="color:var(--sapin)"><use href="#i-check"/></svg>Enregistré</div></div>
+    <span class="esp"></span>
+    <a class="b ic sm"><svg class="i"><use href="#i-left"/></svg></a><b style="white-space:nowrap">6 sur 24</b><a class="b ic sm"><svg class="i"><use href="#i-right"/></svg></a>
+    <a class="b p sm"><svg class="i s"><use href="#i-check"/></svg>Terminé…</a>
+  </div>
+  <div class="bureau" style="flex-direction:column">
+    <div style="position:absolute;left:50%;top:10px;transform:translateX(-50%);background:var(--carte);border-radius:20px;box-shadow:var(--ombre);display:flex;align-items:center;padding:4px 8px;z-index:2">
+      <a class="outil on" style="width:64px;height:58px"><svg class="i"><use href="#i-pen"/></svg>Crayon</a><a class="outil" style="width:72px;height:58px"><svg class="i"><use href="#i-highlighter"/></svg>Surligneur</a><a class="outil" style="width:62px;height:58px"><svg class="i"><use href="#i-eraser"/></svg>Gomme</a>
+      <i style="width:1.5px;height:36px;background:var(--trait);margin:0 4px"></i>
+      <a class="cl on"><i style="background:#d32f2f"></i></a><a class="cl"><i style="background:#1565c0"></i></a><a class="cl"><i style="background:#2e7d32"></i></a><a class="cl"><i style="background:#212121"></i></a><a class="cl"><i style="background:#ef6c00"></i></a>
+      <i style="width:1.5px;height:36px;background:var(--trait);margin:0 4px"></i>
+      <a class="ep" style="width:44px"><i style="height:2px;width:22px"></i></a><a class="ep on" style="width:44px"><i style="height:4px;width:22px"></i></a><a class="ep" style="width:44px"><i style="height:7px;width:22px"></i></a>
+      <i style="width:1.5px;height:36px;background:var(--trait);margin:0 4px"></i>
+      <span class="duo"><a title="Annuler"><svg class="i"><use href="#i-undo"/></svg></a><a title="Rétablir"><svg class="i"><use href="#i-redo"/></svg></a></span>
+    </div>
+    <div style="flex:1;display:flex;justify-content:center;padding-top:84px;overflow:hidden;--pw:700px"><div class="page">
+  <div class="pg-h"><b>Laboratoire 4 — Pendule simple</b><span>Physique mécanique · Groupe 1010 · Équipe : N. Lavoie, I. Caron</span></div>
+  <h4>2. Résultats</h4>
+  <p>Les mesures <mark class="f">obtenue<em class="mn">obtenues</em></mark> montrent que la période augmente avec la longueur du fil. Pour une longueur de 0,80 m, la période moyenne sur dix oscillations est de 1,79 s.</p>
+  <table><tr><th>L (m)</th><th>T (s)</th><th>T² (s²)</th></tr><tr><td>0,40</td><td>1,27</td><td>1,61</td></tr><tr><td>0,60</td><td>1,55</td><td>2,40</td></tr><tr><td>0,80</td><td>1,79</td><td>3,20</td></tr><tr><td>1,00</td><td>2,01</td><td>4,04</td></tr></table>
+  <p style="position:relative"><span class="hl">La pente du graphique de T² en fonction de L vaut 4,02 s²/m</span>, ce qui donne <span class="cercle">g = 9,82 m/s²<svg class="trait" style="left:-9%;top:-35%;width:118%;height:170%" viewBox="0 0 100 40" preserveAspectRatio="none"><path vector-effect="non-scaling-stroke" d="M5 24 C 4 6, 88 0, 97 16 C 102 34, 24 42, 7 30" stroke="#d32f2f" stroke-width="2"/></svg></span>.<em class="note-main" style="right:-8%;top:.1em;color:#1565c0">± ?</em> La masse n'a pas d'effet mesurable sur la période.</p>
+  <h4>3. Analyse</h4>
+  <p>L'écart avec la valeur attendue est faible. Si nous <mark class="f sel">aurions<em class="mn">avions</em></mark> mesuré vingt oscillations au lieu de dix, l'incertitude serait plus petite. Il faudrait aussi vérifier l'effet de l'angle initial.</p>
+  <p>Le frottement de l'air et le temps de réaction de la personne qui chronomètre sont les principales sources d'erreur. Nos résultats <mark class="f">démontre<em class="mn">démontrent</em></mark> aussi que l'angle initial doit rester petit.</p>
+  <svg class="trait" style="left:92%;top:30%;width:5%;height:4%" viewBox="0 0 20 20"><path d="M2 11 L8 17 L19 3" stroke="#2e7d32" stroke-width="2.6"/></svg>
+  <div class="num">2</div>
+</div>
+</div>
+    <div style="height:356px;flex:none;display:flex;gap:12px;padding:12px 14px 14px;background:var(--papier);border-top:1.5px solid var(--trait)">
+      <div style="flex:1.2;display:flex"><div class="carte" style="padding:14px 16px;box-shadow:var(--ombre),inset 0 0 0 2px var(--sapin);flex:1">
+        <div style="display:flex;align-items:center;gap:8px"><span class="pa al">À trancher</span><span class="p">Conjugaison · p. 2</span><span class="esp"></span><span class="p">3 / 4</span></div>
+        <div style="display:flex;align-items:baseline;gap:12px;margin:10px 0 6px"><span style="font-size:22px;font-weight:700;color:var(--rouge);text-decoration:line-through">aurions</span><svg class="i" style="color:var(--encre2)"><use href="#i-arrow"/></svg><span class="fiche-mot">avions</span></div>
+        <div>Après « si », on emploie l'imparfait, pas le conditionnel.</div>
+        <div class="ctx" style="margin:10px 0 12px">… Si nous <mark>aurions</mark> mesuré vingt oscillations au lieu de dix …</div>
+        <div style="display:grid;grid-template-columns:1fr 1.3fr;gap:10px"><a class="b sm"><svg class="i s"><use href="#i-x"/></svg>Refuser</a><a class="b p sm"><svg class="i s"><use href="#i-check"/></svg>Accepter</a></div>
+        <div class="p" style="margin-top:10px;display:flex;gap:6px;align-items:center"><svg class="i s"><use href="#i-arrow"/></svg>Ensuite : « démontre », page 2</div>
+      </div></div>
+      <div style="flex:1;display:flex;flex-direction:column;gap:10px">
+        <div class="carte" style="padding:10px 14px;display:flex;align-items:center;gap:12px"><span class="tuile" style="background:var(--rouge-d);color:var(--rouge)"><svg class="i"><use href="#i-spell"/></svg></span><div style="flex:1"><b style="font-weight:600">Français</b><div class="p">1 à trancher sur 4</div></div><b style="font-size:20px">−1 pt</b></div>
+        <div class="carte" style="padding:6px;flex:1">
+          <div class="faute"><svg class="i" style="color:var(--sapin)"><use href="#i-check-circle"/></svg>obtenue → <b style="font-weight:600">obtenues</b></div>
+          <div class="faute"><svg class="i" style="color:var(--sapin)"><use href="#i-check-circle"/></svg>démontre → <b style="font-weight:600">démontrent</b></div>
+          <div class="faute" style="background:var(--sapin-d)"><svg class="i" style="color:var(--ambre)"><use href="#i-half"/></svg><b style="font-weight:600">aurions → avions</b></div>
+        </div>
+        <div class="carte" style="padding:8px 14px;display:flex;align-items:center;gap:10px;background:var(--prune-d);box-shadow:none;min-height:48px"><svg class="i" style="color:var(--prune)"><use href="#i-scan"/></svg><b style="color:var(--prune);font-weight:600">IA : faible · à revérifier</b><span class="esp"></span><svg class="i s" style="color:var(--prune)"><use href="#i-right"/></svg></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= 6. PLAGIAT ================= -->
+<div class="etiq">6. Plagiat <small>· passages numérotés et appariés, en bleu (jamais en rouge ni en jaune)</small></div>
+<section class="ecran C" id="plagiat">
+  <nav class="rail">
+  <span class="logo"><svg class="i l"><use href="#i-cap"/></svg></span>
+  <a><span><svg class="i"><use href="#i-home"/></svg></span>Accueil</a>
+  <a><span><svg class="i"><use href="#i-books"/></svg></span>Bibliothèque</a>
+  <a><span><svg class="i"><use href="#i-upload"/></svg></span>Importer</a>
+  <a class="on"><span><svg class="i"><use href="#i-copy"/></svg></span>Plagiat</a>
+  <a class="bas"><span><svg class="i"><use href="#i-sliders"/></svg></span>Réglages</a>
+  <div class="ordi"><i></i>Ordi<br>connecté</div></nav>
+  <main class="zone" style="flex-direction:row;gap:18px">
+    <div style="width:320px;flex:none;display:flex;flex-direction:column;gap:10px">
+      <h1 class="serif">Plagiat</h1>
+      <div class="p" style="margin-top:-6px">312 rapports comparés ce matin, sur l'ordi. Énoncé du Lab 4 ignoré, coéquipiers jamais comparés.</div>
+      <div style="display:flex;align-items:center;gap:8px"><span class="pa ne">Seuil 20 %</span><span class="pa ne">Tous les labs</span><span class="esp"></span><a class="b ic sm" title="Comparer à nouveau"><svg class="i"><use href="#i-refresh"/></svg></a></div>
+      <div class="carte" style="padding:12px 16px;box-shadow:var(--ombre),inset 0 0 0 2px var(--sapin)">
+        <div style="display:flex;align-items:baseline;gap:8px"><b style="font-size:22px">72 %</b><span class="p">élevé · 3 passages</span><span class="esp"></span><span class="pa al">À vérifier</span></div>
+        <div style="font-weight:600;margin-top:4px">Malik Ouellet et Théo Morin</div><div class="p">Lab 4 · même groupe</div></div>
+      <div class="carte" style="padding:12px 16px">
+        <div style="display:flex;align-items:baseline;gap:8px"><b style="font-size:22px">41 %</b><span class="p">moyen</span><span class="esp"></span><span class="pa pl">Avis : paraphrase</span></div>
+        <div style="font-weight:600;margin-top:4px">Rose Leblanc et un rapport de 2025</div></div>
+      <div class="carte" style="padding:12px 16px;background:#f3ede3;box-shadow:none"><div style="display:flex;align-items:baseline;gap:8px"><b style="font-size:22px;color:var(--encre2)">23 %</b><span class="esp"></span><span class="pa ne">Écartée</span></div><div style="font-weight:600;margin-top:4px;color:var(--encre2)">Hugo Simard et Emma Poirier</div></div>
+    </div>
+    <div class="carte" style="flex:1;padding:20px 22px;display:flex;flex-direction:column;gap:14px;min-width:0">
+      <div style="display:flex;align-items:center;gap:10px"><h2 class="serif" style="font-size:22px">Malik et Théo : 3 passages en commun</h2><span class="esp"></span><span class="pa pl">72 %</span></div>
+      <div style="display:flex;gap:10px;align-items:center;background:var(--ciel-d);color:#1f4f88;border-radius:12px;padding:10px 14px"><svg class="i"><use href="#i-info"/></svg><span>Un indice, pas un verdict. Rien ne part à Claude sans ton accord.</span></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start">
+        <div style="background:#fff;border-radius:6px;box-shadow:0 2px 8px rgba(70,45,10,.12);padding:16px 18px"><div class="p" style="font-weight:600;margin-bottom:8px">Malik Ouellet · page 2</div>
+          <div class="pass">Les résultats montrent que la période dépend de la longueur. <mark class="on"><sup>1</sup>L'écart avec la valeur attendue est faible et s'explique surtout par le temps de réaction de la personne qui chronomètre</mark>, qui est d'environ 0,2 s. Nous avons choisi de mesurer dix oscillations. <mark><sup>2</sup>La masse n'a pas d'effet mesurable sur la période dans la précision de nos mesures</mark>.</div></div>
+        <div style="background:#fff;border-radius:6px;box-shadow:0 2px 8px rgba(70,45,10,.12);padding:16px 18px"><div class="p" style="font-weight:600;margin-bottom:8px">Théo Morin · page 3</div>
+          <div class="pass">Comme prévu par la théorie, <mark class="on"><sup>1</sup>l'écart avec la valeur attendue est faible et s'explique surtout par le temps de réaction de la personne qui chronomètre</mark>. Pour la suite, il faudrait une photoporte. <mark><sup>2</sup>La masse n'a pas d'effet mesurable sur la période dans la précision de nos mesures</mark>, ce qui confirme le modèle.</div></div>
+      </div>
+      <span class="esp"></span>
+      <div style="display:flex;gap:10px;align-items:center"><a class="b ic sm"><svg class="i"><use href="#i-left"/></svg></a><b style="white-space:nowrap">Passage 1 sur 3</b><a class="b ic sm"><svg class="i"><use href="#i-right"/></svg></a><span class="esp"></span><a class="b sm">Écarter la paire</a><a class="b p sm"><svg class="i s"><use href="#i-sparkles"/></svg>Demander l'avis de Claude…</a></div>
+    </div>
+  </main>
+</section>
+
+<!-- ================= 7. EXPORT ================= -->
+<div class="etiq">7. Export pour LÉA <small>· liste en 3 étapes, ZIP en préparation</small></div>
+<section class="ecran C" id="export">
+  <nav class="rail">
+  <span class="logo"><svg class="i l"><use href="#i-cap"/></svg></span>
+  <a><span><svg class="i"><use href="#i-home"/></svg></span>Accueil</a>
+  <a class="on"><span><svg class="i"><use href="#i-books"/></svg></span>Bibliothèque</a>
+  <a><span><svg class="i"><use href="#i-upload"/></svg></span>Importer</a>
+  <a><span><svg class="i"><use href="#i-copy"/></svg></span>Plagiat</a>
+  <a class="bas"><span><svg class="i"><use href="#i-sliders"/></svg></span>Réglages</a>
+  <div class="ordi"><i></i>Ordi<br>connecté</div></nav>
+  <main class="zone">
+    <div><div class="p">Bibliothèque · 203-NYB-05 · groupe 2030</div><h1 class="serif">Remettre le Lab 2 dans LÉA</h1></div>
+    <div style="display:flex;gap:16px;flex:1;min-height:0">
+      <div style="flex:1;display:flex;flex-direction:column;gap:14px">
+        <div class="carte" style="padding:18px 20px;display:flex;gap:16px">
+          <span class="tuile" style="background:var(--sapin);color:#fff"><svg class="i"><use href="#i-check"/></svg></span>
+          <div style="flex:1"><b style="font-size:18px;font-weight:600">1. Vérifier ce qui part</b>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;margin:10px 0"><span class="pa ec">15 corrigés · inclus</span><span class="pa al">2 à trancher · exclus</span><span class="pa al">1 passe de Claude à refaire</span></div>
+            <div style="display:flex;align-items:center;gap:12px;min-height:48px"><i class="inter"></i>Inclure quand même les inachevés (signalés dans le CSV)</div></div>
+        </div>
+        <div class="carte" style="padding:18px 20px;display:flex;gap:16px;box-shadow:var(--ombre),inset 0 0 0 2px var(--sapin)">
+          <span class="tuile" style="background:var(--sapin-d);color:var(--sapin-f);font-weight:700;font-size:18px">2</span>
+          <div style="flex:1"><b style="font-size:18px;font-weight:600">2. Préparer Travaux.zip</b>
+            <div style="display:flex;justify-content:space-between;margin:10px 0 6px"><span>En cours : Clara Bergeron</span><b>12 sur 15</b></div>
+            <div class="barre"><i style="width:80%;background:var(--sapin)"></i></div>
+            <div class="p" style="margin-top:8px">Tu peux continuer à corriger pendant ce temps.</div></div>
+        </div>
+        <div class="carte" style="padding:18px 20px;display:flex;gap:16px;background:#f3ede3;box-shadow:none">
+          <span class="tuile" style="background:var(--neutre-d);color:var(--neutre);font-weight:700;font-size:18px">3</span>
+          <div style="flex:1"><b style="font-size:18px;font-weight:600;color:var(--encre2)">3. Déposer dans LÉA</b><div class="p" style="margin-top:4px">Téléverse le ZIP dans LÉA (à la main), puis marque le lab terminé.</div></div>
+        </div>
+      </div>
+      <div class="carte" style="width:330px;flex:none;padding:18px 20px;display:flex;flex-direction:column;gap:8px">
+        <b style="font-weight:600">Dans le ZIP</b>
+        <div class="faute" style="background:var(--papier)"><svg class="i" style="color:var(--encre2)"><use href="#i-file"/></svg><span style="font-size:14px">Fournier_Liam_Lab2_corrige.pdf</span></div>
+        <div class="faute" style="background:var(--papier)"><svg class="i" style="color:var(--encre2)"><use href="#i-file"/></svg><span style="font-size:14px">Martel_Juliette_Lab2_corrige.pdf</span></div>
+        <div class="faute" style="background:var(--papier)"><svg class="i" style="color:var(--encre2)"><use href="#i-file"/></svg><span style="font-size:14px">Simard_Hugo_Lab2_corrige.pdf</span></div>
+        <div class="p" style="padding-left:4px">+ 12 autres PDF</div>
+        <div class="faute" style="background:var(--papier)"><svg class="i" style="color:var(--encre2)"><use href="#i-sheet"/></svg><span style="font-size:14px">Recapitulatif_lab-2.csv</span></div>
+        <span class="esp"></span>
+        <div class="b blk" style="color:var(--encre2);box-shadow:inset 0 0 0 1.5px var(--trait)"><svg class="i"><use href="#i-clock"/></svg>Préparation… 12 sur 15</div>
+        <a class="b blk"><svg class="i"><use href="#i-sheet"/></svg>Tableau CSV seulement</a>
+      </div>
+    </div>
+  </main>
+</section>
+
+<!-- ================= 8. CODE D'ACCÈS ================= -->
+<div class="etiq">8. Code d'accès</div>
+<section class="ecran C" id="acces">
+  <div style="width:460px;flex:none;background:var(--sapin-n);position:relative;overflow:hidden;color:#fff;padding:48px;display:flex;flex-direction:column">
+    <i style="position:absolute;right:-120px;bottom:-120px;width:420px;height:420px;border-radius:50%;border:60px solid rgba(255,255,255,.05)"></i>
+    <i style="position:absolute;right:-40px;bottom:-40px;width:260px;height:260px;border-radius:50%;border:40px solid rgba(255,255,255,.05)"></i>
+    <span style="width:56px;height:56px;border-radius:16px;background:#f4efe6;color:var(--sapin-n);display:grid;place-items:center"><svg class="i l" style="width:30px;height:30px"><use href="#i-cap"/></svg></span>
+    <div class="serif" style="font-size:36px;line-height:1.1;margin-top:26px">Correction<br>de labs</div>
+    <div style="color:#cfe5e0;margin-top:10px">Sur ton ordi, pour toi seul.</div>
+  </div>
+  <div style="flex:1;display:flex;align-items:center;justify-content:center">
+    <div style="width:400px">
+      <h1 class="serif">Code d'accès</h1>
+      <div class="sous" style="margin-top:6px">Saisis le code pour ouvrir l'app sur cet iPad.</div>
+      <label class="et" style="margin-top:26px">Code d'accès</label>
+      <div class="champ" style="box-shadow:inset 0 0 0 2px var(--sapin),0 0 0 4px var(--sapin-d);padding-right:2px"><span style="letter-spacing:5px;font-size:20px">••••••••••</span><a class="b ic sm" style="margin-left:auto;box-shadow:none;background:transparent;color:var(--encre2)" title="Afficher le code"><svg class="i"><use href="#i-eye"/></svg></a></div>
+      <div class="p" style="margin-top:6px">8 caractères au moins.</div>
+      <a class="b p blk" style="margin-top:20px">Entrer</a>
+      <div class="p" style="margin-top:18px;display:flex;gap:8px;align-items:center"><svg class="i s"><use href="#i-lock"/></svg>Cet iPad restera connecté un an.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= 9. ÉTATS ET RETOURS ================= -->
+<div class="etiq">9. États et retours <small>· feuille de note à « Terminé », bibliothèque vide, hors ligne, conflit, confirmation avant Claude, limite d'usage, lab terminé</small></div>
+<section class="ecran C" id="etats" style="padding:24px;gap:20px">
+  <div style="flex:1;display:flex;flex-direction:column;gap:16px;min-width:0">
+    <div class="carte" style="padding:22px 24px;box-shadow:0 20px 50px rgba(70,45,10,.18)">
+      <h2 class="serif">Terminer le rapport de Noé Lavoie</h2>
+      <div class="p" style="margin-top:2px">La même note ira à Inès Caron (équipe).</div>
+      <div style="display:flex;gap:10px;margin:14px 0"><span class="pa ro">Français −1 pt · plafond 5</span><span class="pa ec">3 fautes acceptées</span><span class="pa ia">IA : faible</span></div>
+      <label class="et">Note pour LÉA</label>
+      <div class="champ" style="width:220px;height:56px;font-size:22px;font-weight:600;box-shadow:inset 0 0 0 2px var(--sapin),0 0 0 4px var(--sapin-d)">17,5<span class="p" style="margin-left:auto;font-size:15px;font-weight:500">/ 20</span></div>
+      <div style="display:flex;gap:10px;margin-top:18px"><a class="b">Annuler</a><span class="esp"></span><a class="b">Terminer seulement</a><a class="b p"><svg class="i"><use href="#i-check"/></svg>Terminer et ouvrir le suivant</a></div>
+    </div>
+    <div class="carte" style="padding:16px 20px;display:flex;gap:14px;align-items:center;background:var(--sapin);color:#fff">
+      <span class="tuile" style="background:#fff;color:var(--sapin-f)"><svg class="i"><use href="#i-check"/></svg></span>
+      <div style="flex:1"><b style="font-weight:600">Lab 4 terminé : 24 sur 24</b><div style="color:#e3f1ee;font-size:14px">Prochaine étape : préparer Travaux.zip pour LÉA.</div></div>
+      <a class="b inv sm"><svg class="i s"><use href="#i-archive"/></svg>Exporter pour LÉA</a>
+    </div>
+    <div class="carte" style="padding:20px;display:flex;gap:16px;align-items:center">
+      <span class="tuile" style="width:56px;height:56px;background:var(--neutre-d);color:var(--neutre)"><svg class="i l"><use href="#i-books"/></svg></span>
+      <div style="flex:1"><b style="font-weight:600;font-size:18px">Ta bibliothèque est vide</b><div class="p">Commence par la liste de classe d'Omnivox ou de LÉA, puis les PDF d'un lab.</div></div>
+      <a class="b p sm"><svg class="i s"><use href="#i-upload"/></svg>Importer une liste</a>
+    </div>
+  </div>
+  <div style="width:400px;flex:none;display:flex;flex-direction:column;gap:12px">
+    <div class="carte" style="padding:12px 16px;display:flex;gap:12px;align-items:center;background:var(--ambre-d);box-shadow:none"><svg class="i" style="color:var(--ambre)"><use href="#i-wifi-off"/></svg><div><b style="color:var(--ambre);font-weight:600">Ordi injoignable</b><div style="font-size:14px;color:var(--ambre)">3 traits et 1 décision en attente, renvoyés au retour du Wi-Fi.</div></div></div>
+    <div class="carte" style="padding:12px 16px;display:flex;gap:12px;align-items:flex-start"><svg class="i" style="color:var(--sapin);margin-top:2px"><use href="#i-refresh"/></svg><div><b style="font-weight:600">Modifié sur un autre appareil</b><div class="p">Les traits sont fusionnés. 1 décision de français a été rechargée.</div></div></div>
+    <div class="carte" style="padding:16px;box-shadow:0 20px 50px rgba(70,45,10,.16)">
+      <b style="font-weight:600">Envoyer les passages à Claude ?</b>
+      <div class="p" style="margin:6px 0 12px">3 passages communs, sans nom ni DA (environ 1 200 caractères). Compte dans ton forfait.</div>
+      <div style="display:flex;gap:8px;justify-content:flex-end"><a class="b sm">Annuler</a><a class="b p sm">Envoyer</a></div>
+    </div>
+    <div class="carte" style="padding:12px 16px;display:flex;gap:12px;align-items:flex-start;background:var(--rouge-d);box-shadow:none"><svg class="i" style="color:var(--rouge);margin-top:2px"><use href="#i-alert"/></svg><div><b style="color:var(--rouge);font-weight:600">Limite d'usage atteinte</b><div style="font-size:14px;color:var(--rouge)">Lot arrêté après 7 rapports, résultats gardés. Reprends après 15 h 40.</div></div></div>
+    <div style="align-self:flex-start;background:var(--encre);color:#fff;border-radius:12px;padding:6px 6px 6px 14px;display:flex;align-items:center;gap:12px;white-space:nowrap"><svg class="i" style="color:var(--sapin-c)"><use href="#i-check-circle"/></svg>Faute acceptée<a class="b sm" style="background:transparent;color:#fff;box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.5)">Annuler</a></div>
+  </div>
+</section>
+
+</div>
+</body>
+</html>
