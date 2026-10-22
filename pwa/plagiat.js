@@ -27,21 +27,32 @@ const VERDICTS = { copie: "Copie", paraphrase: "Paraphrase", coincidence: "Coïn
 const CONFIANCES = { faible: "faible", moyenne: "moyenne", elevee: "élevée" };
 const nomRapport = (r) => `${r.nom} · ${r.cours} gr. ${r.groupe} · ${r.lab}`;
 
+// Pastille d'état d'une paire : bleu-vert = plagiat (avis rendu), neutre = écartée ou sous le seuil, ambre = à confirmer,
+// étincelles = Claude (l'outil) au travail, rouge = erreur bloquante seulement.
 function badge(p) {
   const v = p.resultat?.verdict;
-  const b = texte("span", v ? VERDICTS[v] : STATUTS[p.statut], `badge ${v || (p.statut === "erreur" ? "erreur" : "")}`);
+  const classe = v ? "p-plagiat" : { sous_seuil: "p-neutre", ecartee: "p-neutre", en_cours: "p-claude", erreur: "p-erreur" }[p.statut] || "";
+  const b = texte("span", "", `pastille ${classe}`);
+  if (p.statut === "en_cours") b.append(UI.icone("sparkles"));
+  b.append(document.createTextNode(v ? `Avis : ${VERDICTS[v].toLowerCase()}` : STATUTS[p.statut]));
   return b;
 }
 
+const metaPaire = (p) => (p.a.cours === p.b.cours && p.a.lab === p.b.lab
+  ? `${p.a.lab} · ${p.a.groupe === p.b.groupe ? "même groupe" : "groupes différents"}`
+  : `${p.a.cours} ${p.a.lab} ↔ ${p.b.cours} ${p.b.lab}`);
+
 function ligne(p) {
-  const el = texte("div", "", "paire");
-  el.append(texte("span", pct(p.score), "score"));
-  const noms = texte("div", "", "noms");
-  noms.append(texte("div", nomRapport(p.a)), texte("div", nomRapport(p.b)));
-  el.append(noms, badge(p));
-  const voir = texte("button", "Voir");
-  voir.onclick = () => ouvrir(p.cle);
-  el.append(voir);
+  const el = texte("button", "", "pl-paire" + (p.statut === "ecartee" ? " ecartee" : "") + (p.cle === courant ? " on" : ""));
+  el.type = "button";
+  el.dataset.cle = p.cle;
+  const l1 = texte("div", "", "l1"), l2 = texte("div", "", "l2");
+  const noms = texte("span", `${p.a.nom} ↔ ${p.b.nom}`, "noms");
+  noms.title = `${nomRapport(p.a)} / ${nomRapport(p.b)}`;
+  l1.append(noms, texte("b", pct(p.score), "score"));
+  l2.append(texte("span", metaPaire(p), "meta"), badge(p));
+  el.append(l1, l2);
+  el.onclick = () => ouvrir(p.cle);
   return el;
 }
 
@@ -51,8 +62,9 @@ async function charger() {
   $("seuil").value = Math.round(d.seuil * 100);
   const hauts = d.paires.filter((p) => p.statut !== "sous_seuil");
   const bas = d.paires.filter((p) => p.statut === "sous_seuil");
+  $("pl-compte").textContent = hauts.length ? `${hauts.length} paire(s) ≥ ${Math.round(d.seuil * 100)} %` : "Paires à vérifier";
   $("paires").replaceChildren(...(hauts.length ? hauts.map(ligne) : [texte("p", d.paires.length
-    ? "Aucune paire au-dessus du seuil." : "Aucune comparaison pour l'instant.")]));
+    ? "Aucune paire au-dessus du seuil." : "Aucune comparaison pour l'instant.", "aide pl-vide-liste")]));
   $("paires-basses").replaceChildren(...bas.slice(0, BAS_MAX).map(ligne));
   if (bas.length > BAS_MAX) {
     $("paires-basses").append(texte("p", `${bas.length - BAS_MAX} autre(s) paire(s) plus faibles non affichées (monter le seuil d'affichage pour les cacher toutes).`, "aide"));
@@ -64,18 +76,21 @@ async function charger() {
   if (attente) minuteur = setTimeout(charger, 3000);
 }
 
+const afficherPanneau = (vide) => { $("detail").hidden = vide; $("detail-vide").hidden = !vide; };
+
 async function ouvrir(cle) {
   courant = cle;
+  for (const b of document.querySelectorAll(".pl-paire")) b.classList.toggle("on", b.dataset.cle === cle);
   await afficherDetail(cle);
-  $("detail").scrollIntoView({ behavior: "smooth" });
+  if (matchMedia("(max-width: 900px)").matches) $("detail").scrollIntoView({ behavior: "smooth" }); // en portrait, le détail est sous la liste
 }
 
 async function afficherDetail(cle) {
   const r = await fetch(`${API}/paires/${cle}`);
-  if (!r.ok) { courant = null; $("detail").hidden = true; return; }
+  if (!r.ok) { courant = null; afficherPanneau(true); return; }
   const p = await r.json();
-  $("detail").hidden = false;
-  $("detail-titre").textContent = `${p.a.nom} et ${p.b.nom}`;
+  afficherPanneau(false);
+  $("detail-titre").textContent = `${p.a.nom} ↔ ${p.b.nom}`;
   $("detail-resume").textContent =
     `Score ${pct(p.score)} (${pct(p.couverture_a)} du rapport de ${p.a.nom}, ${pct(p.couverture_b)} de celui de ${p.b.nom}) · ` +
     `${p.nb_passages} passage(s) commun(s) · ${nomRapport(p.a)} / ${nomRapport(p.b)}`;
@@ -83,52 +98,68 @@ async function afficherDetail(cle) {
   const actions = $("detail-actions");
   actions.replaceChildren();
   if (p.statut !== "en_cours") {
-    const envoyer = texte("button", p.statut === "analysee" ? "Refaire l'analyse par Claude" : "Confirmer et envoyer à Claude");
-    envoyer.onclick = () => confirmer(p);
-    actions.append(envoyer);
     if (p.statut !== "ecartee") {
-      const ecarter = texte("button", "Écarter");
-      ecarter.onclick = async () => { await fetch(`${API}/paires/${p.cle}/ecarter`, { method: "POST" }); await charger(); };
+      const ecarter = texte("button", "Écarter la paire", "btn"); ecarter.type = "button";
+      ecarter.onclick = async () => {
+        await fetch(`${API}/paires/${p.cle}/ecarter`, { method: "POST" });
+        await charger();
+        UI.toast("Paire écartée");
+      };
       actions.append(ecarter);
     }
+    const envoyer = texte("button", "", "btn primaire"); envoyer.type = "button";
+    envoyer.append(UI.icone("sparkles"), document.createTextNode(p.statut === "analysee" ? "Refaire l'analyse par Claude…" : "Demander l'avis de Claude…"));
+    envoyer.onclick = () => confirmer(p);
+    actions.append(envoyer);
   }
 
   const verdict = $("detail-verdict");
   verdict.replaceChildren();
   if (p.statut === "en_cours") verdict.append(texte("p", "Claude analyse cette paire…"));
   if (p.statut === "ecartee") verdict.append(texte("p", "Paire écartée."));
-  if (p.statut === "erreur") verdict.append(texte("p", `Claude n'a pas pu répondre : ${p.resultat.erreur}`, "erreur"));
+  if (p.statut === "erreur") {
+    const e = texte("p", "", "erreur-claude");
+    e.append(UI.icone("circle-alert"), document.createTextNode(`Claude n'a pas pu répondre : ${p.resultat.erreur}`));
+    verdict.append(e);
+  }
   if (p.statut === "analysee") {
     const r = p.resultat;
-    verdict.append(badge(p), texte("span", ` confiance ${CONFIANCES[r.confiance] || r.confiance}`),
-      texte("p", r.explication),
-      texte("p", "Indice pour t'aider à trancher, pas un verdict.", "aide"));
+    const l1 = texte("div", "", "l1");
+    l1.append(badge(p), texte("span", `confiance ${CONFIANCES[r.confiance] || r.confiance}`, "mu"));
+    verdict.append(l1, texte("p", r.explication), texte("p", "Indice pour t'aider à trancher, pas un verdict.", "aide"));
   }
 
+  // Passages appariés et numérotés : le même numéro des deux côtés
   const zone = $("detail-passages");
   zone.replaceChildren();
   for (const [i, ps] of p.passages.entries()) {
     const bloc = texte("div", "", "passage");
-    bloc.append(texte("strong", `Passage ${i + 1} · ${ps.mots} mots`));
+    const tete = texte("div", "", "passage-tete");
+    tete.append(texte("span", String(i + 1), "num-pass"), texte("span", `Passage ${i + 1} sur ${p.passages.length} · ${ps.mots} mots`));
     const cotes = texte("div", "", "cotes");
-    const ga = texte("div", ""), gb = texte("div", "");
-    ga.append(texte("h4", p.a.nom), texte("span", ps.texte_a));
-    gb.append(texte("h4", p.b.nom), texte("span", ps.texte_b));
-    cotes.append(ga, gb);
-    bloc.append(cotes);
+    const cote = (nom, passage) => {
+      const g = texte("div", ""), m = texte("mark", "");
+      m.append(texte("sup", String(i + 1)), document.createTextNode(passage));
+      g.append(texte("h4", nom), m);
+      return g;
+    };
+    cotes.append(cote(p.a.nom, ps.texte_a), cote(p.b.nom, ps.texte_b));
+    bloc.append(tete, cotes);
     zone.append(bloc);
   }
 }
 
 async function confirmer(p) {
-  const ok = confirm(
-    `Envoyer cette paire à Claude ?\n\nSeuls les ${p.nb_passages} passage(s) communs partent, ` +
-    "avec les noms, prénoms et DA de la classe remplacés par [NOM], [PRÉNOM] et [DA]. " +
-    "Ni le rapport entier ni son nom de fichier ne partent. " +
-    "L'analyse compte dans la limite d'usage de ton forfait.");
+  const ok = await Dialogue.confirmer({
+    titre: "Envoyer les passages à Claude ?",
+    texte: `Seuls les ${p.nb_passages} passage(s) communs partent, ` +
+      "avec les noms, prénoms et DA de la classe remplacés par [NOM], [PRÉNOM] et [DA]. " +
+      "Ni le rapport entier ni son nom de fichier ne partent.\n\n" +
+      "L'analyse compte dans la limite d'usage de ton forfait.",
+    ok: "Envoyer", annuler: "Annuler" });
   if (!ok) return;
   const r = await fetch(`${API}/paires/${p.cle}/confirmer`, { method: "POST" });
-  if (!r.ok) { alert(await erreurApi(r)); return; }
+  if (!r.ok) { UI.toast(await erreurApi(r), { erreur: true }); return; }
   await charger();
 }
 
@@ -161,6 +192,13 @@ async function suivreComparaison() {
     return;
   }
   $("etat-comparaison").textContent = texteComparaison(d);
+  const prog = d.etat === "en_cours";
+  $("pl-prog").hidden = !prog;
+  if (prog) {
+    $("pl-prog-texte").textContent = `Comparaison : ${ETAPES[d.etape] || d.etape}`;
+    $("pl-prog-num").textContent = d.total ? `${d.fait} / ${d.total}` : "";
+    $("pl-prog-barre").max = d.total || 1; $("pl-prog-barre").value = d.fait || 0;
+  }
   if (d.etat === "en_cours") {
     suiviComparaison = setTimeout(suivreComparaison, 700);
   } else if (d.etat === "termine") {
@@ -175,7 +213,7 @@ $("comparer").onclick = async () => {
     body: JSON.stringify({ seuil: Math.min(100, Math.max(0, pour)) / 100 }),
   });
   courant = null;
-  $("detail").hidden = true;
+  afficherPanneau(true);
   const r = await fetch(`${API}/comparer`, { method: "POST" });
   if (!r.ok) { $("etat-comparaison").textContent = await erreurApi(r); return; }
   $("etat-comparaison").textContent = "Comparaison lancée…";
@@ -203,6 +241,7 @@ $("enonce-envoyer").onclick = async () => {
   $("enonce-etat").textContent = r.ok
     ? "Énoncé enregistré : relancer la comparaison pour l'appliquer."
     : await erreurApi(r);
+  if (r.ok) UI.toast("Énoncé enregistré");
   if (r.ok) $("enonce-fichier").value = "";
 };
 
@@ -214,8 +253,12 @@ async function charger_cours() {
   const q = new URLSearchParams(location.search);
   if (cours.includes(q.get("cours"))) $("enonce-cours").value = q.get("cours");
   if (q.get("lab")) $("enonce-lab").value = q.get("lab");
+  if (q.get("cours") || q.get("lab")) $("enonce-bloc").open = true;
 }
 
+$("ic-pl-avert").append(UI.icone("info"));
+$("ic-pl-vide").append(UI.icone("scan-search"));
+$("ic-pl-enonce").append(UI.icone("file-text"));
 charger_cours().catch(() => {});
 charger().catch(() => {});
 suivreComparaison().catch(() => {}); // reprend l'affichage d'une comparaison déjà en cours

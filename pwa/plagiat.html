@@ -8,7 +8,6 @@
   <link rel="stylesheet" href="design.css">
   <link rel="stylesheet" href="composants.css">
   <link rel="stylesheet" href="coque.css">
-  <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="plagiat.css">
   <title>Plagiat · Correction de labs</title>
 </head>
@@ -16,47 +15,64 @@
 <div class="coque">
   <aside id="coque-lat" class="coque-lat"></aside>
   <div class="coque-corps">
-  <main>
-    <p><a href="/#outils">← Lot et plagiat</a></p>
-    <h1>Plagiat</h1>
-    <p class="aide">Chaque rapport est comparé à toute la bibliothèque, sur l'ordi, sans Claude. Rien n'est envoyé à Claude sans ta confirmation, paire par paire.</p>
+  <main id="plagiat-page">
+    <div class="pl-haut">
+      <div>
+        <h1>Plagiat</h1>
+        <p class="sous">Chaque rapport est comparé à toute la bibliothèque, sur l'ordi, sans Claude.</p>
+      </div>
+      <span class="esp"></span>
+      <button class="btn primaire" id="comparer" type="button">Comparer toute la bibliothèque</button>
+    </div>
+    <div class="progression pl-prog" id="pl-prog" hidden>
+      <div class="progression-tete"><span id="pl-prog-texte"></span><span class="num" id="pl-prog-num"></span></div>
+      <progress id="pl-prog-barre" max="1" value="0" aria-label="Progression de la comparaison"></progress>
+    </div>
+    <p id="etat-comparaison" class="aide" role="status" aria-live="polite"></p>
+    <div class="banniere pl-avert" role="note"><span id="ic-pl-avert"></span><div class="corps"><b>Un indice, pas un verdict.</b> Rien n'est envoyé à Claude sans ta confirmation, paire par paire; seuls les passages communs, sans nom, partent.</div></div>
 
-    <section>
-      <h2>Énoncé du lab</h2>
-      <p class="aide">Les passages de l'énoncé sont ignorés dans la comparaison.</p>
-      <select id="enonce-cours"></select>
-      <input type="text" id="enonce-lab" placeholder="Lab (ex. Lab 3)">
-      <input type="file" id="enonce-fichier" accept="application/pdf">
-      <button id="enonce-envoyer">Téléverser l'énoncé</button>
-      <p id="enonce-etat" aria-live="polite"></p>
-    </section>
+    <div class="pl-grille">
+      <div class="carte pl-liste">
+        <div class="pl-liste-tete">
+          <b id="pl-compte">Paires à vérifier</b>
+          <span class="esp"></span>
+          <label class="pl-seuil">Seuil <input type="number" id="seuil" class="saisie" min="0" max="100" step="1" value="20" aria-label="Seuil d'affichage en pourcentage"> %</label>
+        </div>
+        <div id="paires"><p class="aide pl-vide-liste">Aucune comparaison pour l'instant.</p></div>
+        <details id="sous-seuil" hidden><summary>Sous le seuil</summary><div id="paires-basses"></div></details>
+        <p class="aide pl-note-seuil">Les paires sous 5 % ne sont pas gardées. Relancer la comparaison arrête une comparaison en cours.</p>
+      </div>
 
-    <section>
-      <h2>Comparaison</h2>
-      <label>Seuil : <input type="number" id="seuil" min="0" max="100" step="1" value="20"> % du rapport en passages communs</label>
-      <button id="comparer">Comparer toute la bibliothèque</button>
-      <p class="aide">La comparaison tourne en arrière-plan. Relancer en arrête une qui serait en cours. Les paires sous 5 % ne sont pas gardées.</p>
-      <p id="etat-comparaison" aria-live="polite"></p>
-    </section>
+      <div class="pl-droite">
+        <div id="detail-vide" class="vide carte"><span id="ic-pl-vide"></span><p>Choisis une paire à gauche pour voir ses passages communs, côte à côte.</p></div>
+        <div id="detail" class="carte pl-detail" hidden>
+          <h2 id="detail-titre"></h2>
+          <p id="detail-resume" class="sous"></p>
+          <div id="detail-verdict"></div>
+          <div id="detail-passages"></div>
+          <div id="detail-actions" class="pl-actions"></div>
+        </div>
+      </div>
+    </div>
 
-    <section>
-      <h2>Paires à vérifier</h2>
-      <div id="paires"><p>Aucune comparaison pour l'instant.</p></div>
-      <details id="sous-seuil" hidden><summary>Sous le seuil</summary><div id="paires-basses"></div></details>
-    </section>
-
-    <section id="detail" hidden>
-      <h2 id="detail-titre"></h2>
-      <p id="detail-resume"></p>
-      <div id="detail-actions"></div>
-      <div id="detail-verdict"></div>
-      <div id="detail-passages"></div>
-    </section>
+    <details class="carte pl-enonce" id="enonce-bloc">
+      <summary><span id="ic-pl-enonce"></span>Énoncé du lab<span class="mu">· ses passages sont ignorés dans la comparaison</span></summary>
+      <div class="pl-enonce-corps">
+        <label class="champ"><span class="etiquette">Cours</span><select id="enonce-cours" class="saisie"></select></label>
+        <label class="champ"><span class="etiquette">Lab</span><input type="text" id="enonce-lab" class="saisie" placeholder="Lab (ex. Lab 3)"></label>
+        <label class="champ"><span class="etiquette">PDF de l'énoncé</span><input type="file" id="enonce-fichier" class="saisie" accept="application/pdf"></label>
+        <div class="pl-enonce-pied">
+          <button class="btn" id="enonce-envoyer" type="button">Téléverser l'énoncé</button>
+          <p id="enonce-etat" class="aide" aria-live="polite"></p>
+        </div>
+      </div>
+    </details>
   </main>
   </div>
 </div>
   <script src="ui.js"></script>
   <script src="coque.js"></script>
+  <script src="dialogue.js"></script>
   <script src="plagiat.js"></script>
 </body>
 </html>
