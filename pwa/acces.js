@@ -32,20 +32,47 @@ function creerEcranCode(doc, fetchBrut, options = {}) {
   let voile = null;
   const el = (tag, classe, texte) => { const e = doc.createElement(tag); if (classe) e.className = classe; if (texte) e.textContent = texte; return e; };
 
+  // Icône Lucide du sprite (chemin absolu : l'écran peut s'afficher par-dessus n'importe quelle page).
+  const icone = (nom) => {
+    const NS = "http://www.w3.org/2000/svg";
+    const svg = doc.createElementNS(NS, "svg");
+    svg.setAttribute("class", "ic"); svg.setAttribute("aria-hidden", "true");
+    const use = doc.createElementNS(NS, "use");
+    use.setAttribute("href", `/vendor/lucide-sprite.svg#${nom}`);
+    svg.append(use);
+    return svg;
+  };
+
   function construire(fin) {
     voile = el("div", "acces-voile");
     voile.setAttribute("role", "dialog"); voile.setAttribute("aria-modal", "true"); voile.setAttribute("aria-labelledby", "acces-titre");
     const carte = el("form", "acces-carte");
-    const titre = el("h1", "", "Code d'accès"); titre.id = "acces-titre";
-    const aide = el("p", "aide", options.page
-      ? "Saisis le code pour ouvrir l'app. Cet appareil s'en souviendra."
+    const logo = el("span", "acces-logo"); logo.append(icone("graduation-cap"));
+    const titre = el("h1", "", "Correction de labs"); titre.id = "acces-titre";
+    const aide = el("p", "acces-sous", options.page
+      ? "Saisis le code d'accès pour ouvrir l'app sur cet appareil."
       : "Saisis le code pour continuer. Tes modifications en attente sont conservées.");
-    const etiquette = el("label", "", "Code"); etiquette.htmlFor = "acces-code";
+    const etiquette = el("label", "acces-etq", "Code d'accès"); etiquette.htmlFor = "acces-code";
     const champ = el("input"); champ.id = "acces-code"; champ.type = "password"; champ.autocomplete = "current-password";
     champ.setAttribute("autocapitalize", "none"); champ.setAttribute("autocorrect", "off"); champ.spellcheck = false; champ.required = true;
+    champ.setAttribute("aria-describedby", "acces-aide");
+    const oeil = el("button", "acces-oeil"); oeil.type = "button"; oeil.append(icone("eye"));
+    oeil.setAttribute("aria-label", "Afficher le code"); oeil.setAttribute("aria-pressed", "false");
+    oeil.onclick = () => {
+      const visible = champ.type === "password";
+      champ.type = visible ? "text" : "password";
+      oeil.setAttribute("aria-pressed", String(visible));
+      oeil.setAttribute("aria-label", visible ? "Masquer le code" : "Afficher le code");
+      champ.focus();
+    };
+    const zone = el("div", "acces-champ"); zone.append(champ, oeil);
+    const note = el("p", "acces-aide", "8 caractères au moins."); note.id = "acces-aide";
     const bouton = el("button", "acces-bouton", "Entrer"); bouton.type = "submit";
     const message = el("p", "acces-message"); message.setAttribute("aria-live", "polite");
-    carte.append(titre, aide, etiquette, champ, bouton, message);
+    const pied = el("div", "acces-pied");
+    const moteur = el("span", "acces-moteur"); moteur.append(el("i", "acces-point"), "Ordi joint");
+    pied.append(icone("lock"), el("span", "", "Cet appareil restera connecté un an."), moteur);
+    carte.append(logo, titre, aide, etiquette, zone, note, bouton, message, pied);
     voile.append(carte);
     let minuterie = null;
     function bloquer(secondes) {
