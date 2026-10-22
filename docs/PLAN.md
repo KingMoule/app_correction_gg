@@ -9,7 +9,7 @@ Tout est fusionné dans `main` jusqu'à la PR #56. Les 4 étapes sont faites cô
 
 ## Reste à faire
 
-- [ ] **Refonte visuelle, direction A « Atelier » en sarcelle** (choisie le 2026-10-21) : PR 1 fondations (jetons, composants, coque, `pwa/composants.html`) faite; restent 3 PR d'écrans : (2) accueil, bibliothèque, import, code d'accès; (3) suivi, plagiat, indices d'IA, export; (4) lecteur. Guide : `docs/DESIGN.md`.
+- [ ] **Refonte visuelle, direction A « Atelier » en sarcelle** (choisie le 2026-10-21) : PR 1 fondations faite; restent les PR d'écrans : (2) accueil, bibliothèque, import, code d'accès; (3) suivi, plagiat, indices d'IA, export; (4) lecteur : faite, en revue (rail d'outils, inspecteur à onglets, fiche de la faute, feuille en portrait, fenêtre « Terminé… »; trait au crayon visible en direct, corrigé en passant). Guide : `docs/DESIGN.md`.
 - [ ] **Essais de Guillaume sur l'iPad** : crayon dans l'app, tap sur une faute, export du PDF depuis l'app installée, design, tableau de suivi (portrait compris), code d'accès (saisie dans l'app installée, coupure du Wi-Fi puis reconnexion), annotations iPad + PC sur le même rapport, décision de français après coupure du Wi-Fi.
 - [ ] **Essais sur de vrais fichiers** : liste Omnivox réimportée, import de vrais PDF (rangement, coéquipiers), lot sur de vrais rapports, jugement des fautes de français gardées (seuils dans `francais_filtre.py`), `Travaux.zip` dans LÉA (nom des fichiers; les rapports importés avant l'export n'ont pas de nom d'origine), plagiat sur la vraie bibliothèque, `demarrer.bat` (mise à jour auto, sauvegarde).
 - [ ] **M8 mémoire des canvas du lecteur** : mesurer sur l'iPad (rapport de 10 pages) avant de corriger.

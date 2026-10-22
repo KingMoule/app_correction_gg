@@ -5,7 +5,7 @@
 ## État de l'application
 
 - **PR 1 (faite) : fondations.** Jetons (`design.css`), composants (`composants.css`, `ui.js`), coque (`coque.css`, `coque.js`), catalogue. La coque et la nouvelle typographie sont appliquées à l'accueil, la bibliothèque, l'import, le lot, le suivi et le plagiat, **sans refaire leur contenu**.
-- **PR 2** : accueil (avec le bloc « À faire » de la direction C), bibliothèque, import, code d'accès. **PR 3** : suivi (avec le balayage d'une ligne de la direction B), plagiat, indices d'IA, export. **PR 4** : lecteur (rail d'outils à gauche, inspecteur à onglets, fiche de la faute, page à 700 px).
+- **PR 2** : accueil (avec le bloc « À faire » de la direction C), bibliothèque, import, code d'accès. **PR 3** : suivi (avec le balayage d'une ligne de la direction B), plagiat, indices d'IA, export. **PR 4 (faite) : lecteur** (une ligne en haut, rail d'outils à gauche, inspecteur de 320 px à onglets Français / Indice IA / Plagiat, fiche de la faute, page à 700 px, feuille à 3 crans en portrait, fenêtre « Terminé… »). Le lecteur n'a pas de coque; il charge `design.css`, `composants.css` et `lecteur.css`, et `ui.js` pour les toasts et le menu « … ».
 - Les écrans pas encore refaits utilisent encore les anciens noms (`.bk`, `.gros`, `.pastille`, `.carte`, boutons des `<section>`), restylés par `design.css` pour rester cohérents. Une PR d'écran remplace ces noms par ceux du catalogue et supprime ce qu'elle n'utilise plus.
 
 ## Règles
@@ -35,7 +35,7 @@ Anciens noms conservés : `--info`, `--info-fond`, `--neutre-fond`, `--e1…e6`,
 
 ## Composants (guide d'usage)
 
-Chargement d'une page : `design.css`, `composants.css`, puis `coque.css` (si coque), puis les feuilles de l'écran. Scripts : `ui.js` puis `coque.js` avant ceux de l'écran. Le lecteur ne charge que `design.css` (plus ses feuilles).
+Chargement d'une page : `design.css`, `composants.css`, puis `coque.css` (si coque), puis les feuilles de l'écran. Scripts : `ui.js` puis `coque.js` avant ceux de l'écran. Le lecteur charge `design.css`, `composants.css` et `lecteur.css` (pas de coque).
 
 | Composant | Balisage | Quand |
 |---|---|---|

@@ -48,47 +48,63 @@ let zoom = 1;
 
 function message(texte) { const m = $("message"); m.textContent = texte; m.hidden = !texte; }
 
-// ----- barre d'outils -----
+// ----- rail d'outils -----
 const reglageTrait = () => reglages[reglages.outil === "surligneur" ? "surligneur" : "crayon"];
 function couleurDe(o) { return PALETTES[o][reglages[o].couleur]; }
+const OUTILS = ["crayon", "surligneur", "gomme"];
 function majBarre() {
   const o = reglages.outil, gomme = o === "gomme";
-  for (const k of ["crayon", "surligneur", "gomme"]) $("o-" + k).classList.toggle("on", k === o);
-  for (const k of ["crayon", "surligneur"]) $("o-" + k).querySelector("i").style.background = couleurDe(k);
-  $("options-trait").hidden = gomme; $("options-gomme").hidden = !gomme;
-  fermerMenu();
-  $("g-trait").classList.toggle("on", reglages.gommeMode === "trait");
-  $("g-partielle").classList.toggle("on", reglages.gommeMode === "partielle");
-  if (gomme) return;
-  const t = reglages[o];
-  const hauteur = (i) => Math.max(2, EPAISSEURS[o][i].max * (o === "surligneur" ? 0.7 : 1.4)) + "px";
-  [...$("epaisseurs").children].forEach((b, i) => {
-    b.classList.toggle("on", i === t.epaisseur);
-    b.firstChild.style.height = hauteur(i);
-  });
-  $("ep-bouton").querySelector(".trait-ap").style.height = hauteur(t.epaisseur);
+  for (const k of OUTILS) { $("o-" + k).classList.toggle("on", k === o); $("o-" + k).setAttribute("aria-pressed", String(k === o)); }
+  for (const k of ["crayon", "surligneur"]) $("o-" + k).querySelector("u").style.background = couleurDe(k);
+  fermerPop();
+  const t = reglages[gomme ? "crayon" : o];
   [...$("couleurs").children].forEach((b, i) => {
-    b.style.background = PALETTES[o][i];
-    b.classList.toggle("on", i === t.couleur);
+    b.disabled = gomme;
+    b.firstChild.style.background = PALETTES[gomme ? "crayon" : o][i];
+    b.classList.toggle("on", !gomme && i === t.couleur);
+    b.setAttribute("aria-pressed", String(!gomme && i === t.couleur));
   });
 }
-for (let i = 0; i < 3; i++) {
-  const b = document.createElement("button");
-  b.className = "epaisseur"; b.setAttribute("aria-label", `Épaisseur ${i + 1}`);
-  b.append(document.createElement("span"));
-  b.onclick = () => { reglageTrait().epaisseur = i; fermerMenu(); majBarre(); garderReglages(); };
-  $("epaisseurs").append(b);
+// Fenêtre de l'outil actif, au 2e toucher : épaisseur du trait (crayon, surligneur) ou mode de la gomme.
+const hauteurTrait = (o, i) => Math.max(2, EPAISSEURS[o][i].max * (o === "surligneur" ? 0.7 : 1.4)) + "px";
+let outilPop = null;
+function fermerPop() { $("pop-outil").hidden = true; if (outilPop) outilPop.setAttribute("aria-expanded", "false"); outilPop = null; }
+function ouvrirPop(bouton) {
+  const o = reglages.outil, pop = $("pop-outil");
+  pop.replaceChildren();
+  if (o === "gomme") {
+    pop.setAttribute("aria-label", "Mode de la gomme");
+    for (const [mode, libelle] of [["trait", "Trait entier"], ["partielle", "Partielle"]]) {
+      const b = document.createElement("button");
+      b.type = "button"; b.className = "mode" + (reglages.gommeMode === mode ? " on" : ""); b.textContent = libelle;
+      b.onclick = () => { reglages.gommeMode = mode; majBarre(); garderReglages(); };
+      pop.append(b);
+    }
+  } else {
+    pop.setAttribute("aria-label", "Épaisseur du trait");
+    for (let i = 0; i < 3; i++) {
+      const b = document.createElement("button"), trait = document.createElement("i");
+      b.type = "button"; b.className = i === reglages[o].epaisseur ? "on" : ""; b.setAttribute("aria-label", `Épaisseur ${i + 1}`);
+      trait.style.height = hauteurTrait(o, i);
+      b.append(trait);
+      b.onclick = () => { reglages[o].epaisseur = i; majBarre(); garderReglages(); };
+      pop.append(b);
+    }
+  }
+  pop.hidden = false;
+  const r = bouton.getBoundingClientRect();
+  pop.style.left = r.right + 8 + "px";
+  pop.style.top = Math.max(8, Math.min(innerHeight - pop.offsetHeight - 8, r.top)) + "px";
+  outilPop = bouton; bouton.setAttribute("aria-expanded", "true");
 }
-function fermerMenu() { $("epaisseurs").hidden = true; $("ep-bouton").setAttribute("aria-expanded", "false"); }
-$("ep-bouton").onclick = () => {
-  const ouvrir = $("epaisseurs").hidden;
-  $("epaisseurs").hidden = !ouvrir; $("ep-bouton").setAttribute("aria-expanded", String(ouvrir));
-};
-document.addEventListener("pointerdown", (e) => { if (!e.target.closest(".menu")) fermerMenu(); });
+document.addEventListener("pointerdown", (e) => {
+  if (!e.target.closest("#pop-outil, .outil")) fermerPop();
+  if (!e.target.closest("#reglages, #plus, .menu")) $("reglages").hidden = true;
+});
 COULEURS.forEach((_, i) => {
-  const b = document.createElement("button");
-  b.className = "pastille";
-  b.setAttribute("aria-label", `Couleur ${i + 1}`);
+  const b = document.createElement("button"), pastille = document.createElement("i");
+  b.type = "button"; b.className = "coul"; b.setAttribute("aria-label", `Couleur ${i + 1}`);
+  b.append(pastille);
   b.onclick = () => { reglageTrait().couleur = i; majBarre(); garderReglages(); };
   $("couleurs").append(b);
 });
@@ -97,17 +113,19 @@ function choisirOutil(o) {
   majBarre();
   if (o !== "gomme") garderReglages();
 }
-$("o-crayon").onclick = () => choisirOutil("crayon");
-$("o-surligneur").onclick = () => choisirOutil("surligneur");
-$("o-gomme").onclick = () => choisirOutil("gomme");
-$("g-trait").onclick = () => { reglages.gommeMode = "trait"; majBarre(); garderReglages(); };
-$("g-partielle").onclick = () => { reglages.gommeMode = "partielle"; majBarre(); garderReglages(); };
+for (const k of OUTILS) {
+  $("o-" + k).setAttribute("aria-haspopup", "true"); $("o-" + k).setAttribute("aria-expanded", "false");
+  $("o-" + k).title += " : touchez à nouveau pour ses réglages";
+  $("o-" + k).onclick = () => {
+    if (reglages.outil !== k) { choisirOutil(k); return; }
+    if (outilPop === $("o-" + k)) fermerPop(); else { fermerPop(); ouvrirPop($("o-" + k)); }
+  };
+}
 let dernierOutil = "crayon";
 $("bascule").onclick = () => {
   if (reglages.outil === "gomme") choisirOutil(dernierOutil);
   else { dernierOutil = reglages.outil; choisirOutil("gomme"); }
 };
-$("reglages-bouton").onclick = () => { $("reglages").hidden = !$("reglages").hidden; };
 for (const [id, cle] of [["r-courbe", "courbe"], ["r-gomme", "gomme"]]) {
   const el = $(id), sortie = el.parentElement.querySelector("b");
   el.value = reglages[cle];
@@ -251,7 +269,7 @@ function brancherSaisie(pg) {
       if (Math.hypot(p.x - dernier.x, p.y - dernier.y) < 0.3) continue;
       p.p = dernierP = dernierP * 0.5 + pression(ev) * 0.5; // lisse la pression
       d.s.pts.push(p);
-      if (Math.hypot(p.x - d.ref.x, p.y - d.ref.y) > 3) armerRedressement(d, p);
+      if (d.ref && Math.hypot(p.x - d.ref.x, p.y - d.ref.y) > 3) armerRedressement(d, p); // d.ref : surligneur seulement
     }
     if (d.gomme) return;
     if (d.droit) redessiner(pg); else tracerEnDirect(pg, d);
@@ -374,10 +392,7 @@ async function enregistrerAvant() {
 }
 window.toutEnregistrer = toutEnregistrer;
 window.enregistrerAvant = enregistrerAvant;
-$("exporter").onclick = async (e) => {
-  e.preventDefault();
-  if (await enregistrerAvant()) location.href = URL_EXPORT;
-};
+async function exporterPdf() { if (await enregistrerAvant()) location.href = URL_EXPORT; }
 $("annuler").onclick = () => { const a = histoire.annuler.pop(); if (a) { appliquer(a, -1); histoire.retablir.push(a); majBoutons(); } };
 $("retablir").onclick = () => { const a = histoire.retablir.pop(); if (a) { appliquer(a, +1); histoire.annuler.push(a); majBoutons(); } };
 
@@ -424,7 +439,20 @@ function fusionnerAvec(distant) {
   avisFusion = true;
 }
 let modifie = false, envoi = false, minuterie = null;
-function etatSauvegarde(texte, erreur) { $("sauvegarde").textContent = texte; $("sauvegarde").classList.toggle("erreur", !!erreur); }
+// Un seul indicateur pour les traits et les décisions de français : l'erreur d'abord, puis ce qui attend, puis « Enregistré ».
+const etatsEnreg = { traits: { texte: "Enregistré", erreur: false }, francais: { texte: "Enregistré", erreur: false } };
+function afficherEnreg() {
+  const { traits, francais } = etatsEnreg;
+  const nomme = (e) => (e === francais ? "Français : " : "") + e.texte;
+  const attend = (e) => !e.erreur && !e.texte.startsWith("Enregistré");
+  const [phase, texte] = traits.erreur ? ["erreur", nomme(traits)] : francais.erreur ? ["erreur", nomme(francais)]
+    : attend(traits) ? ["attente", nomme(traits)] : attend(francais) ? ["attente", nomme(francais)] : ["ok", traits.texte];
+  $("sauvegarde").textContent = texte;
+  $("enreg").className = "enreg " + phase;
+  $("enreg").querySelector("use").setAttribute("href", `vendor/lucide-sprite.svg#${{ ok: "check", attente: "loader", erreur: "circle-alert" }[phase]}`);
+}
+function etatSauvegarde(texte, erreur) { etatsEnreg.traits = { texte, erreur: !!erreur }; afficherEnreg(); }
+window.etatSauvegardeFrancais = (texte, erreur) => { etatsEnreg.francais = { texte, erreur: !!erreur }; afficherEnreg(); };
 function marquerModifie() {
   modifie = true; etatSauvegarde("Modifié…");
   clearTimeout(minuterie); minuterie = setTimeout(enregistrer, 800);
@@ -471,8 +499,10 @@ function appliquerZoom(z) {
   clearTimeout(minuterieQualite);
   minuterieQualite = setTimeout(() => pages.forEach((pg) => pg.actif && activer(pg)), 350);
 }
-function ajuster() {
-  appliquerZoom(Math.min(2, (fenetre.clientWidth - 8) / largeurPile));
+const LARGEUR_PAGE = 700; // largeur visée d'une page à l'ouverture, en px (la maquette Atelier)
+function ajuster(pleineLargeur) {
+  const fit = (fenetre.clientWidth - 8) / largeurPile;
+  appliquerZoom(Math.min(2, pleineLargeur === true ? fit : Math.min(fit, LARGEUR_PAGE / largeurPile)));
   fenetre.scrollLeft = 0; fenetre.scrollTop = 0;
 }
 // Quand la zone du PDF change de taille (panneau des fautes ouvert/fermé, rotation, fenêtre) :
@@ -491,7 +521,13 @@ function adapterALargeur() {
   largeurFenetre = l;
   fenetre.scrollTop = Math.max(0, hautU * zoom + 12); fenetre.scrollLeft = gaucheU * zoom;
 }
-$("ajuster").onclick = ajuster;
+UI.menu($("plus"), [
+  { libelle: "Ajuster à la largeur", icone: "maximize", surClic: () => ajuster(true) },
+  { libelle: "Exporter le PDF annoté", icone: "file-down", surClic: exporterPdf },
+  { libelle: "Réglages du crayon", icone: "sliders-horizontal", surClic: () => { $("reglages").hidden = !$("reglages").hidden; } },
+  { separateur: true },
+  { libelle: "Bibliothèque", icone: "library", surClic: () => { location.href = "/#biblio"; } },
+]);
 const ecart = (t) => Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY);
 fenetre.addEventListener("touchstart", (e) => {
   if (e.touches.length === 2 && !reglages.doigt && [...e.touches].every((t) => t.touchType !== "stylus")) pincement = { d: ecart(e.touches), z: zoom };
@@ -530,6 +566,8 @@ fenetre.addEventListener("scroll", () => {
 async function ouvrir() {
   if (ref.some((v) => !v)) { message("Rapport non précisé : ouvrir le lecteur depuis la bibliothèque."); return; }
   $("titre").textContent = params.get("nom") || `${ref[3]} · ${ref[2]}`;
+  $("avatar").textContent = $("titre").textContent.split(/\s+/).filter(Boolean).slice(0, 2).map((m) => m[0].toUpperCase()).join("");
+  $("sous-titre").textContent = `${ref[2]} · gr. ${ref[1]}`;
   document.title = `${$("titre").textContent} — Correction de labs`;
   try { // « Continuer » de l'accueil
     const sans = new URLSearchParams(location.search);
