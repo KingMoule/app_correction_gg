@@ -8,6 +8,7 @@
   <meta name="theme-color" content="#0f6f66">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="apple-touch-icon" href="icone.svg">
+  <link rel="icon" href="icone.svg" type="image/svg+xml">
   <script src="acces.js"></script>
   <link rel="stylesheet" href="design.css">
   <link rel="stylesheet" href="composants.css">
@@ -20,64 +21,113 @@
   <aside id="coque-lat" class="coque-lat"></aside>
   <div class="coque-corps">
   <main>
-    <section class="vue" id="v-accueil">
-      <div id="continuer"></div>
-      <h2>À corriger</h2>
-      <div id="a-corriger" class="cartes"></div>
-      <h2>Raccourcis</h2>
-      <div class="raccourcis">
-        <button data-go="importer"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4M7 9l5-5 5 5M4 20h16"/></svg> Importer des rapports</button>
-        <button data-go="outils"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3l14 9-14 9z"/></svg> Analyse par lot</button>
-        <button data-go="outils"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6"/><path d="M20 20l-4-4"/></svg> Plagiat</button>
+    <div class="vue" id="v-accueil">
+      <header class="page-tete">
+        <div><h1 id="accueil-titre">Bonjour Guillaume</h1><p class="sous" id="accueil-sous"></p></div>
+        <div class="actions"><button type="button" class="btn" data-go="importer"><svg class="ic"><use href="vendor/lucide-sprite.svg#upload"/></svg>Importer</button></div>
+      </header>
+      <div class="accueil-haut">
+        <div id="continuer"></div>
+        <div class="carte-faire">
+          <h2>À faire</h2>
+          <div id="a-faire" class="liste-faire" aria-live="polite"></div>
+        </div>
       </div>
-    </section>
+      <div class="bloc-tete">
+        <h2>Labs</h2>
+        <div id="filtres-accueil" class="seg" role="group" aria-label="Filtrer les labs">
+          <button type="button" data-f="cours">En cours <span class="n"></span></button><button type="button" data-f="finis">Terminés <span class="n"></span></button><button type="button" data-f="tout">Tout <span class="n"></span></button>
+        </div>
+      </div>
+      <div id="labs-accueil"></div>
+    </div>
 
     <div class="vue" id="v-biblio">
-    <section id="bibliotheque">
-      <h2>Bibliothèque</h2>
-      <div id="filtres" class="filtres">
-        <button data-f="cours">En cours</button><button data-f="finis">Terminés</button><button data-f="tout">Tout</button>
-      </div>
-      <div id="arbre"><p>Aucune classe importée.</p></div>
-    </section>
+      <header class="page-tete">
+        <div><h1>Bibliothèque</h1><p class="sous" id="biblio-sous"></p></div>
+        <div class="actions">
+          <div id="filtres" class="seg" role="group" aria-label="Filtrer les labs">
+            <button type="button" data-f="cours">En cours <span class="n"></span></button><button type="button" data-f="finis">Terminés <span class="n"></span></button><button type="button" data-f="tout">Tout <span class="n"></span></button>
+          </div>
+        </div>
+      </header>
+      <div id="arbre"></div>
 
-    <section id="section-ia" hidden>
-      <h2>Indices d'IA</h2>
-      <p id="ia-titre"></p>
-      <p class="aide" id="ia-avertissement">Indice à revérifier, jamais un verdict.</p>
-      <button id="ia-analyser">Analyser le style avec Claude</button>
-      <button id="ia-pangram">Copier le texte et ouvrir Pangram</button>
-      <p id="ia-etat" aria-live="polite"></p>
-      <div id="ia-resultat"></div>
-    </section>
+      <section id="section-ia" hidden>
+        <h2>Indices d'IA</h2>
+        <p id="ia-titre"></p>
+        <p class="aide" id="ia-avertissement">Indice à revérifier, jamais un verdict.</p>
+        <button type="button" id="ia-analyser" class="btn primaire"><svg class="ic"><use href="vendor/lucide-sprite.svg#sparkles"/></svg>Analyser le style avec Claude</button>
+        <button type="button" id="ia-pangram" class="btn"><svg class="ic"><use href="vendor/lucide-sprite.svg#external-link"/></svg>Copier le texte et ouvrir Pangram</button>
+        <p id="ia-etat" aria-live="polite"></p>
+        <div id="ia-resultat"></div>
+      </section>
     </div>
 
     <div class="vue" id="v-importer">
-    <section>
-      <h2>Liste de classe</h2>
-      <p class="aide">Fichier Excel ou CSV nommé <code>ListeEtudiants_cours…_gr…</code>.</p>
-      <input type="file" id="fichier-classe" accept=".xlsx,.xlsm,.csv">
-      <div id="resultat-classe" class="aide" role="status"></div>
-    </section>
+      <header class="page-tete">
+        <div><h1>Importer</h1><p class="sous">La liste de classe d'abord, puis les rapports PDF d'un lab.</p></div>
+        <ol class="etapes" id="etapes" aria-label="Étapes de l'import">
+          <li class="etape" id="etape-1"><span class="no">1</span>Liste de classe</li>
+          <li class="tr" aria-hidden="true"></li>
+          <li class="etape on" id="etape-2"><span class="no">2</span>Rapports PDF</li>
+          <li class="tr" aria-hidden="true"></li>
+          <li class="etape" id="etape-3"><span class="no">3</span>À trancher</li>
+        </ol>
+      </header>
 
-    <section>
-      <h2>Importer des rapports (PDF)</h2>
-      <select id="choix-cours"></select>
-      <select id="choix-groupe"></select>
-      <p class="aide">Groupe facultatif : « Tous les groupes » range chaque rapport dans le groupe de son étudiant (n° de DA).</p>
-      <input type="text" id="lab" placeholder="Lab (ex. Lab 3)">
-      <input type="file" id="fichiers-pdf" accept="application/pdf" multiple>
-      <button id="importer">Importer</button>
-      <p id="resultat-import" aria-live="polite"></p>
-    </section>
+      <div class="carte etape-carte" id="carte-classe">
+        <div class="etape-tete">
+          <h2>Liste de classe</h2>
+          <p class="aide">Fichier Excel ou CSV nommé <code>ListeEtudiants_cours…_gr…</code>. Réimporter une liste la fusionne : rien n'est supprimé.</p>
+        </div>
+        <ul id="classes-chargees" class="puces"></ul>
+        <label class="depot compact" id="depot-classe">
+          <input type="file" id="fichier-classe" accept=".xlsx,.xlsm,.csv">
+          <svg class="ic"><use href="vendor/lucide-sprite.svg#file-up"/></svg>
+          <span><b>Touche pour choisir la liste</b> ou dépose-la ici</span>
+        </label>
+        <div id="resultat-classe" role="status"></div>
+      </div>
 
-    <section id="section-attente" hidden>
-      <h2>À trancher</h2>
-      <div id="attente"></div>
-    </section>
+      <div class="carte etape-carte" id="carte-pdf">
+        <div class="etape-tete">
+          <h2>Rapports PDF</h2>
+          <p class="aide">PDF exportés de Word, avec du texte, 1 à 5 pages. Les scans sont refusés.</p>
+        </div>
+        <div class="champs-import">
+          <label class="champ"><span class="etiquette">Cours</span><select id="choix-cours" class="saisie"></select></label>
+          <label class="champ"><span class="etiquette">Lab</span><input type="text" id="lab" class="saisie" list="labs-connus" placeholder="Lab 3" autocomplete="off"><datalist id="labs-connus"></datalist></label>
+          <div class="champ"><span class="etiquette" id="etq-groupe">Groupe</span><div id="seg-groupe" class="seg" role="group" aria-labelledby="etq-groupe"></div>
+            <select id="choix-groupe" hidden></select></div>
+        </div>
+        <p class="aide" id="aide-groupe">« Tous les groupes » range chaque rapport dans le groupe de son étudiant (n° de DA).</p>
+        <label class="depot" id="depot-pdf">
+          <input type="file" id="fichiers-pdf" accept="application/pdf" multiple>
+          <svg class="ic"><use href="vendor/lucide-sprite.svg#file-up"/></svg>
+          <b>Touche pour choisir les PDF</b><span>ou dépose-les ici</span>
+        </label>
+        <ul id="fichiers-liste" class="depot-liste" hidden></ul>
+        <div id="resultat-import" aria-live="polite"></div>
+      </div>
+
+      <div class="carte etape-carte" id="section-attente" hidden>
+        <div class="etape-tete">
+          <h2>À trancher</h2>
+          <p class="aide">Ces fichiers n'ont pas trouvé leur étudiant tout seuls. Choisis-le, ou écarte le fichier (il reste récupérable).</p>
+        </div>
+        <div id="attente" class="depot-liste"></div>
+      </div>
+
+      <div class="barre-action" id="barre-import" hidden>
+        <span id="barre-resume"></span>
+        <button type="button" class="btn" id="annuler-import">Annuler</button>
+        <button type="button" class="btn primaire" id="importer"><svg class="ic"><use href="vendor/lucide-sprite.svg#upload"/></svg><span id="importer-libelle">Importer</span></button>
+      </div>
     </div>
 
     <div class="vue" id="v-outils">
+    <header class="page-tete"><div><h1>Analyse par lot</h1><p class="sous">Claude analyse les rapports d'un lab; le plagiat se compare sur toute la bibliothèque.</p></div></header>
     <section id="section-lot">
       <h2>Analyse par lot (Claude)</h2>
       <p class="aide">Français (passe Claude) et indices d'IA sur les rapports d'un lab pas encore analysés. Compte dans la limite de ton forfait : environ 2 % de la session de 5 h par rapport avec Sonnet.</p>

@@ -1,16 +1,28 @@
-/* Écran de saisie du code d'accès (audit E6), dans le style de design.css. */
-.acces-voile { position: fixed; inset: 0; z-index: 10000; background: var(--bg); display: flex; align-items: center; justify-content: center;
-  padding: var(--e4); overflow: auto; }
-.acces-carte { width: 100%; max-width: 380px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-m);
-  box-shadow: var(--ombre); padding: var(--e5); display: flex; flex-direction: column; gap: var(--e3); }
-.acces-carte h1 { margin: 0; display: flex; align-items: center; gap: var(--e3); }
-.acces-carte h1::before { content: ""; width: 28px; height: 28px; border-radius: 8px; background: var(--accent); flex: none; }
-.acces-carte p { margin: 0; }
-.acces-carte label { font-weight: 600; font-size: 14px; margin-bottom: calc(-1 * var(--e2)); }
-.acces-carte input { min-height: var(--ligne); padding: 0 var(--e3); border: 1px solid var(--border-fort); border-radius: var(--r-s);
-  background: var(--surface); font-size: 18px; width: 100%; box-sizing: border-box; }
-.acces-bouton { min-height: var(--ligne); border-radius: var(--r-s); border: 1px solid var(--accent); background: var(--accent); color: var(--sur-accent);
-  font-size: 16px; font-weight: 600; cursor: pointer; }
+/* Écran de saisie du code d'accès (audit E6), direction « Atelier ». Autonome : s'affiche aussi par-dessus le lecteur,
+   qui ne charge que design.css. Les boutons et champs sont donc redéfinis ici avec les jetons de design.css. */
+.acces-voile { position: fixed; inset: 0; z-index: 10000; display: flex; align-items: center; justify-content: center; padding: var(--e4); overflow: auto;
+  background: radial-gradient(circle at 50% 0, var(--accent-doux), var(--bg) 60%); }
+.acces-carte { width: 100%; max-width: 420px; box-sizing: border-box; background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-m);
+  box-shadow: var(--ombre-pop); padding: var(--e6); display: flex; flex-direction: column; }
+.acces-logo { width: 44px; height: 44px; border-radius: 11px; background: var(--accent); color: var(--sur-accent); display: grid; place-items: center; }
+.acces-logo svg.ic { width: 22px; height: 22px; stroke-width: 2; }
+.acces-carte h1 { margin: var(--e4) 0 0; }
+.acces-sous { margin: 2px 0 0; color: var(--texte-2); }
+.acces-etq { margin: var(--e5) 0 6px; font-size: var(--t-s); font-weight: 600; }
+.acces-champ { position: relative; }
+.acces-champ input { width: 100%; box-sizing: border-box; min-height: var(--cible); padding: 0 var(--cible) 0 var(--e3); border: 1px solid var(--border-champ); border-radius: var(--r-s);
+  background: var(--surface); box-shadow: var(--ombre); font-size: 18px; }
+.acces-champ input:focus-visible { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-doux); }
+.acces-oeil { position: absolute; right: 0; top: 0; width: var(--cible); height: var(--cible); display: grid; place-items: center; border: 0; border-radius: var(--r-s); background: transparent;
+  color: var(--texte-2); cursor: pointer; }
+.acces-oeil:hover { background: var(--surface-2); color: var(--texte); }
+.acces-oeil[aria-pressed="true"] { color: var(--accent-fort); background: var(--accent-doux); }
+.acces-aide { margin: 6px 0 0; font-size: var(--t-min); color: var(--texte-2); }
+.acces-bouton { margin-top: var(--e4); min-height: var(--cible); border-radius: var(--r-s); border: 1px solid var(--accent-fort); background: var(--accent); color: var(--sur-accent);
+  font-size: var(--t); font-weight: 600; cursor: pointer; box-shadow: 0 1px 2px rgba(10, 85, 78, .4), inset 0 1px 0 rgba(255, 255, 255, .15); }
 .acces-bouton:hover { background: var(--accent-fort); }
 .acces-bouton:disabled { opacity: .45; cursor: default; }
-.acces-message { min-height: 1.45em; color: var(--danger); font-size: 14px; }
+.acces-message { margin: var(--e2) 0 0; min-height: 1.45em; color: var(--danger); font-size: var(--t-s); }
+.acces-pied { display: flex; align-items: center; gap: var(--e2); margin-top: var(--e3); padding-top: var(--e4); border-top: 1px solid var(--border); color: var(--texte-2); font-size: var(--t-min); }
+.acces-moteur { margin-left: auto; display: inline-flex; align-items: center; gap: var(--e2); white-space: nowrap; }
+.acces-point { width: 8px; height: 8px; border-radius: 50%; background: var(--ok-point); box-shadow: 0 0 0 3px #bbf7d0; }
