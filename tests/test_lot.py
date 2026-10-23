@@ -64,12 +64,15 @@ def rapports(client):
 def test_lot_limite_a_n_et_marque_les_analyses(labo, monkeypatch):
     file = FileFausse()
     brancher(monkeypatch, file)
-    assert labo.get(f"/api/lot/apercu/{LAB}").json() == {"total": 4, "a_analyser": 4}
+    ap = labo.get(f"/api/lot/apercu/{LAB}").json()
+    assert (ap["total"], ap["a_analyser"], ap["estimation"]["n"]) == (4, 4, 4)
+    assert labo.get(f"/api/lot/apercu/{LAB}?n=2").json()["estimation"]["n"] == 2
     assert labo.post(f"/api/lot/{LAB}", json={"n": 3}).status_code == 200
     e = attendre(labo)
     assert e["statut"] == "termine" and e["fait"] == 3 and e["total"] == 3 and e["erreurs"] == []
     assert file.appels == 6  # 2 appels (français + indices d'IA) par rapport
-    assert labo.get(f"/api/lot/apercu/{LAB}").json() == {"total": 4, "a_analyser": 1}
+    ap = labo.get(f"/api/lot/apercu/{LAB}").json()
+    assert (ap["total"], ap["a_analyser"], ap["estimation"]["n"]) == (4, 1, 1)
     # le lot suivant reprend le reste, sans toucher aux rapports déjà faits
     labo.post(f"/api/lot/{LAB}", json={"n": 10})
     assert attendre(labo)["fait"] == 1 and file.appels == 8

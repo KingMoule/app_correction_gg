@@ -12,10 +12,10 @@ accepter/refuser et les analyses existantes ne sont jamais écrasées, sauf avec
 import json
 import threading
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
 
-from . import bibliotheque, francais, indices_ia, references, stockage
+from . import bibliotheque, consommation, francais, indices_ia, references, stockage
 
 router = APIRouter(prefix="/api/lot")
 
@@ -131,9 +131,12 @@ def _maj(**champs) -> None:
 
 
 @router.get("/apercu/{cours}/{groupe}/{lab}")
-def apercu(cours: str, groupe: str, lab: str, refaire: bool = False) -> dict:
-    """Combien de rapports du lab seraient traités (sans rien lancer)."""
-    return {"total": len(_rapports(cours, groupe, lab)), "a_analyser": len(_selection(cours, groupe, lab, refaire))}
+def apercu(cours: str, groupe: str, lab: str, refaire: bool = False, n: int = Query(N_DEFAUT, ge=1, le=N_MAX)) -> dict:
+    """Combien de rapports du lab seraient traités (sans rien lancer) et ce qu'un lot de `n` coûterait
+    (estimation : `consommation.estimer`, aucune donnée envoyée)."""
+    choisis = _selection(cours, groupe, lab, refaire)
+    return {"total": len(_rapports(cours, groupe, lab)), "a_analyser": len(choisis),
+            "estimation": consommation.estimer(choisis[:n])}
 
 
 def _demarrer(cours: str, groupe: str, lab: str, choisis: list[tuple[str, bool, bool, bool]], refaire: bool) -> dict:

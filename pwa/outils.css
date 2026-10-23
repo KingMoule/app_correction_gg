@@ -12,6 +12,19 @@
 #lot-erreurs li { display: flex; gap: var(--e2); padding: var(--e2) var(--e3); margin-bottom: var(--e1); background: var(--danger-fond); color: var(--danger); border-radius: var(--r-s); }
 #section-lot .btn { display: inline-flex; margin: var(--e2) var(--e2) var(--e2) 0; }
 
+/* --- Estimation de consommation d'un lot (moteur/consommation.py) --- */
+.lot-est { margin: var(--e3) 0; }
+.lot-est[hidden] { display: none; }
+.lot-est-ligne { display: flex; align-items: baseline; justify-content: space-between; gap: var(--e3); flex-wrap: wrap; font-size: var(--t-s); }
+.lot-est-jauge { position: relative; height: 10px; border-radius: 5px; background: var(--border); margin: 10px 0 6px; }
+.lot-est-jauge .deja { position: absolute; left: 0; top: 0; bottom: 0; background: var(--texte-3); border-radius: 5px 0 0 5px; }
+.lot-est-jauge .lot { position: absolute; top: 0; bottom: 0; background: var(--accent); }
+.lot-est-jauge.depasse .lot { background: var(--attention-point); }
+.lot-est-jauge u { position: absolute; top: -4px; bottom: -4px; width: 2px; background: var(--texte); text-decoration: none; }
+.lot-est-legende { display: flex; justify-content: space-between; font-size: var(--t-min); color: var(--texte-2); }
+.lot-est .banniere { margin-top: var(--e3); }
+.lot-est .banniere .btn { display: inline; min-height: 0; padding: 0; margin: 0; }
+
 /* --- Indices d'IA : violet, loupe, « à revérifier » --- */
 #section-ia { border-left: 3px solid var(--ia); }
 #section-ia .btn { display: inline-flex; margin: var(--e2) var(--e2) var(--e2) 0; }
