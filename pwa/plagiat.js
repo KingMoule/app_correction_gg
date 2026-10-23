@@ -25,7 +25,7 @@ const STATUTS = {
 };
 const VERDICTS = { copie: "Copie", paraphrase: "Paraphrase", coincidence: "Coïncidence" };
 const CONFIANCES = { faible: "faible", moyenne: "moyenne", elevee: "élevée" };
-const nomRapport = (r) => `${r.nom} · ${r.cours} gr. ${r.groupe} · ${r.lab}`;
+const nomRapport = (r) => `${r.nom} · ${UI.titreCours(r.cours)} gr. ${r.groupe} · ${r.lab}`;
 
 // Pastille d'état d'une paire : bleu-vert = plagiat (avis rendu), neutre = écartée ou sous le seuil, ambre = à confirmer,
 // étincelles = Claude (l'outil) au travail, rouge = erreur bloquante seulement.
@@ -40,7 +40,7 @@ function badge(p) {
 
 const metaPaire = (p) => (p.a.cours === p.b.cours && p.a.lab === p.b.lab
   ? `${p.a.lab} · ${p.a.groupe === p.b.groupe ? "même groupe" : "groupes différents"}`
-  : `${p.a.cours} ${p.a.lab} ↔ ${p.b.cours} ${p.b.lab}`);
+  : `${UI.titreCours(p.a.cours)} ${p.a.lab} ↔ ${UI.titreCours(p.b.cours)} ${p.b.lab}`);
 
 function ligne(p) {
   const el = texte("button", "", "pl-paire" + (p.statut === "ecartee" ? " ecartee" : "") + (p.cle === courant ? " on" : ""));
@@ -248,7 +248,7 @@ $("enonce-envoyer").onclick = async () => {
 async function charger_cours() {
   const arbre = await (await fetch("/api/bibliotheque")).json();
   const cours = [...new Set(arbre.map((c) => c.cours))];
-  $("enonce-cours").replaceChildren(...cours.map((c) => { const o = texte("option", c); o.value = c; return o; }));
+  $("enonce-cours").replaceChildren(...cours.map((c) => { const o = texte("option", UI.titreCours(c)); o.value = c; return o; }));
   // Arrivée depuis la bibliothèque : cours et lab déjà choisis pour l'énoncé
   const q = new URLSearchParams(location.search);
   if (cours.includes(q.get("cours"))) $("enonce-cours").value = q.get("cours");

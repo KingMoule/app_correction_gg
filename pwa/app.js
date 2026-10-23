@@ -5,6 +5,7 @@ const API = "/api/bibliotheque";
 const $ = (id) => document.getElementById(id);
 const enc = encodeURIComponent;
 let arbre = [];
+let sessionEtat = { courante: null, sessions: [] }; // GET /api/bibliotheque/sessions : l'accueil et Labs montrent la session en cours
 let attente = [];
 let suivis = new Map(); // « cours|lab » -> réponse de /api/suivi (comptes, rapports, export), chargée après la bibliothèque
 let pairesAConfirmer = 0;
@@ -53,15 +54,20 @@ const stockage = {
   ecrire(cle, valeur) { try { localStorage.setItem(cle, valeur); } catch { /* sans stockage : tout reste replié */ } },
 };
 
+// Session en cours par défaut; les sessions passées restent consultables sous Labs (lecture seule, hors lot et « À faire »).
+const courant = () => arbre.filter((c) => !sessionEtat.courante || c.session === sessionEtat.courante);
+const passees = () => arbre.filter((c) => sessionEtat.courante && c.session !== sessionEtat.courante);
+const nomCours = (cle) => UI.titreCours(cle);
+
 function labFini(c, lab) {
   const avec = c.etudiants.filter((e) => e.labs.includes(lab));
   return c.labs_archives.includes(lab) || (avec.length > 0 && avec.every((e) => e.termines.includes(lab)));
 }
 
 // Un lab = un cours + un nom de lab, tous groupes confondus.
-function resumeLabs() {
+function resumeLabs(classes = courant()) {
   const parLab = new Map();
-  for (const c of arbre) {
+  for (const c of classes) {
     for (const lab of new Set(c.etudiants.flatMap((e) => e.labs))) {
       const cle = `${c.cours}|${lab}`;
       const u = parLab.get(cle) ?? { cours: c.cours, lab, classes: [], total: 0, faits: 0, fini: true };
@@ -131,18 +137,20 @@ function etatVideBibliotheque() {
 async function charger() {
   arbre = await (await fetch(API)).json();
   enonces = await (await fetch("/api/plagiat/enonces")).json().catch(() => []);
+  sessionEtat = (await fetchJson(`${API}/sessions`)) ?? sessionEtat;
   rendreLabs();
   rendreAccueil();
   rendreEnoncesManquants();
-  const cours = [...new Set(arbre.map((c) => c.cours))];
+  const cours = [...new Set([...courant(), ...passees()].map((c) => c.cours))]; // la session en cours d'abord
   const choisi = $("choix-cours").value;
-  $("choix-cours").replaceChildren(...cours.map((c) => { const o = texte("option", c); o.value = c; return o; }));
+  $("choix-cours").replaceChildren(...cours.map((c) => { const o = texte("option", nomCours(c)); o.value = c; return o; }));
   if (cours.includes(choisi)) $("choix-cours").value = choisi;
+  rendreChoixSession();
   $("choix-cours").onchange = remplirGroupes;
   remplirGroupes();
   rendreClassesChargees();
   window.rafraichirLot?.(arbre); // l'écran « Analyse par lot » de #outils (retiré par la PR D)
-  window.Coque?.labs(arbre);
+  window.Coque?.labs(courant());
   await chargerAttente();
   rendreEtapes();
   chargerSuivis(); // sans attendre : l'accueil se complète (À faire, export) quand les réponses arrivent
@@ -234,7 +242,7 @@ async function chargerAttente() {
     const ligne = texte("div", "", "attente-item");
     const tete = texte("div", "", "attente-tete");
     tete.append(icone("file-text"), texte("b", item.fichier, "nom"), pastille(RAISONS_LONGUES[item.raison] ?? item.raison));
-    const contexte = texte("p", `${item.cours} · ${item.lab}${item.da ? ` · DA ${item.da}` : ""}`, "aide");
+    const contexte = texte("p", `${nomCours(item.cours)} · ${item.lab}${item.da ? ` · DA ${item.da}` : ""}`, "aide");
     const choix = document.createElement("select");
     choix.className = "saisie";
     choix.setAttribute("aria-label", `Étudiant pour ${item.fichier}`);
@@ -285,6 +293,9 @@ async function importerClasse(fichier) {
   if (!fichier) return;
   const form = new FormData();
   form.append("fichier", fichier);
+  const session = $("session-classe").value.trim().toUpperCase();
+  if (!/^[AH]\d{4}$/.test(session)) { alert("Indique la session de cette liste : A (automne) ou H (hiver) et l'année, par exemple A2026."); return; }
+  form.append("session", session);
   const r = await fetch(`${API}/classes`, { method: "POST", body: form });
   if (!r.ok) alert(await erreurApi(r));
   else afficherRecapClasse(await r.json());
@@ -299,7 +310,7 @@ function rendreClassesChargees() {
     const actifs = c.etudiants.filter((e) => !e.retire).length;
     const retires = c.etudiants.length - actifs;
     const li = document.createElement("li");
-    li.append(icone("circle-check"), texte("b", c.cours), texte("span", `groupe ${c.groupe} · ${pluriel(actifs, "étudiant", "étudiants")}`));
+    li.append(icone("circle-check"), texte("b", nomCours(c.cours)), texte("span", `groupe ${c.groupe} · ${pluriel(actifs, "étudiant", "étudiants")}`));
     if (retires) li.append(texte("span", pluriel(retires, "retiré", "retirés"), "mu"));
     zone.append(li);
   }
@@ -313,7 +324,7 @@ function afficherRecapClasse(classe) {
   const ban = texte("div", "", "banniere " + (conflits ? "attention" : "ok"));
   ban.setAttribute("role", "status");
   const corps = texte("div", "", "corps");
-  corps.append(texte("b", `Liste ${classe.cours} groupe ${classe.groupe} : ${pluriel(m.ajoutes.length, "ajouté", "ajoutés")}, ${m.inchanges + m.mis_a_jour.length} inchangé(s), ${m.retires.length} retiré(s), ${conflits} à trancher`));
+  corps.append(texte("b", `Liste ${nomCours(classe.cours)} groupe ${classe.groupe} : ${pluriel(m.ajoutes.length, "ajouté", "ajoutés")}, ${m.inchanges + m.mis_a_jour.length} inchangé(s), ${m.retires.length} retiré(s), ${conflits} à trancher`));
   const liste = document.createElement("ul");
   const ligne = (titre, noms) => { if (noms.length) liste.append(texte("li", `${titre} : ${noms.join(", ")}`)); };
   ligne("Ajoutés", m.ajoutes);
@@ -530,7 +541,7 @@ function ligneLabPage(u) {
   const a = document.createElement("a");
   a.className = "p1-ligne";
   a.href = lienLab(u.cours, u.lab);
-  a.setAttribute("aria-label", `Ouvrir ${titreLab(u.lab)} (${u.cours})`);
+  a.setAttribute("aria-label", `Ouvrir ${titreLab(u.lab)} (${nomCours(u.cours)})`);
   const enonce = texte("span", "", "col-en");
   enonce.append(aEnonce(u.cours, u.lab) ? pastille("Énoncé", "p-fini") : pastille("Énoncé manquant"));
   const exp = texte("span", "", "col-ex");
@@ -555,7 +566,7 @@ async function reglerBareme(cours) {
   const b = await fetchJson(`/api/francais/bareme/${enc(cours)}`);
   if (!b) { UI.toast("Barème introuvable : le moteur répond-il ?", { erreur: true }); return; }
   const f = await Dialogue.formulaire({
-    titre: `Barème du français · ${cours}`, texte: "Vaut pour tout le cours : chaque faute acceptée retire ces points.",
+    titre: `Barème du français · ${nomCours(cours)}`, texte: "Vaut pour tout le cours : chaque faute acceptée retire ces points.",
     champs: [
       { cle: "points", etiquette: "Points par faute", valeur: nombreFr(b.points_par_faute), inputmode: "decimal" },
       { cle: "plafond", etiquette: "Plafond de la pénalité", valeur: nombreFr(b.plafond), inputmode: "decimal", aide: "Laisser vide : aucun plafond." },
@@ -569,7 +580,7 @@ async function reglerBareme(cours) {
   }
   const r = await fetch(`/api/francais/bareme/${enc(cours)}`, { method: "PUT", headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ points_par_faute: points, plafond }) });
-  if (r.ok) UI.toast(`Barème de ${cours} enregistré`);
+  if (r.ok) UI.toast(`Barème de ${nomCours(cours)} enregistré`);
   else UI.toast(await erreurApi(r), { erreur: true });
 }
 
@@ -577,12 +588,12 @@ async function reglerStyle(cours) {
   const s = await fetchJson(`/api/references/style/${enc(cours)}`);
   if (!s) { UI.toast("Style introuvable : le moteur répond-il ?", { erreur: true }); return; }
   const f = await Dialogue.formulaire({
-    titre: `Style des références · ${cours}`, texte: "Vaut pour tout le cours : la forme des références est vérifiée selon ce style.",
+    titre: `Style des références · ${nomCours(cours)}`, texte: "Vaut pour tout le cours : la forme des références est vérifiée selon ce style.",
     champs: [{ cle: "style", etiquette: "Style", valeur: s.style, options: Object.entries(s.styles).map(([valeur, libelle]) => ({ valeur, libelle })) }],
   });
   if (!f) return;
   const r = await fetch(`/api/references/style/${enc(cours)}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ style: f.style }) });
-  if (r.ok) UI.toast(`Style de ${cours} : ${s.styles[f.style] ?? f.style}`);
+  if (r.ok) UI.toast(`Style de ${nomCours(cours)} : ${s.styles[f.style] ?? f.style}`);
   else UI.toast(await erreurApi(r), { erreur: true });
 }
 
@@ -593,47 +604,90 @@ function ajouterLab(cours) {
   $("lab").focus();
 }
 
-function rendreLabs() {
-  const zone = $("labs-cours");
-  zone.replaceChildren();
-  const tous = resumeLabs();
-  const inscrits = arbre.reduce((n, c) => n + c.etudiants.filter((e) => !e.retire).length, 0);
-  const nCours = new Set(arbre.map((c) => c.cours)).size;
-  $("biblio-sous").textContent = arbre.length
-    ? `${pluriel(nCours, "cours", "cours")} · ${pluriel(tous.length, "lab", "labs")} · ${pluriel(inscrits, "inscrit", "inscrits")}`
-    : "Aucune classe importée.";
-  if (!arbre.length) { zone.append(etatVideBibliotheque()); return; }
-  for (const [cours, classes] of Map.groupBy(arbre, (c) => c.cours)) {
-    const labs = tous.filter((u) => u.cours === cours);
-    const carte = texte("section", "", "carte p1-cours");
-    const tete = texte("div", "", "tc");
-    const ajouter = bouton("Ajouter un lab", { icone: "upload", classe: "tertiaire", surClic: () => ajouterLab(cours) });
+function carteCours(cours, classes, tous, passee) {
+  const labs = tous.filter((u) => u.cours === cours);
+  const carte = texte("section", "", "carte p1-cours");
+  const tete = texte("div", "", "tc");
+  const actifs = classes.reduce((n, c) => n + c.etudiants.filter((e) => !e.retire).length, 0);
+  tete.append(texte("b", nomCours(cours)), texte("span", `gr. ${classes.map((c) => c.groupe).join(", ")} · ${pluriel(actifs, "inscrit", "inscrits")}`, "mu"),
+    texte("span", "", "esp"));
+  if (!passee) {
     const plus = document.createElement("button");
     plus.type = "button";
     plus.className = "btn-ico";
-    plus.setAttribute("aria-label", `Réglages du cours ${cours} (barème, style des références, réimporter la liste)`);
+    plus.setAttribute("aria-label", `Réglages du cours ${nomCours(cours)} (barème, style des références, réimporter la liste)`);
     plus.append(icone("ellipsis"));
     menuCours(plus, cours);
-    const actifs = classes.reduce((n, c) => n + c.etudiants.filter((e) => !e.retire).length, 0);
-    tete.append(texte("b", cours), texte("span", `gr. ${classes.map((c) => c.groupe).join(", ")} · ${pluriel(actifs, "inscrit", "inscrits")}`, "mu"),
-      texte("span", "", "esp"), ajouter, plus);
-    carte.append(tete);
-    const enCours = labs.filter((u) => !u.fini), finis = labs.filter((u) => u.fini);
-    if (!labs.length) carte.append(texte("p", "Aucun lab : « Ajouter un lab » importe les rapports d'un lab.", "p1-vide"));
-    carte.append(...enCours.map(ligneLabPage));
-    if (finis.length) {
-      const d = document.createElement("details");
-      d.className = "p1-finis";
-      d.open = stockage.lire("finis:" + cours, "0") === "1";
-      d.ontoggle = () => stockage.ecrire("finis:" + cours, d.open ? "1" : "0");
-      const sm = document.createElement("summary");
-      sm.append(icone("chevron-right", "chevron"), texte("span", `${pluriel(finis.length, "lab terminé", "labs terminés")} ou archivé${finis.length > 1 ? "s" : ""}`));
-      d.append(sm, ...finis.map(ligneLabPage));
-      carte.append(d);
-    }
-    zone.append(carte);
+    tete.append(bouton("Ajouter un lab", { icone: "upload", classe: "tertiaire", surClic: () => ajouterLab(cours) }), plus);
   }
+  carte.append(tete);
+  const enCours = labs.filter((u) => !u.fini), finis = labs.filter((u) => u.fini);
+  if (!labs.length) carte.append(texte("p", "Aucun lab : « Ajouter un lab » importe les rapports d'un lab.", "p1-vide"));
+  carte.append(...enCours.map(ligneLabPage));
+  if (finis.length) {
+    const d = document.createElement("details");
+    d.className = "p1-finis";
+    d.open = stockage.lire("finis:" + cours, "0") === "1";
+    d.ontoggle = () => stockage.ecrire("finis:" + cours, d.open ? "1" : "0");
+    const sm = document.createElement("summary");
+    sm.append(icone("chevron-right", "chevron"), texte("span", `${pluriel(finis.length, "lab terminé", "labs terminés")} ou archivé${finis.length > 1 ? "s" : ""}`));
+    d.append(sm, ...finis.map(ligneLabPage));
+    carte.append(d);
+  }
+  return carte;
 }
+
+function rendreLabs() {
+  const zone = $("labs-cours");
+  zone.replaceChildren();
+  const actuelles = courant(), anciennes = passees();
+  const tous = resumeLabs(actuelles);
+  const inscrits = actuelles.reduce((n, c) => n + c.etudiants.filter((e) => !e.retire).length, 0);
+  const nCours = new Set(actuelles.map((c) => c.cours)).size;
+  const session = sessionEtat.sessions.find((x) => x.courante);
+  $("session-courante").textContent = session?.libelle ?? "Session";
+  $("biblio-sous").textContent = arbre.length
+    ? `${session ? `${session.libelle} · ` : ""}${pluriel(nCours, "cours", "cours")} · ${pluriel(tous.length, "lab", "labs")} · ${pluriel(inscrits, "inscrit", "inscrits")}`
+    : "Aucune classe importée.";
+  if (!arbre.length) { zone.append(etatVideBibliotheque()); return; }
+  if (!actuelles.length) zone.append(texte("p", "Aucune liste de classe dans cette session : importe-en une (l'import propose la session en cours).", "p1-vide"));
+  for (const [cours, classes] of Map.groupBy(actuelles, (c) => c.cours)) zone.append(carteCours(cours, classes, tous, false));
+  if (!anciennes.length) return;
+  // Sessions passées : repliées, consultables (page du lab, énoncé, export), hors lot et « À faire ».
+  const d = document.createElement("details");
+  d.className = "p1-finis p1-passees";
+  d.open = stockage.lire("sessions-passees", "0") === "1";
+  d.ontoggle = () => stockage.ecrire("sessions-passees", d.open ? "1" : "0");
+  const sm = document.createElement("summary");
+  const nSessions = new Set(anciennes.map((c) => c.session)).size;
+  sm.append(icone("chevron-right", "chevron"), texte("span", `${pluriel(nSessions, "session passée", "sessions passées")} (archives)`));
+  d.append(sm);
+  const passe = resumeLabs(anciennes);
+  for (const [session, classes] of Map.groupBy(anciennes, (c) => c.session ?? "")) {
+    d.append(texte("h3", sessionEtat.sessions.find((x) => x.session === session)?.libelle ?? "Sans session", "p1-session"));
+    for (const [cours, cc] of Map.groupBy(classes, (c) => c.cours)) d.append(carteCours(cours, cc, passe, true));
+  }
+  zone.append(d);
+}
+
+// Session proposée à l'import d'une liste : la session en cours, modifiable (A2026, H2027…).
+function rendreChoixSession() {
+  const sessions = new Set([sessionEtat.courante, ...sessionEtat.sessions.map((s) => s.session)].filter(Boolean));
+  $("sessions-connues").replaceChildren(...[...sessions].map((v) => { const o = document.createElement("option"); o.value = v; return o; }));
+  if (!$("session-classe").value) $("session-classe").value = sessionEtat.courante ?? "";
+}
+
+$("btn-session").onclick = async () => {
+  const f = await Dialogue.formulaire({
+    titre: "Session en cours", texte: "L'accueil, Labs et l'import proposent cette session. Les autres restent dans les archives de Labs.",
+    champs: [{ cle: "session", etiquette: "Session", valeur: sessionEtat.courante ?? "", aide: "A = automne, H = hiver, puis l'année : A2026, H2027." }],
+  });
+  if (!f) return;
+  const r = await fetch(`${API}/sessions/courante`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ session: f.session }) });
+  if (!r.ok) { UI.toast(await erreurApi(r), { erreur: true }); return; }
+  $("session-classe").value = "";
+  await charger();
+};
 
 // --- Accueil : « Le lab au centre » ---
 let reprise = null;       // { url, nom, cours, groupe, lab } : celle du moteur, sinon le localStorage
@@ -669,7 +723,7 @@ function rendreContinuer() {
   tuile.append(icone("file-text", "l"));
   const corps = document.createElement("div");
   corps.append(texte("div", "Reprendre", "etq"), texte("div", reprise.nom || "Dernier rapport", "nom"),
-    texte("div", `${titreLab(reprise.lab)} · ${reprise.cours} · gr. ${reprise.groupe}`, "mu"));
+    texte("div", `${titreLab(reprise.lab)} · ${nomCours(reprise.cours)} · gr. ${reprise.groupe}`, "mu"));
   zone.append(tuile, corps, lien("Reprendre", reprise.url, { icone: "arrow-right", classe: "primaire" }));
 }
 
@@ -694,9 +748,9 @@ function rendreChiffres(enCours) {
 // « À faire » : les exceptions seulement, en trois rubriques fixes (Bloquant, Revoir, Clore).
 function exceptions(labs) {
   const liste = [];
-  const lieu = (u) => `${titreLab(u.lab)} · ${u.cours}`;
+  const lieu = (u) => `${titreLab(u.lab)} · ${nomCours(u.cours)}`;
   if (attente.length) {
-    const lieux = [...new Set(attente.map((x) => `${titreLab(x.lab)} · ${x.cours}`))];
+    const lieux = [...new Set(attente.map((x) => `${titreLab(x.lab)} · ${nomCours(x.cours)}`))];
     liste.push({ rubrique: "Bloquant", icone: "upload", ton: "attention", titre: `${pluriel(attente.length, "fichier", "fichiers")} à associer`,
       lieu: lieux.length === 1 ? lieux[0] : pluriel(lieux.length, "lab", "labs"), detail: "choisir l'étudiant de chaque rapport", href: "#importer" });
   }
@@ -735,7 +789,7 @@ function exceptions(labs) {
 
 function rendreAFaire(labs) {
   const liste = exceptions(labs);
-  const rien = arbre.length ? "Rien à faire : tout est à jour." : "Rien à faire : commence par importer une liste de classe.";
+  const rien = courant().length ? "Rien à faire : tout est à jour." : "Rien à faire : commence par importer une liste de classe.";
   const puces = $("faire-puces");
   puces.replaceChildren(texte("span", "À faire", "etq-faire"));
   const colonne = $("faire-colonne");
@@ -780,7 +834,7 @@ function ligneLabAccueil(u) {
   const nom = document.createElement("a");
   nom.className = "lab-nom";
   nom.href = lienLab(u.cours, u.lab);
-  nom.append(texte("b", titreLab(u.lab)), texte("span", `${u.cours} · gr. ${groupesDe(u)}`, "mu"));
+  nom.append(texte("b", titreLab(u.lab)), texte("span", `${nomCours(u.cours)} · gr. ${groupesDe(u)}`, "mu"));
   const actions = texte("div", "", "actions");
   const prochain = s && prochainRapport(s);
   if (prochain) actions.append(lien("Corriger", urlRapport(u.cours, u.lab, prochain), { icone: "pen", titre: `Ouvrir ${prochain.prenom} ${prochain.nom}` }));
@@ -802,9 +856,9 @@ function rendreLabsAccueil(enCours) {
   zone.replaceChildren();
   if (!enCours.length) {
     const v = texte("div", "", "vide");
-    v.append(icone(arbre.length ? "circle-check" : "library"),
-      texte("p", arbre.length ? "Rien à corriger : tous les labs sont terminés." : "Aucune classe importée : commence par importer une liste de classe."));
-    if (!arbre.length) v.append(bouton("Importer", { icone: "upload", classe: "primaire", surClic: () => aller("importer") }));
+    v.append(icone(courant().length ? "circle-check" : "library"),
+      texte("p", courant().length ? "Rien à corriger : tous les labs sont terminés." : "Aucune classe importée : commence par importer une liste de classe."));
+    if (!courant().length) v.append(bouton("Importer", { icone: "upload", classe: "primaire", surClic: () => aller("importer") }));
     zone.append(v);
     return;
   }
@@ -833,7 +887,7 @@ async function lancerLot(u, n) {
   lotActif = true;
   majBoutonsLot();
   toastLot?.fermer();
-  toastLot = UI.toast(`Analyse lancée : ${titreLab(u.lab)} · ${u.cours}, ${pluriel(n, "rapport", "rapports")}`, {
+  toastLot = UI.toast(`Analyse lancée : ${titreLab(u.lab)} · ${nomCours(u.cours)}, ${pluriel(n, "rapport", "rapports")}`, {
     duree: 6 * 3600 * 1000,
     action: { libelle: "Arrêter", surClic: () => { fetch("/api/lot/arreter", { method: "POST" }).catch(() => {}); } },
   });
@@ -868,8 +922,8 @@ aller(location.hash.slice(1));
 
 function rendreEnoncesManquants() {
   const manquants = [];
-  for (const cours of new Set(arbre.map((c) => c.cours))) {
-    const labs = new Set(arbre.filter((c) => c.cours === cours).flatMap((c) => c.etudiants.flatMap((e) => e.labs)));
+  for (const cours of new Set(courant().map((c) => c.cours))) {
+    const labs = new Set(courant().filter((c) => c.cours === cours).flatMap((c) => c.etudiants.flatMap((e) => e.labs)));
     for (const lab of [...labs].sort()) if (!enonces.some((x) => x.cours === cours && x.lab === lab)) manquants.push({ cours, lab });
   }
   const zone = $("enonces-manquants");
@@ -878,7 +932,7 @@ function rendreEnoncesManquants() {
   if (!manquants.length) return;
   zone.append(texte("strong", `Énoncé manquant (${manquants.length}) : `), texte("span", "sans énoncé, les passages de l'énoncé comptent comme du plagiat. "));
   for (const m of manquants) {
-    const a = texte("a", `${m.cours} · ${m.lab}`, "bk");
+    const a = texte("a", `${nomCours(m.cours)} · ${m.lab}`, "bk");
     a.href = `plagiat.html?${new URLSearchParams(m)}`;
     zone.append(a, " ");
   }

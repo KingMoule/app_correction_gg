@@ -212,3 +212,9 @@ section h2:first-child { margin-top: 0; }
   margin: var(--e4) calc(-1 * var(--e5)) calc(-1 * var(--e6)); padding: var(--e3) var(--e5) calc(var(--e3) + env(safe-area-inset-bottom)); background: var(--surface); border-top: 1px solid var(--border); }
 #barre-resume { flex: 1 1 12rem; color: var(--texte-2); font-size: var(--t-s); }
 #barre-resume b { color: var(--texte); }
+
+/* Sessions passées de la page Labs (archives repliées) */
+.p1-passees { margin-top: 16px; }
+.p1-passees[open] > summary { margin-bottom: 8px; }
+.p1-session { margin: 16px 0 8px; font-size: var(--t-s); font-weight: 600; color: var(--texte-2); }
+.p1-passees .p1-cours { margin-bottom: 12px; }

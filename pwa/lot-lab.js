@@ -147,7 +147,7 @@
       } else if (ailleurs) {
         const b = el("button", "btn"); b.type = "button"; b.disabled = true;
         avec(b, "sparkles", "Analyser");
-        b.title = `Un lot tourne déjà (${etat.lab} · ${etat.cours}).`;
+        b.title = `Un lot tourne déjà (${etat.lab} · ${UI.titreCours(etat.cours)}).`;
         rapide.append(b);
       } else if (n) {
         const b = el("button", "btn"); b.type = "button";
@@ -168,7 +168,7 @@
       if (ailleurs) {
         message.className = "banniere";
         message.setAttribute("role", "status");
-        const corps = el("div", "corps", `Un lot tourne déjà sur ${etat.lab} · ${etat.cours} (${etat.fait} / ${etat.total}). Un seul lot à la fois : attends qu'il se termine, ou arrête-le depuis son lab.`);
+        const corps = el("div", "corps", `Un lot tourne déjà sur ${etat.lab} · ${UI.titreCours(etat.cours)} (${etat.fait} / ${etat.total}). Un seul lot à la fois : attends qu'il se termine, ou arrête-le depuis son lab.`);
         const voir = el("a", "btn", "Voir ce lab");
         voir.href = `suivi.html?${new URLSearchParams({ cours: etat.cours, lab: etat.lab })}#claude`;
         message.append(UI.icone("info"), corps, voir);

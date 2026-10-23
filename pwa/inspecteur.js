@@ -229,7 +229,7 @@
       const verdict = p.resultat?.verdict;
       const pastille = h("span", "pastille p-plagiat", verdict ? VERDICTS[verdict] : STATUTS[p.statut] ?? p.statut);
       tete.append(h("b", undefined, autre.nom || autre.etudiant), pastille);
-      carte.append(tete, h("div", "mu", `${autre.cours} gr. ${autre.groupe} · ${autre.lab} · score ${pct(p.score)} · ${p.nb_passages} passage(s) commun(s)`));
+      carte.append(tete, h("div", "mu", `${UI.titreCours(autre.cours)} gr. ${autre.groupe} · ${autre.lab} · score ${pct(p.score)} · ${p.nb_passages} passage(s) commun(s)`));
       if (p.statut === "erreur") carte.append(h("p", "vue-texte erreur", `Claude n'a pas pu répondre : ${p.resultat?.erreur ?? "erreur"}`));
       if (p.statut === "analysee") carte.append(h("p", "vue-texte", `Claude : confiance ${CONFIANCES[p.resultat.confiance] ?? p.resultat.confiance}. ${p.resultat.explication}`));
       const detail = pl.ouvertes.get(p.cle);
