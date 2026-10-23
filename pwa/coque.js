@@ -1,5 +1,5 @@
 // Coque de l'application : remplit la barre latérale (#coque-lat), gère le tiroir en portrait, l'état « Ordi connecté »,
-// la progression du lot et les labs en cours. À charger après ui.js et avant app.js. Rien d'autre à appeler :
+// la ligne du lot en cours et les labs en cours. À charger après ui.js et avant app.js. Rien d'autre à appeler :
 // window.Coque.marquer(vue) (app.js, au changement de vue) et window.Coque.labs(arbre) (app.js, après chargement de la bibliothèque).
 (() => {
   const lat = document.getElementById("coque-lat");
@@ -15,14 +15,20 @@
 
   const LIENS = [
     { cle: "accueil", libelle: "Accueil", icone: "house", href: "/#accueil" },
-    { cle: "biblio", libelle: "Bibliothèque", icone: "library", href: "/#biblio" },
+    { cle: "biblio", libelle: "Labs", icone: "flask-conical", href: "/#biblio" },
     { cle: "importer", libelle: "Importer", icone: "upload", href: "/#importer", badge: "badge-attente" },
-    { cle: "lot", libelle: "Analyse par lot", icone: "layers", href: "/#outils", lot: true },
     { cle: "plagiat", libelle: "Plagiat", icone: "scan-search", href: "plagiat.html" },
-    // L'export se lance depuis un lab de la bibliothèque (pas encore d'écran à lui) : jamais marqué actif.
-    { cle: "export", libelle: "Export LÉA", icone: "file-down", href: "/#biblio", titre: "Se lance depuis un lab de la bibliothèque" },
   ];
-  const VUE_VERS_CLE = { accueil: "accueil", biblio: "biblio", importer: "importer", outils: "lot" };
+  // La vue « outils » (analyse par lot) n'a plus de lien : le lot se lance depuis l'accueil et la page du lab.
+  const VUE_VERS_CLE = { accueil: "accueil", biblio: "biblio", importer: "importer" };
+
+  // « lab-2 » -> « Lab 2 » (l'identifiant ne change pas, seulement le titre affiché)
+  function titreLab(lab) {
+    const m = /^lab[-_ ]?(\d+[a-z]?)$/i.exec(lab);
+    if (m) return `Lab ${m[1]}`;
+    const t = lab.replace(/[-_]+/g, " ").trim();
+    return t.charAt(0).toUpperCase() + t.slice(1);
+  }
 
   function lien(def) {
     const a = sur("a", "cq-lien");
@@ -31,13 +37,6 @@
     a.dataset.cle = def.cle;
     a.append(UI.icone(def.icone), sur("span", "", def.libelle));
     if (def.badge) { const b = sur("span", "cq-n alerte"); b.id = def.badge; b.hidden = true; a.append(b); }
-    if (def.lot) {
-      const n = sur("span", "cq-n"); n.id = "cq-lot-n"; n.hidden = true;
-      const barre = document.createElement("progress");
-      barre.className = "cq-lot-barre"; barre.id = "cq-lot-barre"; barre.hidden = true;
-      barre.setAttribute("aria-label", "Progression de l'analyse par lot");
-      a.append(n, barre);
-    }
     return a;
   }
 
@@ -74,7 +73,15 @@
   jauge.append(jaugeBarre, jaugeRepere);
   conso.append(consoLigne, jauge);
 
-  lat.append(marque, nav, conso, titreLabs, zoneLabs, pied);
+  // Lot en cours (visible seulement pendant un lot) : « Lot · Lab 3 · NYA » + « 4 / 7 », mène à la page du lab
+  const lot = sur("a", "cq-lot"); lot.hidden = true; lot.dataset.cle = "lot";
+  const lotTexte = sur("span", ""), lotN = sur("b", "");
+  const lotLigne = sur("span", "l1"); lotLigne.append(lotTexte, lotN);
+  const lotJauge = sur("span", "jauge"), lotBarre = sur("i");
+  lotJauge.append(lotBarre);
+  lot.append(lotLigne, lotJauge);
+
+  lat.append(marque, nav, conso, lot, titreLabs, zoneLabs, pied);
 
   // Tiroir (portrait) : barre du haut avec « Menu » + voile
   const corps = coque.querySelector(".coque-corps");
@@ -112,7 +119,7 @@
     const avec = c.etudiants.filter((e) => e.labs.includes(lab));
     return c.labs_archives.includes(lab) || (avec.length > 0 && avec.every((e) => e.termines.includes(lab)));
   };
-  const MAX_LABS = 8;
+  const MAX_LABS = 6;
   function labs(arbre) {
     const parLab = new Map();
     for (const c of arbre) {
@@ -131,14 +138,14 @@
     const items = enCours.slice(0, MAX_LABS).map((u) => {
       const a = sur("a", "cq-lien");
       a.href = `suivi.html?${new URLSearchParams({ cours: u.cours, lab: u.lab })}`;
-      a.title = `${u.cours} · ${u.lab}`;
+      a.title = `${u.cours} · ${titreLab(u.lab)}`;
       const actif = page === "suivi.html" && courant.get("cours") === u.cours && courant.get("lab") === u.lab;
       if (actif) { a.classList.add("on"); a.setAttribute("aria-current", "page"); }
-      a.append(sur("span", "", `${u.lab} · ${u.cours}`), sur("span", "cq-n", `${u.faits} / ${u.total}`));
+      a.append(sur("span", "", `${titreLab(u.lab)} · ${u.cours}`), sur("span", "cq-n", `${u.faits} / ${u.total}`));
       return a;
     });
     if (enCours.length > MAX_LABS) {
-      const plus = sur("a", "cq-lien", `+ ${enCours.length - MAX_LABS} autres dans la bibliothèque`);
+      const plus = sur("a", "cq-lien", `+ ${enCours.length - MAX_LABS} autres dans Labs`);
       plus.href = "/#biblio";
       items.push(plus);
     }
@@ -146,6 +153,7 @@
     zoneLabs.replaceChildren(...items);
   }
 
+  let dernierStatut = null;
   // --- État du moteur et progression du lot (une seule requête périodique) ---
   async function surveiller() {
     let delai = 10000;
@@ -154,14 +162,19 @@
       ordi.className = "cq-ordi ok";
       ordi.title = ordi.dataset.version || "";
       texteOrdi.textContent = "Ordi connecté";
-      const n = document.getElementById("cq-lot-n"), barre = document.getElementById("cq-lot-barre");
       const actif = e.statut === "en_cours" && e.total > 0;
-      n.hidden = barre.hidden = !actif;
+      lot.hidden = !actif;
       if (actif) {
-        n.textContent = `${e.fait} / ${e.total}`;
-        barre.max = e.total; barre.value = e.fait;
+        lot.href = `suivi.html?${new URLSearchParams({ cours: e.cours, lab: e.lab })}`;
+        lotTexte.textContent = `Lot · ${titreLab(e.lab)} · ${e.cours}`;
+        lotN.textContent = `${e.fait} / ${e.total}`;
+        lotBarre.style.width = `${Math.round((100 * e.fait) / e.total)}%`;
         delai = 2000;
       }
+      // Un seul lot à la fois : l'accueil (et la page du lab) s'y abonnent pour désactiver leurs boutons
+      window.Coque.lot = e;
+      if (e.statut !== dernierStatut || actif) document.dispatchEvent(new CustomEvent("coque:lot", { detail: e }));
+      dernierStatut = e.statut;
       // Jauge : toutes les 8 s pendant un lot (chaque rapport ajoute des appels), sinon chaque minute
       if (Date.now() - derniereConso > (actif ? 8000 : 60000)) { derniereConso = Date.now(); majConso(); }
     } catch {
@@ -200,5 +213,5 @@
   // app.js fournit lui-même la bibliothèque (labs(arbre)); sans lui (suivi, plagiat), on la charge ici.
   if (page !== "index.html") chargerLabs();
 
-  window.Coque = { marquer: (vue) => marquer(VUE_VERS_CLE[vue] ?? "accueil"), labs, majConso };
+  window.Coque = { marquer: (vue) => marquer(VUE_VERS_CLE[vue] ?? "accueil"), labs, majConso, titreLab, lot: null };
 })();

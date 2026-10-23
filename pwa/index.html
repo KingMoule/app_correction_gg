@@ -26,32 +26,34 @@
         <div><h1 id="accueil-titre">Bonjour Guillaume</h1><p class="sous" id="accueil-sous"></p></div>
         <div class="actions"><button type="button" class="btn" data-go="importer"><svg class="ic"><use href="vendor/lucide-sprite.svg#upload"/></svg>Importer</button></div>
       </header>
-      <div class="accueil-haut">
-        <div id="continuer"></div>
-        <div class="carte-faire">
-          <h2>À faire</h2>
-          <div id="a-faire" class="liste-faire" aria-live="polite"></div>
+      <section class="carte p1-haut" aria-label="Reprendre et chiffres du moment">
+        <div id="continuer" class="p1-reprise"></div>
+        <div class="p1-chiffres">
+          <div class="p1-chiffre"><span class="v" id="chiffre-corriger">–</span><span class="l">analysés à corriger</span></div>
+          <div class="p1-chiffre"><span class="v" id="chiffre-analyser">–</span><span class="l">à analyser</span></div>
+          <a class="p1-chiffre p1-claude" id="chiffre-claude" href="consommation.html" hidden><span class="v" id="claude-pct"></span><span class="l" id="claude-sous"></span><span class="jauge" id="claude-jauge"><i></i><u></u></span></a>
         </div>
-      </div>
-      <div class="bloc-tete">
-        <h2>Labs</h2>
-        <div id="filtres-accueil" class="seg" role="group" aria-label="Filtrer les labs">
-          <button type="button" data-f="cours">En cours <span class="n"></span></button><button type="button" data-f="finis">Terminés <span class="n"></span></button><button type="button" data-f="tout">Tout <span class="n"></span></button>
+      </section>
+      <div class="p1-faire" id="faire-puces" aria-label="À faire" aria-live="polite"></div>
+      <div class="p1-grille">
+        <div>
+          <div class="titre-bloc"><h2>Labs en cours</h2><span class="legende-barre"><span><i class="t"></i>terminés</span><span><i class="a"></i>analysés</span></span></div>
+          <section class="carte p1-labs" id="labs-accueil" aria-label="Labs en cours"></section>
         </div>
+        <aside class="p1-cote">
+          <div class="titre-bloc"><h2>À faire</h2><span class="mu">exceptions seulement</span></div>
+          <section class="carte exceptions" id="faire-colonne" aria-live="polite"></section>
+        </aside>
       </div>
-      <div id="labs-accueil"></div>
     </div>
 
     <div class="vue" id="v-biblio">
       <header class="page-tete">
-        <div><h1>Bibliothèque</h1><p class="sous" id="biblio-sous"></p></div>
-        <div class="actions">
-          <div id="filtres" class="seg" role="group" aria-label="Filtrer les labs">
-            <button type="button" data-f="cours">En cours <span class="n"></span></button><button type="button" data-f="finis">Terminés <span class="n"></span></button><button type="button" data-f="tout">Tout <span class="n"></span></button>
-          </div>
-        </div>
+        <div><h1>Labs</h1><p class="sous" id="biblio-sous"></p></div>
+        <div class="actions"><button type="button" class="btn" data-go="importer"><svg class="ic"><use href="vendor/lucide-sprite.svg#upload"/></svg>Importer</button></div>
       </header>
-      <div id="arbre"></div>
+      <div id="recherche-place"></div>
+      <div id="labs-cours"></div>
 
       <section id="section-ia" hidden>
         <h2>Indices d'IA</h2>
@@ -155,6 +157,7 @@
 </div>
   <script src="ui.js"></script>
   <script src="coque.js"></script>
+  <script src="dialogue.js"></script>
   <script src="app.js"></script>
   <script src="indices-ia.js"></script>
   <script src="lot.js"></script>

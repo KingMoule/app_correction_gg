@@ -50,7 +50,50 @@
     });
   }
 
+  // Formulaire à plusieurs champs : champs = [{ cle, etiquette, valeur, aide, inputmode, options: [{ valeur, libelle }] }]
+  // (`options` = liste déroulante). Renvoie { cle: valeur } ou null si annulé.
+  function formulaire({ titre, texte, champs, ok = "Enregistrer", annuler = "Annuler" }) {
+    return new Promise((resoudre) => {
+      const d = el("dialog", "dialogue");
+      const forme = el("form"); forme.method = "dialog";
+      forme.append(el("h2", "", titre));
+      if (texte) forme.append(el("p", "", texte));
+      const saisies = {};
+      for (const c of champs) {
+        const l = el("label", "champ");
+        l.append(el("span", "etiquette", c.etiquette));
+        let s;
+        if (c.options) {
+          s = el("select", "saisie");
+          for (const o of c.options) { const op = el("option", "", o.libelle); op.value = o.valeur; s.append(op); }
+          s.value = c.valeur;
+        } else {
+          s = el("input", "saisie"); s.type = "text"; s.value = c.valeur ?? ""; s.autocomplete = "off";
+          if (c.inputmode) s.inputMode = c.inputmode;
+        }
+        saisies[c.cle] = s;
+        l.append(s);
+        if (c.aide) l.append(el("span", "aide", c.aide));
+        forme.append(l);
+      }
+      const pied = el("div", "dialogue-pied");
+      const non = el("button", "btn", annuler); non.type = "button";
+      const oui = el("button", "btn primaire", ok); oui.type = "submit";
+      pied.append(non, oui);
+      forme.append(pied);
+      d.append(forme);
+      let resultat = null;
+      non.onclick = () => d.close();
+      forme.addEventListener("submit", () => { resultat = Object.fromEntries(Object.entries(saisies).map(([k, v]) => [k, v.value])); });
+      d.addEventListener("close", () => { d.remove(); resoudre(resultat); });
+      document.body.append(d);
+      d.showModal();
+      Object.values(saisies)[0]?.focus();
+    });
+  }
+
   window.Dialogue = {
+    formulaire,
     confirmer: async (o) => (await ouvrir(o)) === true,
     saisir: (o) => ouvrir({ ...o, champ: { etiquette: o.etiquette, valeur: o.valeur, aide: o.aide, inputmode: o.inputmode } }),
   };
