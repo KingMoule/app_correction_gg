@@ -30,6 +30,8 @@ from concurrent.futures import Future
 from dataclasses import dataclass, field
 from typing import Any
 
+from . import consommation
+
 
 class ClaudeErreur(Exception):
     """Erreur de base pour tout échec d'un appel à Claude."""
@@ -232,8 +234,9 @@ class FileClaude:
     tâche concernée et n'arrête pas la file. Les tâches suivantes sont tentées quand même.
     """
 
-    def __init__(self, client: ClientClaude | None = None):
+    def __init__(self, client: ClientClaude | None = None, journal: bool = False):
         self.client = client or ClientClaude()
+        self.journal = journal  # journal de consommation (docs/ARCHITECTURE.md) : seulement pour la file du moteur
         self._taches: queue.Queue = queue.Queue()
         self._fil = threading.Thread(target=self._boucle, daemon=True, name="file-claude")
         self._fil.start()
@@ -241,7 +244,7 @@ class FileClaude:
     def soumettre(self, prompt: str, schema: dict | None = None,
                   systeme: str | None = None) -> Future:
         futur: Future = Future()
-        self._taches.put((futur, prompt, schema, systeme))
+        self._taches.put((futur, prompt, schema, systeme, consommation.contexte_courant()))
         return futur
 
     def en_attente(self) -> int:
@@ -256,12 +259,17 @@ class FileClaude:
             tache = self._taches.get()
             if tache is None:
                 return
-            futur, prompt, schema, systeme = tache
+            futur, prompt, schema, systeme, ctx = tache
             if not futur.set_running_or_notify_cancel():
                 continue
             try:
-                futur.set_result(self.client.executer(prompt, schema, systeme))
+                resultat = self.client.executer(prompt, schema, systeme)
+                if self.journal:
+                    consommation.enregistrer_appel(resultat, ctx, getattr(self.client, "modele", None))
+                futur.set_result(resultat)
             except BaseException as e:  # noqa: BLE001 : transmis tel quel à l'appelant
+                if self.journal and isinstance(e, ClaudeLimite):
+                    consommation.enregistrer_limite(str(e))
                 futur.set_exception(e)
 
 
@@ -276,9 +284,10 @@ def file_partagee() -> FileClaude:
     """L'unique file Claude du moteur (français, indices d'IA, plagiat, lot) : jamais deux
     `claude -p` en même temps. Modèle Sonnet (réglable avec CORRECTION_MODELE).
 
-    Mesuré : environ 2 % de la session de 5 h par rapport avec Sonnet (3 % avec Opus)."""
+    Mesuré : environ 2 % de la session de 5 h par rapport avec Sonnet (3 % avec Opus), puis 3 % avec les
+    références. Chaque appel est journalisé (moteur/consommation.py)."""
     global _partagee
     with _verrou_partagee:
         if _partagee is None:
-            _partagee = FileClaude(ClientClaude(modele=MODELE_DEFAUT))
+            _partagee = FileClaude(ClientClaude(modele=MODELE_DEFAUT), journal=True)
         return _partagee

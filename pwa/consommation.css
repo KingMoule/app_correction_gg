@@ -1,0 +1,40 @@
+/* Page « Consommation » (direction Atelier). Aucune couleur nouvelle : sarcelle = normal, ambre = près de la marge, rouge = limite atteinte. */
+#conso-page { padding: var(--e5) var(--e5) 48px; }
+@media (max-width: 899px) { #conso-page { padding: var(--e4) var(--e4) 48px; } }
+.co-tete h1 { margin: 0; }
+.co-tete p { margin: 4px 0 var(--e4); max-width: 46rem; }
+.co-grille2 { display: grid; grid-template-columns: 1fr 1fr; gap: var(--e4); }
+.co-grille3 { display: grid; grid-template-columns: 1.3fr 1fr; gap: var(--e4); margin-top: var(--e4); }
+.co-bloc { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-m); padding: var(--e4) var(--e5); }
+.co-bloc h2 { font-size: var(--t-s); font-weight: 600; color: var(--texte-2); margin: 0 0 var(--e3); }
+.co-bloc h2 .mu { font-weight: 400; }
+.co-gros { font-size: 34px; font-weight: 600; letter-spacing: -.02em; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.co-gros small { font-size: var(--t); font-weight: 500; color: var(--texte-2); letter-spacing: 0; }
+.co-sous { margin: 6px 0 0; color: var(--texte-2); font-size: var(--t-s); }
+.co-bloc .jauge { height: 10px; border-radius: 5px; margin: var(--e3) 0 6px; }
+.co-bloc .jauge > i { border-radius: 5px; }
+.co-bloc .jauge > u { top: -4px; bottom: -4px; }
+.co-legende { display: flex; justify-content: space-between; font-size: var(--t-min); color: var(--texte-2); }
+.co-astuce { padding: var(--e3) var(--e4); border: 1px dashed var(--border-fort); border-radius: var(--r-m); margin-top: var(--e4); font-size: var(--t-s); }
+.co-jours { display: flex; align-items: flex-end; gap: 10px; height: 120px; margin-top: var(--e2); }
+.co-jours > div { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 6px; height: 100%; font-size: var(--t-min); color: var(--texte-2); font-variant-numeric: tabular-nums; }
+.co-jours i { width: 100%; max-width: 40px; background: var(--accent-bord); border-radius: 4px 4px 0 0; display: block; min-height: 2px; }
+.co-jours .auj i { background: var(--accent); }
+.co-jours .auj { color: var(--texte); font-weight: 600; }
+.co-repart { display: flex; height: 10px; border-radius: 5px; overflow: hidden; gap: 2px; margin: var(--e2) 0 var(--e3); background: var(--border); }
+.co-repart i { display: block; }
+.co-lignes { width: 100%; border-collapse: collapse; font-size: var(--t-s); }
+.co-lignes td { padding: 9px 0; border-top: 1px solid var(--border); font-variant-numeric: tabular-nums; }
+.co-lignes tr:first-child td { border-top: 0; }
+.co-lignes td + td { text-align: right; color: var(--texte-2); }
+.co-lignes td:first-child { display: flex; align-items: center; gap: 8px; }
+.co-lignes td:first-child::before { content: ""; width: 8px; height: 8px; border-radius: 2px; background: var(--c); flex: none; }
+.co-cal { margin-top: var(--e4); }
+.co-cal p { margin: 0 0 var(--e2); font-size: var(--t-s); }
+.co-cal p.mu { font-size: var(--t-min); margin-bottom: var(--e4); }
+.co-form { display: flex; gap: var(--e3); align-items: flex-end; flex-wrap: wrap; margin: var(--e3) 0 var(--e3); }
+.co-form .champ { margin: 0; flex: 1; min-width: 9rem; }
+#co-limite { margin-bottom: var(--e4); }
+@media (max-width: 899px) {
+  .co-grille2, .co-grille3 { grid-template-columns: 1fr; }
+}

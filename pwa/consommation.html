@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0f6f66">
+  <script src="acces.js"></script>
+  <link rel="stylesheet" href="design.css">
+  <link rel="stylesheet" href="composants.css">
+  <link rel="stylesheet" href="coque.css">
+  <link rel="stylesheet" href="consommation.css">
+  <title>Consommation · Correction de labs</title>
+</head>
+<body class="avec-coque">
+<div class="coque">
+  <aside id="coque-lat" class="coque-lat"></aside>
+  <div class="coque-corps">
+  <main id="conso-page">
+    <header class="co-tete">
+      <h1>Consommation de Claude</h1>
+      <p class="mu">Estimation d'après les appels du moteur, calée sur ta dernière lecture de <code>/usage</code> (Claude Code). Ce n'est pas le chiffre officiel : un indice. L'usage de Claude hors de cette app n'y figure pas.</p>
+    </header>
+    <div id="co-limite" role="alert" hidden></div>
+    <div class="co-grille2" id="co-jauges"></div>
+    <div class="co-astuce" id="co-restants"></div>
+    <div class="co-grille3">
+      <section class="co-bloc"><h2>Par jour <span class="mu">(≈ % d'une session de 5 h)</span></h2><div class="co-jours" id="co-jours"></div></section>
+      <section class="co-bloc"><h2>Par type d'appel <span class="mu">(7 jours)</span></h2><div class="co-repart" id="co-repart"></div><table class="co-lignes" id="co-types"></table></section>
+    </div>
+    <section class="co-bloc co-cal">
+      <h2>Calibrage</h2>
+      <p id="co-cal-etat"></p>
+      <form id="co-cal-form" class="co-form">
+        <label class="champ"><span class="etiquette">Session (5 h) lue</span><input class="saisie" id="co-cal-session" inputmode="decimal" placeholder="ex. 22" autocomplete="off"></label>
+        <label class="champ"><span class="etiquette">Semaine lue (facultatif)</span><input class="saisie" id="co-cal-semaine" inputmode="decimal" placeholder="ex. 31" autocomplete="off"></label>
+        <button class="btn primaire" type="submit">Enregistrer</button>
+      </form>
+      <p class="mu">Dans Claude Code, tape <code>/usage</code> et recopie les pourcentages de temps en temps, de préférence juste après un lot et sans autre usage de Claude entre-temps.</p>
+      <form id="co-marge-form" class="co-form">
+        <label class="champ"><span class="etiquette">Marge à garder sur la session (%)</span><input class="saisie" id="co-marge" inputmode="decimal" autocomplete="off"><span class="aide">Les lots visent à s'arrêter avant (100 − marge) %.</span></label>
+        <button class="btn" type="submit">Régler la marge</button>
+      </form>
+    </section>
+  </main>
+  </div>
+</div>
+<script src="ui.js"></script>
+<script src="coque.js"></script>
+<script src="consommation.js"></script>
+</body>
+</html>

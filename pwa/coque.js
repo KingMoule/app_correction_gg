@@ -65,7 +65,16 @@
   ordi.append(sur("i", "cq-point"), texteOrdi, deco);
   const pied = sur("div", "cq-pied"); pied.append(reglages, ordi);
 
-  lat.append(marque, nav, titreLabs, zoneLabs, pied);
+  // Jauge de consommation de Claude (estimation, voir consommation.html) : cachée tant que le moteur ne répond pas
+  const conso = sur("a", "cq-conso"); conso.href = "consommation.html"; conso.hidden = true; conso.dataset.cle = "conso";
+  conso.title = "Consommation estimée de Claude (à calibrer avec /usage)";
+  const consoTexte = sur("span", ""), consoValeur = sur("b", "");
+  const consoLigne = sur("span", "l1"); consoLigne.append(consoTexte, consoValeur);
+  const jauge = sur("span", "jauge"), jaugeBarre = sur("i"), jaugeRepere = sur("u");
+  jauge.append(jaugeBarre, jaugeRepere);
+  conso.append(consoLigne, jauge);
+
+  lat.append(marque, nav, conso, titreLabs, zoneLabs, pied);
 
   // Tiroir (portrait) : barre du haut avec « Menu » + voile
   const corps = coque.querySelector(".coque-corps");
@@ -94,6 +103,7 @@
       if (actif) a.setAttribute("aria-current", "page"); else a.removeAttribute("aria-current");
     }
   }
+  if (page === "consommation.html") conso.classList.add("on");
   if (page === "plagiat.html") marquer("plagiat");
   else if (page === "index.html") marquer(VUE_VERS_CLE[location.hash.slice(1)] ?? "accueil");
 
@@ -152,6 +162,8 @@
         barre.max = e.total; barre.value = e.fait;
         delai = 2000;
       }
+      // Jauge : toutes les 8 s pendant un lot (chaque rapport ajoute des appels), sinon chaque minute
+      if (Date.now() - derniereConso > (actif ? 8000 : 60000)) { derniereConso = Date.now(); majConso(); }
     } catch {
       ordi.className = "cq-ordi erreur";
       ordi.title = "L'ordi est-il allumé et sur le même Wi-Fi ?";
@@ -159,6 +171,26 @@
     }
     setTimeout(surveiller, document.hidden ? 30000 : delai);
   }
+
+  // --- Jauge de consommation : seuil d'alerte d'après la marge réglée dans la page Consommation ---
+  const pct = (v) => `≈ ${Math.round(v)} %`;
+  async function majConso() {
+    try {
+      const r = await (await fetch("/api/consommation")).json();
+      const plafond = r.plafond_pct, p = r.session.pct;
+      const limite = r.limite;
+      const niveau = limite || p >= plafond ? "danger" : p >= plafond - 15 ? "attention" : "";
+      jauge.className = "jauge " + niveau;
+      jaugeBarre.style.width = `${Math.min(100, limite ? 100 : p)}%`;
+      jaugeRepere.style.left = `${plafond}%`;
+      consoTexte.textContent = limite ? "Claude · limite atteinte" : "Claude · 5 h";
+      consoValeur.textContent = limite ? `reprise ${limite.reprise.slice(11, 16)}` : pct(p);
+      conso.setAttribute("aria-label", limite ? `Limite de Claude atteinte, reprise vers ${limite.reprise.slice(11, 16)}`
+        : `Consommation estimée de Claude sur 5 heures : ${Math.round(p)} pour cent, arrêt conseillé à ${Math.round(plafond)}`);
+      conso.hidden = false;
+    } catch { conso.hidden = true; }
+  }
+  let derniereConso = 0;
 
   async function chargerLabs() {
     try { labs(await (await fetch("/api/bibliotheque")).json()); } catch { /* le pied de la barre signale déjà un moteur injoignable */ }
@@ -168,5 +200,5 @@
   // app.js fournit lui-même la bibliothèque (labs(arbre)); sans lui (suivi, plagiat), on la charge ici.
   if (page !== "index.html") chargerLabs();
 
-  window.Coque = { marquer: (vue) => marquer(VUE_VERS_CLE[vue] ?? "accueil"), labs };
+  window.Coque = { marquer: (vue) => marquer(VUE_VERS_CLE[vue] ?? "accueil"), labs, majConso };
 })();

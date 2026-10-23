@@ -6,7 +6,7 @@
     document.head.append(lien);
   }
   const el = (id) => document.getElementById(id);
-  let minuteur = null;
+  let minuteur = null, attenteN = null;
 
   const noeud = (tag, contenu) => {
     const n = document.createElement(tag);
@@ -47,11 +47,58 @@
     el("lot-apercu").textContent = "";
     if (!l) return;
     try {
-      const r = await fetch(`${url(l, "/api/lot/apercu")}?refaire=${el("lot-refaire").checked}`);
+      const r = await fetch(`${url(l, "/api/lot/apercu")}?refaire=${el("lot-refaire").checked}&n=${tailleLot()}`);
       if (!r.ok) return;
       const d = await r.json();
       el("lot-apercu").textContent = `${d.a_analyser} rapport(s) à analyser sur ${d.total}.`;
+      estimation(d.estimation, Math.min(d.a_analyser, tailleLot()));
     } catch { /* moteur injoignable : l'état général l'indique déjà */ }
+  }
+
+  const tailleLot = () => Math.max(1, Math.min(200, parseInt(el("lot-n").value, 10) || 10));
+
+  // Estimation de ce lot (moteur/consommation.py) : on avertit près de la marge, sans jamais bloquer.
+  function estimation(e, n) {
+    const zone = el("lot-estimation");
+    zone.replaceChildren();
+    zone.hidden = !e || !e.n;
+    if (zone.hidden) return;
+    const ligne = noeud("div", ""); ligne.className = "lot-est-ligne";
+    const gros = noeud("span", ""); gros.append(noeud("b", `Ce lot ≈ ${Math.round(e.pct)} %`), document.createTextNode(" de la session"));
+    const detail = noeud("span", e.depasse
+      ? `on atteindrait ≈ ${Math.round(e.apres)} % de la session`
+      : `il resterait ≈ ${Math.round(100 - e.apres)} % · marge de ${Math.round(e.marge_pct)} % respectée`);
+    detail.className = "mu";
+    ligne.append(gros, detail);
+    const j = noeud("div", ""); j.className = "lot-est-jauge" + (e.depasse ? " depasse" : "");
+    const deja = noeud("span", ""), lot = noeud("span", ""), repere = noeud("u", "");
+    deja.className = "deja"; deja.style.width = `${Math.min(100, e.utilise)}%`;
+    lot.className = "lot"; lot.style.left = `${Math.min(100, e.utilise)}%`; lot.style.width = `${Math.max(0, Math.min(100 - e.utilise, e.pct))}%`;
+    repere.style.left = `${e.plafond_pct}%`;
+    j.append(deja, lot, repere);
+    const lg = noeud("div", ""); lg.className = "lot-est-legende";
+    lg.append(noeud("span", `déjà utilisé ≈ ${Math.round(e.utilise)} %`), noeud("span", `repère à ${Math.round(e.plafond_pct)} %`));
+    zone.append(ligne, j, lg);
+    if (!e.calibre || !e.mesure) {
+      zone.append(noeud("p", e.calibre ? "Coût par défaut pour certains appels (pas encore assez de mesures)."
+        : "Estimation non calibrée : saisis ta lecture de /usage dans la page Consommation."));
+      zone.lastChild.className = "aide";
+    }
+    if (e.depasse) {
+      const b = noeud("div", ""); b.className = "banniere attention"; b.setAttribute("role", "status");
+      const corps = noeud("div", ""); corps.className = "corps";
+      corps.append(noeud("b", `Dépasse la marge de ${Math.round(e.marge_pct)} %.`),
+        document.createTextNode(` ${e.max_rapports ? `Seuls ${e.max_rapports} rapport(s) tiennent.` : "Aucun rapport ne tient."} Tu peux lancer quand même`));
+      if (e.max_rapports) {
+        corps.append(document.createTextNode(", ou "));
+        const bt = noeud("button", `ramener à ${e.max_rapports}`); bt.type = "button"; bt.className = "btn tertiaire";
+        bt.onclick = () => { el("lot-n").value = e.max_rapports; apercu(); };
+        corps.append(bt);
+      }
+      corps.append(document.createTextNode("."));
+      b.append(UI.icone("triangle-alert"), corps);
+      zone.append(b);
+    }
   }
 
   const LIBELLES = { en_cours: "En cours", termine: "Terminé", arrete: "Arrêté", limite: "Limite d'usage atteinte", erreur: "Arrêté sur erreur" };
@@ -114,11 +161,12 @@
 
   el("lot-lab").onchange = apercu;
   el("lot-refaire").onchange = apercu;
+  el("lot-n").oninput = () => { clearTimeout(attenteN); attenteN = setTimeout(apercu, 350); };
 
   el("lot-lancer").onclick = async () => {
     const l = labChoisi();
     if (!l) return;
-    const n = Math.max(1, Math.min(200, parseInt(el("lot-n").value, 10) || 10));
+    const n = tailleLot();
     const r = await fetch(url(l), {
       method: "POST",
       headers: { "Content-Type": "application/json" },

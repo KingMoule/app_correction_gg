@@ -31,7 +31,7 @@ from fastapi import APIRouter, File, HTTPException, UploadFile
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 
-from . import bibliotheque, pdf_texte, stockage
+from . import bibliotheque, consommation, pdf_texte, stockage
 from .anonymat import Anonymiseur
 from .claude import ClaudeErreur, file_partagee as file_claude  # file unique; les tests remplacent ce nom
 from .config import dossier_donnees
@@ -652,7 +652,8 @@ def confirmer(cle: str) -> dict:
         decisions.pop(cle, None)  # nouvelle tentative après une erreur ou une décision d'écarter
         _ecrire("decisions.json", decisions)
     try:
-        futur = file_claude().soumettre(construire_prompt(p), schema=SCHEMA_VERDICT, systeme=SYSTEME)
+        with consommation.contexte("plagiat"):
+            futur = file_claude().soumettre(construire_prompt(p), schema=SCHEMA_VERDICT, systeme=SYSTEME)
     except BaseException:
         with _verrou:
             _en_cours.discard(cle)

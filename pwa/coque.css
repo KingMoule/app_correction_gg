@@ -23,6 +23,17 @@
 .cq-n { margin-left: auto; font-size: var(--t-min); color: var(--texte-2); font-weight: 500; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .cq-n.alerte { background: var(--attention-fond); color: var(--attention); border-radius: var(--r-pilule); padding: 0 8px; font-weight: 600; }
 .cq-lot-barre { position: absolute; left: 10px; right: 10px; bottom: 3px; height: 3px; margin: 0; }
+/* Consommation de Claude : une ligne + un filet, discret; orange près de la marge, rouge à la limite (docs/DESIGN.md) */
+.cq-conso { display: block; margin-top: var(--e2); padding: 8px 10px 10px; border-radius: var(--r-s); color: var(--texte-2); text-decoration: none; font-size: var(--t-min); }
+.cq-conso:hover, .cq-conso.on { background: var(--surface-3); color: var(--texte); }
+.cq-conso[hidden] { display: none; }
+.cq-conso .l1 { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; font-variant-numeric: tabular-nums; }
+.cq-conso .l1 b { font-weight: 600; color: var(--texte); white-space: nowrap; }
+.jauge { display: block; position: relative; height: 4px; border-radius: 2px; background: var(--border); margin-top: 7px; }
+.jauge > i { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 2px; background: var(--accent); max-width: 100%; }
+.jauge > u { position: absolute; top: -3px; bottom: -3px; width: 2px; background: var(--texte-3); border-radius: 1px; text-decoration: none; }
+.jauge.attention > i { background: var(--attention-point); }
+.jauge.danger > i { background: var(--danger); }
 .cq-titre { font-size: var(--t-min); font-weight: 600; color: var(--texte-2); padding: 18px 10px 6px; margin: 0; }
 .cq-labs { display: flex; flex-direction: column; gap: 2px; }
 .cq-labs .cq-lien { color: var(--texte); }

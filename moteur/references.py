@@ -19,7 +19,7 @@ import pdfplumber
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
-from . import bibliotheque, pdf_texte, references_reseau as web, stockage
+from . import bibliotheque, consommation, pdf_texte, references_reseau as web, stockage
 from .anonymat import Anonymiseur
 from .claude import (
     ClaudeErreur,
@@ -550,7 +550,8 @@ def analyser_rapport(cours: str, groupe: str, lab: str, etudiant: str, rafraichi
     texte = _texte(pdf)
     reseau = web.Reseau(rafraichir)
     try:
-        doc = calculer(texte, style, reseau, Anonymiseur.pour(cours).masquer)
+        with consommation.contexte("references", cours, lab, etudiant):
+            doc = calculer(texte, style, reseau, Anonymiseur.pour(cours).masquer)
     finally:
         reseau.fermer()
     doc["date"] = datetime.now().isoformat(timespec="seconds")

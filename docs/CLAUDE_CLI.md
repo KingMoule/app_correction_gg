@@ -53,6 +53,10 @@ r = futur.result()        # r.structure (dict si schéma), r.texte, r.usage, r.c
 
 Erreurs (toutes des `ClaudeErreur`) : `ClaudeIntrouvable` (non installé), `ClaudeNonConnecte` (lancer `claude` puis `/login`), `ClaudeLimite` (limite du forfait atteinte, réessayer après la réinitialisation), `ClaudeDelai`, `ClaudeSortieInvalide`, `ClaudeEchec`. Une erreur dans une tâche n'arrête pas la file.
 
+## Suivi de la consommation (`moteur/consommation.py`)
+
+Vérifié le 2026-10-22 avec `claude` 2.1.304 : aucune option ni sortie de `claude -p` ne donne le pourcentage du forfait; seul `/usage`, dans Claude Code, l'affiche. Le moteur garde donc, pour chaque appel de la file partagée, les jetons et le coût estimé du JSON de `claude -p` (`usage`, `total_cost_usd`, `modelUsage`), et calcule un pourcentage estimé calé sur les lectures de `/usage` que Guillaume saisit dans la page « Consommation ». Détails dans `docs/ARCHITECTURE.md`. Le coût en dollars est un équivalent API, jamais facturé avec le forfait.
+
 ## Test de consommation (à lancer par Guillaume)
 
 Prérequis : Claude Code installé et connecté (section « Installer et connecter le CLI sous Windows » ci-dessus ; `/login` si besoin) ; `pip install -e .` fait une seule fois (installe aussi la lecture des PDF).
@@ -66,4 +70,4 @@ Prérequis : Claude Code installé et connecté (section « Installer et connect
 3. Retape `/usage` : la différence de pourcentage = le coût réel du rapport dans le forfait.
 4. Divise la marge voulue (ex. 20 % de la limite de session) par cette différence pour fixer la taille d'un lot. Note les valeurs dans `docs/PLAN.md`. Option `--modele haiku` ou `sonnet` pour comparer.
 
-Le résumé chiffré est écrit dans `donnees/consommation/` (hors git). Le texte du rapport n'est jamais écrit dans le dépôt.
+Le résumé chiffré est écrit dans `donnees/consommation/` (hors git). Ce test reste utile pour une première mesure; ensuite, la page « Consommation » de l'app tient le journal de tous les appels. Le texte du rapport n'est jamais écrit dans le dépôt.

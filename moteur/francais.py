@@ -15,7 +15,7 @@ from typing import Literal
 from fastapi import APIRouter, File, Form, HTTPException, UploadFile
 from pydantic import BaseModel, ValidationError
 
-from . import francais_claude, francais_filtre, languagetool, pdf_texte, stockage
+from . import consommation, francais_claude, francais_filtre, languagetool, pdf_texte, stockage
 from .anonymat import Anonymiseur
 from .bareme import Bareme, penalite
 from .bibliotheque import chemin_rapport, racine, segment_sur
@@ -217,8 +217,9 @@ def obtenir(cours: str, groupe: str, lab: str, etudiant: str) -> dict:
 def analyser_rapport(cours: str, groupe: str, lab: str, etudiant: str) -> dict:
     """Analyse le rapport rangé. Une nouvelle analyse garde les décisions des fautes inchangées."""
     rapport, f = fichiers_rapport(cours, groupe, lab, etudiant)
-    extrait, fautes, erreur = analyser_fichier(rapport, avec_claude=True,
-                                              anonymiseur=Anonymiseur.pour(cours))
+    with consommation.contexte("francais", cours, lab, etudiant):
+        extrait, fautes, erreur = analyser_fichier(rapport, avec_claude=True,
+                                                  anonymiseur=Anonymiseur.pour(cours))
     with stockage.verrou(f.parent):  # l'analyse (longue) est finie : fusion et écriture sans interruption
         ancien = _lire_analyse(f)
         nouveau = _fusionner(fautes, erreur, ancien)

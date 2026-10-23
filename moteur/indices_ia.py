@@ -12,7 +12,7 @@ from pathlib import Path
 
 from fastapi import APIRouter, HTTPException
 
-from . import bibliotheque, pdf_texte, stockage
+from . import bibliotheque, consommation, pdf_texte, stockage
 from .anonymat import Anonymiseur
 from .claude import (
     ClaudeDelai,
@@ -127,7 +127,8 @@ def analyser(cours: str, groupe: str, lab: str, etudiant: str) -> dict:
     envoye = Anonymiseur.pour(cours).masquer(t)
     prompt = f"<rapport>\n{envoye}\n</rapport>\n\nAnalyse le style de ce rapport."
     try:
-        r = obtenir_file().soumettre(prompt, schema=SCHEMA, systeme=SYSTEME).result()
+        with consommation.contexte("ia", cours, lab, etudiant):
+            r = obtenir_file().soumettre(prompt, schema=SCHEMA, systeme=SYSTEME).result()
     except (ClaudeIntrouvable, ClaudeNonConnecte) as e:
         raise HTTPException(503, str(e))
     except ClaudeLimite as e:
