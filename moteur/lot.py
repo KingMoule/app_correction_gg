@@ -32,6 +32,10 @@ class DemandeLot(BaseModel):
     refaire: bool = False  # refaire aussi les rapports déjà analysés
 
 
+class DemandeLotLab(DemandeLot):
+    groupe: str | None = None  # un seul groupe du cours (absent = tous les groupes)
+
+
 def _dossier_lab(cours: str, groupe: str, lab: str):
     return bibliotheque.dossier_groupe(cours, groupe) / bibliotheque.segment_sur(lab, "lab")
 
@@ -57,13 +61,41 @@ def a_faire(cours: str, groupe: str, lab: str, etudiant: str, refaire: bool = Fa
     return not fr_ok, not (dossier / "indices_ia.json").is_file(), not ref_ok
 
 
-def _selection(cours: str, groupe: str, lab: str, refaire: bool) -> list[tuple[str, bool, bool, bool]]:
+Choix = tuple[str, str, bool, bool, bool]  # (groupe, étudiant, français, IA, références)
+
+
+def _selection(cours: str, groupe: str, lab: str, refaire: bool) -> list[Choix]:
     sortie = []
     for e in _rapports(cours, groupe, lab):
         faire = a_faire(cours, groupe, lab, e, refaire)
         if any(faire):
-            sortie.append((e, *faire))
+            sortie.append((groupe, e, *faire))
     return sortie
+
+
+def _selection_lab(cours: str, lab: str, groupe: str | None, refaire: bool) -> tuple[int, list[Choix]]:
+    """(rapports du lab, rapports à analyser) pour tous les groupes du cours (ou un seul), dans l'ordre
+    de « Corriger le suivant » : ordre du suivi (groupe, puis nom), en commençant par le prochain rapport non
+    terminé et en reprenant du début ensuite, pour que les prochains rapports à corriger soient analysés d'abord."""
+    bibliotheque.segment_sur(lab, "lab")
+    classes = [c for c in bibliotheque.classes_du_cours(cours) if not groupe or c["groupe"] == groupe]
+    if not classes:
+        raise HTTPException(404, f"Aucune liste de classe pour {cours}" + (f" groupe {groupe}." if groupe else "."))
+    rapports = []  # (groupe, nom normalisé, prénom normalisé, id, terminé)
+    for c in classes:
+        for e in c["etudiants"]:
+            dossier = bibliotheque.chemin_rapport(cours, c["groupe"], lab, e["id"]).parent
+            if (dossier / "rapport.pdf").is_file():
+                rapports.append((c["groupe"], bibliotheque.normaliser(e["nom"]), bibliotheque.normaliser(e["prenom"]),
+                                 e["id"], bibliotheque._termine(dossier)))
+    rapports.sort(key=lambda r: r[:3])
+    debut = next((i for i, r in enumerate(rapports) if not r[4]), 0)
+    choisis = []
+    for g, _, _, e, _ in rapports[debut:] + rapports[:debut]:
+        faire = a_faire(cours, g, lab, e, refaire)
+        if any(faire):
+            choisis.append((g, e, *faire))
+    return len(rapports), choisis
 
 
 def _noms(cours: str, groupe: str) -> dict[str, str]:
@@ -83,14 +115,14 @@ def _arreter_sur(code: int, detail: str) -> str | None:
     return None
 
 
-def _executer(cours: str, groupe: str, lab: str, choisis: list[tuple[str, bool, bool, bool]]) -> None:
-    noms = _noms(cours, groupe)
+def _executer(cours: str, lab: str, choisis: list[Choix]) -> None:
+    noms = {g: _noms(cours, g) for g in {c[0] for c in choisis}}
     arret = None
-    for e, fr, ia, ref in choisis:
+    for groupe, e, fr, ia, ref in choisis:
         if _arret.is_set():
             arret = ("arrete", "Lot arrêté à ta demande : les résultats déjà obtenus sont gardés.")
             break
-        _maj(courant=noms.get(e, e))
+        _maj(courant=noms[groupe].get(e, e), groupe_courant=groupe)
         erreur = None  # (code, message) du rapport
         try:
             if fr:
@@ -111,7 +143,7 @@ def _executer(cours: str, groupe: str, lab: str, choisis: list[tuple[str, bool, 
         if erreur:
             msg = _arreter_sur(*erreur)
             with _verrou:
-                _etat["erreurs"].append({"etudiant": e, "nom": noms.get(e, e), "code": erreur[0], "message": erreur[1]})
+                _etat["erreurs"].append({"groupe": groupe, "etudiant": e, "nom": noms[groupe].get(e, e), "code": erreur[0], "message": erreur[1]})
             if msg:
                 arret = ("limite" if erreur[0] == 429 else "erreur", msg)
                 break
@@ -130,16 +162,28 @@ def _maj(**champs) -> None:
         _etat.update(champs)
 
 
+def _flags(choisis: list[Choix]) -> list[tuple]:
+    return [c[1:] for c in choisis]  # `consommation.estimer` attend (étudiant, français, IA, références)
+
+
 @router.get("/apercu/{cours}/{groupe}/{lab}")
 def apercu(cours: str, groupe: str, lab: str, refaire: bool = False, n: int = Query(N_DEFAUT, ge=1, le=N_MAX)) -> dict:
     """Combien de rapports du lab seraient traités (sans rien lancer) et ce qu'un lot de `n` coûterait
     (estimation : `consommation.estimer`, aucune donnée envoyée)."""
     choisis = _selection(cours, groupe, lab, refaire)
     return {"total": len(_rapports(cours, groupe, lab)), "a_analyser": len(choisis),
-            "estimation": consommation.estimer(choisis[:n])}
+            "estimation": consommation.estimer(_flags(choisis[:n]))}
 
 
-def _demarrer(cours: str, groupe: str, lab: str, choisis: list[tuple[str, bool, bool, bool]], refaire: bool) -> dict:
+@router.get("/apercu/{cours}/{lab}")
+def apercu_lab(cours: str, lab: str, groupe: str | None = None, refaire: bool = False,
+               n: int = Query(N_DEFAUT, ge=1, le=N_MAX)) -> dict:
+    """Même chose pour tout le lab (tous les groupes du cours, ou `groupe`), dans l'ordre de correction."""
+    total, choisis = _selection_lab(cours, lab, groupe, refaire)
+    return {"total": total, "a_analyser": len(choisis), "estimation": consommation.estimer(_flags(choisis[:n]))}
+
+
+def _demarrer(cours: str, groupe: str | None, lab: str, choisis: list[Choix], refaire: bool) -> dict:
     with _verrou:
         if _etat["statut"] == "en_cours":
             raise HTTPException(409, "Un lot est déjà en cours.")
@@ -147,7 +191,7 @@ def _demarrer(cours: str, groupe: str, lab: str, choisis: list[tuple[str, bool, 
         _etat.clear()
         _etat.update(statut="en_cours", cours=cours, groupe=groupe, lab=lab, total=len(choisis), fait=0,
                      courant=None, erreurs=[], message="", refaire=refaire)
-    threading.Thread(target=_executer, args=(cours, groupe, lab, choisis), daemon=True, name="lot").start()
+    threading.Thread(target=_executer, args=(cours, lab, choisis), daemon=True, name="lot").start()
     return etat()
 
 
@@ -159,6 +203,16 @@ def lancer(cours: str, groupe: str, lab: str, d: DemandeLot = DemandeLot()) -> d
     return _demarrer(cours, groupe, lab, choisis, d.refaire)
 
 
+@router.post("/{cours}/{lab}")
+def lancer_lab(cours: str, lab: str, d: DemandeLotLab = DemandeLotLab()) -> dict:
+    """Lot pour tout le lab : les `n` premiers rapports à analyser dans l'ordre de correction (groupes confondus).
+    `groupe` dans le corps limite à un groupe. `groupe` de la réponse (`GET /api/lot`) est null pour tous les groupes."""
+    choisis = _selection_lab(cours, lab, d.groupe, d.refaire)[1][: d.n]
+    if not choisis:
+        raise HTTPException(409, "Aucun rapport à analyser dans ce lab.")
+    return _demarrer(cours, d.groupe, lab, choisis, d.refaire)
+
+
 @router.post("/{cours}/{groupe}/{lab}/{etudiant}")
 def lancer_un(cours: str, groupe: str, lab: str, etudiant: str) -> dict:
     """Analyse un seul rapport (ce qui lui manque), avec la même progression que le lot (`GET /api/lot`)."""
@@ -167,7 +221,7 @@ def lancer_un(cours: str, groupe: str, lab: str, etudiant: str) -> dict:
     faire = a_faire(cours, groupe, lab, etudiant)
     if not any(faire):
         raise HTTPException(409, "Ce rapport est déjà analysé.")
-    return _demarrer(cours, groupe, lab, [(etudiant, *faire)], False)
+    return _demarrer(cours, groupe, lab, [(groupe, etudiant, *faire)], False)
 
 
 @router.get("")

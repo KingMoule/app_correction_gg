@@ -528,6 +528,11 @@ async function ouvrir() {
     sans.delete("panneau");
     localStorage.setItem("dernier", JSON.stringify({ cours: ref[0], groupe: ref[1], lab: ref[2], nom: params.get("nom"), url: `lecteur.html?${sans}` }));
   } catch { /* stockage indisponible */ }
+  try { // « Reprendre » et « Récents » enregistrés par le moteur (échec silencieux, le localStorage reste le repli)
+    const ipad = /iPad|iPhone/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+    fetch("/api/reprendre", { method: "PUT", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ cours: ref[0], groupe: ref[1], lab: ref[2], etudiant: ref[3], appareil: ipad ? "iPad" : "PC" }) }).catch(() => {});
+  } catch { /* envoi impossible */ }
   pdfjsLib.GlobalWorkerOptions.workerSrc = "vendor/pdf.worker.min.js";
   let doc, annotations;
   try {

@@ -7,7 +7,7 @@ d'IA et de plagiat sont des indices à revérifier, jamais un verdict.
 
 from fastapi import APIRouter, HTTPException
 
-from . import bibliotheque, plagiat
+from . import bibliotheque, lot, plagiat
 from .annotations import lire as lire_annotations
 from .bareme import penalite
 from .export_lot import _json, claude_fait, etat_export
@@ -73,6 +73,26 @@ def etat_global(termine: bool, annote: bool, francais: dict, ia) -> str:
     return "en_cours" if (annote or francais["etat"] != "non_analyse" or ia) else "a_corriger"
 
 
+def etat_du_rapport(dossier, cours: str, groupe: str, lab: str, etudiant: str) -> str:
+    """État global d'un rapport (a_corriger / en_cours / termine) sans le détail du suivi (pour la recherche)."""
+    doc = _json(dossier / "francais.json")
+    ia = (_json(dossier / "indices_ia.json") or {}).get("force") or None
+    termine = bool((_json(dossier / "statut.json") or {}).get("termine"))
+    return etat_global(termine, _commence(cours, groupe, lab, etudiant),
+                       {"etat": "non_analyse" if doc is None else "analyse"}, ia)
+
+
+def _places_en_equipe(cours: str, lab: str) -> set[tuple[str, str]]:
+    """(groupe, id) des étudiants nommés dans l'équipe d'un rapport de ce lab (tous les groupes du cours)."""
+    places = set()
+    for c in bibliotheque.classes_du_cours(cours):
+        for e in c["etudiants"]:
+            membres = _json(bibliotheque.chemin_rapport(cours, c["groupe"], lab, e["id"]).parent / "equipe.json")
+            if isinstance(membres, list):
+                places |= {(m.get("groupe"), m.get("id")) for m in membres if isinstance(m, dict)}
+    return places
+
+
 @router.get("/{cours}/{lab}")
 def suivi(cours: str, lab: str, groupe: str | None = None) -> dict:
     bibliotheque.segment_sur(lab, "lab")
@@ -93,8 +113,9 @@ def suivi(cours: str, lab: str, groupe: str | None = None) -> dict:
             termine = bool((_json(dossier / "statut.json") or {}).get("termine"))
             annote = _commence(cours, c["groupe"], lab, e["id"])
             p = plag.get((c["groupe"], e["id"]))
+            analyse = not any(lot.a_faire(cours, c["groupe"], lab, e["id"]))
             rapports.append({
-                "groupe": c["groupe"], "etudiant": e["id"], "nom": e["nom"], "prenom": e["prenom"],
+                "groupe": c["groupe"], "etudiant": e["id"], "nom": e["nom"], "prenom": e["prenom"], "analyse": analyse,
                 "equipe": [f"{m['prenom']} {m['nom']}" for m in _json(dossier / "equipe.json") or []],
                 "annotation": annote, "francais": fr, "ia": ia,
                 "references": _references(_json(dossier / "references.json")), "plagiat": p, "termine": termine,
@@ -105,8 +126,16 @@ def suivi(cours: str, lab: str, groupe: str | None = None) -> dict:
     rapports.sort(key=lambda r: (r["groupe"], bibliotheque.normaliser(r["nom"]), bibliotheque.normaliser(r["prenom"])))
     compte = {k: sum(1 for r in rapports if r["etat"] == k) for k in ("a_corriger", "en_cours", "termine")}
     compte["a_revoir"] = sum(1 for r in rapports if r["a_revoir"] and not r["termine"])
+    deposants = {(r["groupe"], r["etudiant"]) for r in rapports}
+    places = _places_en_equipe(cours, lab)
+    non_remis = [{"groupe": c["groupe"], "id": e["id"], "nom": e["nom"], "prenom": e["prenom"]}
+                 for c in classes for e in c["etudiants"]
+                 if not e.get("retire") and (c["groupe"], e["id"]) not in deposants and (c["groupe"], e["id"]) not in places]
+    non_remis.sort(key=lambda r: (r["groupe"], bibliotheque.normaliser(r["nom"]), bibliotheque.normaliser(r["prenom"])))
+    compte.update(inscrits=sum(1 for c in classes for e in c["etudiants"] if not e.get("retire")), recus=len(rapports),
+                  analyses=sum(1 for r in rapports if r["analyse"]), termines=compte["termine"], non_remis=len(non_remis))
     archive = all(bibliotheque._lire_drapeau(bibliotheque.dossier_groupe(cours, c["groupe"]) / lab / "archive.json", "archive")
                   for c in classes if (bibliotheque.dossier_groupe(cours, c["groupe"]) / lab).is_dir())
     return {"cours": cours, "lab": lab, "groupes": [c["groupe"] for c in classes], "archive": archive,
-            "total": len(rapports), "compte": compte, "rapports": rapports,
+            "total": len(rapports), "compte": compte, "rapports": rapports, "non_remis": non_remis,
             "export": etat_export(cours, lab, dossiers)}

@@ -31,7 +31,8 @@ def test_suivi_un_seul_appel_pour_tout_le_lab(lab):
     assert luc["annotation"] and luc["ia"] == "moderee" and luc["etat"] == "en_cours"
     assert luc["francais"] == {"etat": "non_analyse"}
     assert luc["plagiat"]["etat"] == "confirmee"
-    assert d["compte"] == {"a_corriger": 0, "en_cours": 2, "termine": 1, "a_revoir": 2}
+    assert {k: d["compte"][k] for k in ("a_corriger", "en_cours", "termine", "a_revoir")} == {
+        "a_corriger": 0, "en_cours": 2, "termine": 1, "a_revoir": 2}  # + inscrits, recus… : tests/test_p1_moteur.py
 
 
 def test_suivi_a_corriger_quand_rien_n_est_fait(client):
