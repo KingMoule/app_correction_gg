@@ -386,13 +386,13 @@
   function rendreTete() {
     const c = donnees.compte;
     const nomLab = libelleLab(lab);
-    $("titre").replaceChildren(document.createTextNode(`${nomLab} · ${cours}`));
+    $("titre").replaceChildren(document.createTextNode(`${nomLab} · ${UI.titreCours(cours)}`));
     if (donnees.archive) $("titre").append(pastille("Lab clos", "p-neutre"));
-    document.title = `${nomLab} · ${cours}`;
+    document.title = `${nomLab} · ${UI.titreCours(cours)}`;
     $("fil").replaceChildren(UI.icone("chevron-right"), el("b", cours));
     const pas = donnees.rapports.find((r) => !r.termine);
     const g = donnees.groupes;
-    $("sous").textContent = (g.length ? `${g.length > 1 ? "gr." : "groupe"} ${g.join(", ")}` : cours)
+    $("sous").textContent = (g.length ? `${g.length > 1 ? "gr." : "groupe"} ${g.join(", ")}` : UI.titreCours(cours))
       + (donnees.total ? (pas ? ` · prochain non terminé : ${nomComplet(pas)}` : " · tous les rapports sont terminés") : " · aucun rapport reçu");
 
     const suivant = $("suivant"), groupe = lire("groupe", "");

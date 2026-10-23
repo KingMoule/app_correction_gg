@@ -123,5 +123,10 @@
     });
   }
 
-  window.UI = { icone, toast, menu, depot, segmente };
+  // « 202SNURE_A2026 » -> « 202SNURE · A2026 » (l'identifiant du cours contient la session; il ne change pas)
+  function titreCours(cle) {
+    const m = /^(.+)_([AH]\d{4})$/.exec(cle ?? "");
+    return m ? `${m[1]} · ${m[2]}` : (cle ?? "");
+  }
+  window.UI = { icone, toast, menu, depot, segmente, titreCours };
 })();

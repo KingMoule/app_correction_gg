@@ -84,7 +84,7 @@ def comparer(client) -> dict:
 
 def importer(client, lab, **rapports):
     """rapports : nom de famille -> PDF."""
-    r = client.post("/api/bibliotheque/import", data={"cours": "202SNURE", "groupe": "00002", "lab": lab},
+    r = client.post("/api/bibliotheque/import", data={"cours": "202SNURE_A2026", "groupe": "00002", "lab": lab},
                     files=[("fichiers", (f"{n}.pdf", p, "application/pdf")) for n, p in rapports.items()])
     assert r.status_code == 200 and not r.json()["en_attente"], r.json()
 
@@ -120,9 +120,9 @@ def test_enonce_ignore(client):
     b = pdf(ENONCE + " Voici ce que mon equipe a obtenu pendant la seance de mercredi apres midi.")
     importer(client, "lab-1", Alpha=a, Beta=b)
     assert len(comparer(client)["paires"]) == 1
-    r = client.post("/api/plagiat/enonces/202SNURE/lab-1", files={"pdf": ("e.pdf", pdf(ENONCE), "application/pdf")})
+    r = client.post("/api/plagiat/enonces/202SNURE_A2026/lab-1", files={"pdf": ("e.pdf", pdf(ENONCE), "application/pdf")})
     assert r.status_code == 200
-    assert client.get("/api/plagiat/enonces").json() == [{"cours": "202SNURE", "lab": "lab-1"}]
+    assert client.get("/api/plagiat/enonces").json() == [{"cours": "202SNURE_A2026", "lab": "lab-1"}]
     assert comparer(client)["paires"] == []
 
 
@@ -172,7 +172,7 @@ def test_rien_envoye_sans_confirmation_puis_verdict(client, monkeypatch):
     assert p["resultat"]["verdict"] == "copie" and p["resultat"]["explication"] == "Texte identique."
     assert len(file.prompts) == 1
     # Ni noms d'étudiants ni identifiants dans ce qui part chez Claude.
-    for mot in ("Alpha", "Beta", "Anne", "alpha-anne", "202SNURE"):
+    for mot in ("Alpha", "Beta", "Anne", "alpha-anne", "202SNURE_A2026"):
         assert mot not in file.prompts[0]
     assert "tension aux bornes" in file.prompts[0]
 
@@ -199,13 +199,13 @@ def test_ecarter_et_paire_inconnue(client, monkeypatch):
 
 
 def test_enonce_consultable_et_remplacable(client):
-    assert client.get("/api/plagiat/enonces/202SNURE/Lab 3").status_code == 404
+    assert client.get("/api/plagiat/enonces/202SNURE_A2026/Lab 3").status_code == 404
     for texte in ("Enonce un deux trois", "Enonce remplace quatre cinq"):
-        r = client.post("/api/plagiat/enonces/202SNURE/Lab 3", files={"pdf": ("e.pdf", pdf(texte), "application/pdf")})
+        r = client.post("/api/plagiat/enonces/202SNURE_A2026/Lab 3", files={"pdf": ("e.pdf", pdf(texte), "application/pdf")})
         assert r.status_code == 200
-    r = client.get("/api/plagiat/enonces/202SNURE/Lab 3")
+    r = client.get("/api/plagiat/enonces/202SNURE_A2026/Lab 3")
     assert r.status_code == 200 and r.headers["content-type"] == "application/pdf"
-    assert client.get("/api/plagiat/enonces").json() == [{"cours": "202SNURE", "lab": "lab-3"}]
+    assert client.get("/api/plagiat/enonces").json() == [{"cours": "202SNURE_A2026", "lab": "lab-3"}]
 
 
 # --- Plagiat à l'échelle (audit M7) ----------------------------------------------------
@@ -265,7 +265,7 @@ def test_passages_a_part_et_charges_a_la_demande(client, tmp_path, monkeypatch):
 
 
 def test_migration_de_l_ancien_format_garde_les_decisions(client, tmp_path):
-    ident = lambda e: {"cours": "202SNURE", "groupe": "00002", "lab": "lab-1", "etudiant": e, "nom": e}  # noqa: E731
+    ident = lambda e: {"cours": "202SNURE_A2026", "groupe": "00002", "lab": "lab-1", "etudiant": e, "nom": e}  # noqa: E731
     passage = {"a": [0, 9], "b": [0, 9], "mots": 9, "texte_a": "t", "texte_b": "t"}
 
     def paire(cle, score):

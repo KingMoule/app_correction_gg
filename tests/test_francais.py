@@ -114,7 +114,7 @@ def test_api_languagetool_absent(pdf_fictif, monkeypatch):
 
 from tests.test_bibliotheque import charger_classe, client, importer, pdf  # noqa: E402,F401
 
-URL_RAPPORT = "/api/francais/rapport/202SNURE/00002/lab-3/dube-alice"
+URL_RAPPORT = "/api/francais/rapport/202SNURE_A2026/00002/lab-3/dube-alice"
 
 
 class FileFausse:
@@ -201,9 +201,9 @@ def test_analyse_decisions_et_bareme_par_cours(rapport_range, tmp_path):
     j = rapport_range.post(URL_RAPPORT + "/analyser").json()
     assert j["analyse"] and j["fautes"][0]["texte"] == "mesure" and j["nb_acceptees"] == 0
     fid = j["fautes"][0]["id"]
-    assert (tmp_path / "bibliotheque/202SNURE/00002/lab-3/dube-alice/francais.json").is_file()
+    assert (tmp_path / "bibliotheque/202SNURE_A2026/00002/lab-3/dube-alice/francais.json").is_file()
     # barème du cours : 2 points par faute, plafond 1
-    r = rapport_range.put("/api/francais/bareme/202SNURE", json={"points_par_faute": 2, "plafond": 1})
+    r = rapport_range.put("/api/francais/bareme/202SNURE_A2026", json={"points_par_faute": 2, "plafond": 1})
     assert r.status_code == 200
     j = rapport_range.put(URL_RAPPORT, json={"revision": j["revision"],
         "decisions": {fid: "acceptee"}, "choix": {fid: "mesurent"}, "masquees": [fid]}).json()
@@ -235,7 +235,7 @@ def test_decalage_de_la_correction_enregistre_et_garde(rapport_range):
 def test_ancienne_analyse_sans_decalages(rapport_range, tmp_path):
     """Un francais.json d'avant les décalages doit renvoyer `decalages` (sinon le lecteur plante au glissement)."""
     fid = rapport_range.post(URL_RAPPORT + "/analyser").json()["fautes"][0]["id"]
-    f = tmp_path / "bibliotheque/202SNURE/00002/lab-3/dube-alice/francais.json"
+    f = tmp_path / "bibliotheque/202SNURE_A2026/00002/lab-3/dube-alice/francais.json"
     doc = json.loads(f.read_text(encoding="utf-8")); del doc["decalages"]
     f.write_text(json.dumps(doc), encoding="utf-8")
     assert rapport_range.get(URL_RAPPORT).json()["decalages"] == {}

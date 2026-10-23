@@ -138,10 +138,10 @@
     const items = enCours.slice(0, MAX_LABS).map((u) => {
       const a = sur("a", "cq-lien");
       a.href = `suivi.html?${new URLSearchParams({ cours: u.cours, lab: u.lab })}`;
-      a.title = `${u.cours} · ${titreLab(u.lab)}`;
+      a.title = `${UI.titreCours(u.cours)} · ${titreLab(u.lab)}`;
       const actif = page === "suivi.html" && courant.get("cours") === u.cours && courant.get("lab") === u.lab;
       if (actif) { a.classList.add("on"); a.setAttribute("aria-current", "page"); }
-      a.append(sur("span", "", `${titreLab(u.lab)} · ${u.cours}`), sur("span", "cq-n", `${u.faits} / ${u.total}`));
+      a.append(sur("span", "", `${titreLab(u.lab)} · ${UI.titreCours(u.cours)}`), sur("span", "cq-n", `${u.faits} / ${u.total}`));
       return a;
     });
     if (enCours.length > MAX_LABS) {

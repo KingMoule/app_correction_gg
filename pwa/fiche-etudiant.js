@@ -38,7 +38,7 @@
     if (f) {
       t.append(el("span", "avatar", `${f.prenom[0] ?? ""}${f.nom[0] ?? ""}`.toUpperCase()));
       const noms = el("div", "noms");
-      noms.append(el("b", "", nomComplet(f)), el("span", "mu", `DA ${f.da || "?"} · ${f.cours} gr. ${f.groupe}`));
+      noms.append(el("b", "", nomComplet(f)), el("span", "mu", `DA ${f.da || "?"} · ${UI.titreCours(f.cours)} gr. ${f.groupe}`));
       t.append(noms);
       if (f.retire) t.append(el("span", "pastille p-neutre", "Retiré"));
     } else t.append(el("b", "", "Fiche de l'étudiant"));

@@ -18,7 +18,7 @@ def par_texte(j):
 
 
 def fichier_francais(tmp_path):
-    return tmp_path / "bibliotheque/202SNURE/00002/lab-3/dube-alice/francais.json"
+    return tmp_path / "bibliotheque/202SNURE_A2026/00002/lab-3/dube-alice/francais.json"
 
 
 def test_ids_stables_d_une_analyse_a_l_autre(rapport_range, monkeypatch):

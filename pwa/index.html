@@ -50,7 +50,7 @@
     <div class="vue" id="v-biblio">
       <header class="page-tete">
         <div><h1>Labs</h1><p class="sous" id="biblio-sous"></p></div>
-        <div class="actions"><button type="button" class="btn" data-go="importer"><svg class="ic"><use href="vendor/lucide-sprite.svg#upload"/></svg>Importer</button></div>
+        <div class="actions"><button type="button" class="btn" id="btn-session" title="Changer la session en cours"><svg class="ic"><use href="vendor/lucide-sprite.svg#layers"/></svg><span id="session-courante">Session</span></button><button type="button" class="btn" data-go="importer"><svg class="ic"><use href="vendor/lucide-sprite.svg#upload"/></svg>Importer</button></div>
       </header>
       <div id="recherche-place"></div>
       <div id="labs-cours"></div>
@@ -73,6 +73,10 @@
           <h2>Liste de classe</h2>
           <p class="aide">Fichier Excel ou CSV nommé <code>ListeEtudiants_cours…_gr…</code>. Réimporter une liste la fusionne : rien n'est supprimé.</p>
         </div>
+        <div class="champs-import">
+          <label class="champ"><span class="etiquette">Session de cette liste</span><input type="text" id="session-classe" class="saisie" list="sessions-connues" maxlength="5" autocomplete="off" placeholder="A2026"><datalist id="sessions-connues"></datalist></label>
+        </div>
+        <p class="aide" id="aide-session">A = automne, H = hiver, puis l'année. Le nom du fichier d'Omnivox ne la contient pas : sans elle, la liste de la session suivante se mélangerait à celle-ci.</p>
         <ul id="classes-chargees" class="puces"></ul>
         <label class="depot compact" id="depot-classe">
           <input type="file" id="fichier-classe" accept=".xlsx,.xlsm,.csv">

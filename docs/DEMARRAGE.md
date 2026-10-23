@@ -74,6 +74,21 @@ python -m moteur.sauvegarde restaurer
 ```
 Remet la plus récente archive dans le dossier de données. S'il n'est pas vide, la commande demande confirmation, puis le **renomme** en `correction_donnees_avant_restauration_<date>` (rien n'est supprimé). Pour une autre archive : `restaurer <chemin du zip>`. Pour inspecter sans toucher aux données : `restaurer --cible C:\essai_restauration`. `--oui` saute la question.
 
+## Rangement par session (migration au premier lancement après la mise à jour)
+
+Les cours sont maintenant rangés **par session** (`A2026` = automne 2026, `H2027` = hiver 2027) : le code de cours et le n° de groupe d'Omnivox reviennent d'une session à l'autre, et sans la session les listes, les labs, les notes et les coéquipiers se mélangeraient.
+
+**Au prochain lancement de `demarrer.bat`** (premier lancement après la mise à jour, `git pull` automatique) :
+1. la sauvegarde habituelle se fait, puis le moteur en fait **une deuxième, juste avant la migration** (message « Rangement par session… Sauvegarde : … ») : si elle échoue, rien n'est touché et le moteur ne démarre pas;
+2. chaque ancien dossier de cours est **renommé** (`bibliotheque\202SNURE` devient `bibliotheque\202SNURE_A2026`) : un renommage, aucun fichier copié, déplacé ni supprimé; `_enonces`, le barème et le style des références suivent le cours; `_attente`, `_ecartes` (nom du cours corrigé dans leurs fiches) et `_remplaces` (dossiers renommés `<cours>_A2026_<groupe>_…`) restent dans leur dossier, rien n'est supprimé; le lexique est global et ne change pas;
+3. les fichiers qui citent l'ancien nom (listes de classe, fichiers en attente, « Reprendre », états d'export, comparaisons de plagiat) sont corrigés; les décisions de plagiat sont gardées;
+4. le nombre de fichiers, de rapports et leur taille totale sont comparés avant et après : un écart arrête le lancement avec la marche à suivre. Un journal est écrit dans `<données>\migrations\`.
+Toutes les données existantes vont dans la session **A2026** (changer : variable `CORRECTION_SESSION_MIGRATION`, ou `python -m moteur.migration_session --session H2026`). Les lancements suivants ne font rien (la migration est idempotente). Pour voir ce qui serait renommé sans rien changer : `python -m moteur.migration_session --a-sec`.
+
+**Revenir en arrière** : fermer la fenêtre Moteur, `python -m moteur.sauvegarde lister`, puis `python -m moteur.sauvegarde restaurer <archive d'avant>` (la sauvegarde d'avant la migration porte l'heure du message). Le dossier actuel est renommé `…_avant_restauration_<date>`, jamais supprimé. Attention : le lancement suivant refera la migration; pour rester sur l'ancien rangement, revenir aussi à l'ancienne version du programme (`git checkout` du commit d'avant la PR). La rotation garde les 10 dernières archives : ne pas relancer dix fois avant d'avoir vérifié.
+
+**Au quotidien** : l'import d'une liste de classe demande la session (proposée d'après la date : août à décembre = A, janvier à juillet = H; modifiable, ou « session en cours » dans Labs). L'accueil et Labs montrent la session en cours; les autres sont dans « Sessions passées » (Labs), et la recherche et le plagiat couvrent toutes les sessions.
+
 ## Dépannage
 
 - **« Mise à jour sautée »** : le message dit pourquoi (branche autre que `main`, modifications locales). Le moteur démarre avec la version actuelle; remettre le clone sur `main` propre pour retrouver la mise à jour.

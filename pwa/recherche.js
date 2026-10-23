@@ -129,7 +129,7 @@
       const nom = (prenom, famille) => { const b = el("b"); b.append(surligner(`${prenom} ${famille}`, mots)); return b; };
       groupe("Étudiants", d.etudiants.map((e) => {
         const corps = el("span", "corps");
-        const da = el("span", "mu"); da.append(" · DA ", surligner(e.da, mots), ` · ${e.cours} gr. ${e.groupe}`);
+        const da = el("span", "mu"); da.append(" · DA ", surligner(e.da, mots), ` · ${UI.titreCours(e.cours)} gr. ${e.groupe}`);
         corps.append(nom(e.prenom, e.nom), da);
         const droite = [];
         if (e.retire) droite.push(el("span", "pastille p-neutre", "Retiré"));
@@ -138,7 +138,7 @@
       }), d.plus.etudiants);
       groupe("Rapports", d.rapports.map((r) => {
         const corps = el("span", "corps");
-        const lieu = el("span", "mu"); lieu.append(" · ", surligner(titreLab(r.lab), mots), ` · ${r.cours} · gr. ${r.groupe}`);
+        const lieu = el("span", "mu"); lieu.append(" · ", surligner(titreLab(r.lab), mots), ` · ${UI.titreCours(r.cours)} · gr. ${r.groupe}`);
         corps.append(nom(r.prenom, r.nom), lieu);
         const [libelle, classe] = ETATS[r.etat] ?? ["", "p-neutre"];
         const pastille = el("span", `pastille ${classe}`, r.note ? `${libelle} · ${r.note}` : libelle);
@@ -148,7 +148,7 @@
       groupe("Fichiers à associer", d.attente.map((a) => {
         const corps = el("span", "corps");
         const nomFichier = el("b"); nomFichier.append(surligner(a.fichier, mots));
-        corps.append(nomFichier, el("span", "mu", ` · ${RAISONS[a.raison] ?? a.raison} · ${a.cours} · ${titreLab(a.lab)}`));
+        corps.append(nomFichier, el("span", "mu", ` · ${RAISONS[a.raison] ?? a.raison} · ${UI.titreCours(a.cours)} · ${titreLab(a.lab)}`));
         return option("a", { icone: "upload", corps, droite: [el("span", "mu fin", "Importer")], href: "#importer" });
       }), d.plus.attente);
       const n = d.etudiants.length + d.rapports.length + d.attente.length;

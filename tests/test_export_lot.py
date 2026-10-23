@@ -13,7 +13,7 @@ from pypdf import PdfReader
 from moteur import export_lot, plagiat
 from tests.test_bibliotheque import client, deux_groupes, importer_cours, pdf  # noqa: F401
 
-COURS = "202SNURE"
+COURS = "202SNURE_A2026"
 PAGE_ALICE = "Rapport de lab\nPar Alice Dubé et Anna Bele-Gombos"  # Anna est coéquipière d'Alice (autre groupe)
 
 
@@ -42,7 +42,7 @@ def lab(client, tmp_path):
     # Alice : 3 fautes décidées (2 acceptées); Zoé : une faute reste à trancher
     ecrire_francais(base / "00002/lab-1/dube-alice", {"0": "acceptee", "1": "refusee", "2": "acceptee"})
     ecrire_francais(base / "00002/lab-1/martin-zoe", {"0": "acceptee"})
-    client.put("/api/francais/bareme/202SNURE", json={"points_par_faute": 0.75, "plafond": None})
+    client.put("/api/francais/bareme/202SNURE_A2026", json={"points_par_faute": 0.75, "plafond": None})
     client.put(f"/api/bibliotheque/statut/{COURS}/00002/lab-1/dube-alice", json={"termine": True, "note": "17,5"})
     # Plagiat : paire Alice / Luc confirmée, verdict de Claude rendu
     ident = lambda g, e, nom: {"cours": COURS, "groupe": g, "lab": "lab-1", "etudiant": e, "nom": nom}  # noqa: E731
@@ -119,7 +119,7 @@ def test_apercu_compte_les_inacheves(lab):
 def test_tableau_csv_encodage_excel_francais(lab):
     client, _ = lab
     r = client.get(f"/api/export-lot/tableau/{COURS}/lab-1?inacheves=true")
-    assert r.status_code == 200 and re.search(r"Recapitulatif_202SNURE_lab-1_\d{4}-\d{2}-\d{2}_\d{2}h\d{2}\.csv", r.headers["content-disposition"])
+    assert r.status_code == 200 and re.search(r"Recapitulatif_202SNURE_A2026_lab-1_\d{4}-\d{2}-\d{2}_\d{2}h\d{2}\.csv", r.headers["content-disposition"])
     assert r.content.startswith(b"\xef\xbb\xbf")  # BOM : Excel lit l'UTF-8
     en_tete = r.content.decode("utf-8-sig").splitlines()[0]
     assert en_tete.split(";")[:3] == ["DA", "Nom", "Prénom"] and "État" in en_tete  # « ; » et accents
@@ -149,7 +149,7 @@ def test_tableau_lignes_penalites_equipe_etats(lab):
 
 def test_plafond_du_bareme(lab):
     client, _ = lab
-    client.put("/api/francais/bareme/202SNURE", json={"points_par_faute": 0.75, "plafond": 1})
+    client.put("/api/francais/bareme/202SNURE_A2026", json={"points_par_faute": 0.75, "plafond": 1})
     alice = next(l for l in lire_csv(client.get(f"/api/export-lot/tableau/{COURS}/lab-1?inacheves=true").content) if l["Nom"] == "Dubé")
     assert alice["Pénalité français"] == "1"
 
@@ -221,7 +221,7 @@ def test_noms_horodates():
     stamp = export_lot.horodatage(datetime(2026, 10, 20, 9, 5))
     assert stamp == "2026-10-20_09h05"  # pas de « : » (interdit sous Windows)
     assert export_lot.nom_zip(stamp) == "Travaux_2026-10-20_09h05.zip"
-    assert export_lot.nom_tableau(COURS, "lab-1", stamp) == "Recapitulatif_202SNURE_lab-1_2026-10-20_09h05.csv"
+    assert export_lot.nom_tableau(COURS, "lab-1", stamp) == "Recapitulatif_202SNURE_A2026_lab-1_2026-10-20_09h05.csv"
 
 
 def test_export_perime_apres_decision_puis_trait_puis_a_jour(lab):

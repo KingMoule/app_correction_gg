@@ -32,6 +32,7 @@ from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 
 from . import bibliotheque, consommation, pdf_texte, stockage
+from . import session as sessions
 from .anonymat import Anonymiseur
 from .claude import ClaudeErreur, file_partagee as file_claude  # file unique; les tests remplacent ce nom
 from .config import dossier_donnees
@@ -233,7 +234,9 @@ def comparer_rapports(rapports: list[Rapport], decidees: frozenset | set = froze
         cov_a, cov_b = couverts_a / a.utiles, couverts_b / b.utiles
         cle = "-".join(sorted([a.sha[:12], b.sha[:12]]))
         if a.sha == b.sha:  # textes identiques : plusieurs paires pourraient avoir la même clé
-            ids = sorted(f"{r.ident['cours']}/{r.ident['groupe']}/{r.ident['lab']}/{r.ident['etudiant']}" for r in (a, b))
+            # Code de cours sans la session : la clé des paires déjà décidées ne change pas à la migration.
+            ids = sorted(f"{sessions.code_du_cours(r.ident['cours'])}/{r.ident['groupe']}/{r.ident['lab']}/{r.ident['etudiant']}"
+                         for r in (a, b))
             cle += "-" + hashlib.sha1("|".join(ids).encode()).hexdigest()[:6]
         if round(max(cov_a, cov_b), 4) < PLANCHER and cle not in decidees:
             continue

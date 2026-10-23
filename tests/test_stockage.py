@@ -10,7 +10,7 @@ import pytest
 from moteur import stockage
 from tests.test_bibliotheque import charger_classe, client, importer, pdf  # noqa: F401
 
-COURS, GROUPE, LAB, ETUDIANT = "202SNURE", "00002", "lab-3", "dube-alice"
+COURS, GROUPE, LAB, ETUDIANT = "202SNURE_A2026", "00002", "lab-3", "dube-alice"
 ANNOT = f"/api/annotations/{COURS}/{GROUPE}/{LAB}/{ETUDIANT}"
 TRONQUE = '{"decisions": {"3": "accep'
 

@@ -11,7 +11,7 @@ from reportlab.pdfgen import canvas
 from tests.test_annotations import TRAIT, URL
 from tests.test_bibliotheque import charger_classe, client, importer, pdf  # noqa: F401
 
-URL_EXPORT = "/api/export/202SNURE/00002/lab-3/dube-alice"
+URL_EXPORT = "/api/export/202SNURE_A2026/00002/lab-3/dube-alice"
 SURLIGNEUR = {"outil": "surligneur", "couleur": "#ffee58", "largeur_min": 11, "largeur_max": 11,
               "courbe": 1, "points": [[100, 300, 0.5], [300, 300, 0.5]]}
 
@@ -20,7 +20,7 @@ SURLIGNEUR = {"outil": "surligneur", "couleur": "#ffee58", "largeur_min": 11, "l
 def rapport(client, tmp_path):
     charger_classe(client)
     importer(client, [("Rapport_DUBE.pdf", pdf("Les etudiants mesure la tension."))])
-    return client, tmp_path / "bibliotheque/202SNURE/00002/lab-3/dube-alice"
+    return client, tmp_path / "bibliotheque/202SNURE_A2026/00002/lab-3/dube-alice"
 
 
 def pixels_colores(contenu: bytes, rect, page: int = 1):
@@ -114,7 +114,7 @@ def test_corrections_manuscrites_sur_toutes_les_pages(rapport):
 
 def test_export_rapport_inconnu(rapport):
     client, _ = rapport
-    assert client.get("/api/export/202SNURE/00002/lab-3/personne").status_code == 404
+    assert client.get("/api/export/202SNURE_A2026/00002/lab-3/personne").status_code == 404
 
 
 def test_export_apres_une_coupe_de_gomme(rapport):

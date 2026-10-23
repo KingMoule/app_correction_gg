@@ -29,7 +29,7 @@ def client(tmp_path, monkeypatch):
     monkeypatch.setenv("CORRECTION_DONNEES", str(tmp_path))
     c = TestClient(creer_app())
     c.post("/api/bibliotheque/classes", files={"fichier": (NOM_LISTE, xlsx(ELEVES))})
-    d = c.post("/api/bibliotheque/import", data={"cours": "202SNURE", "groupe": "00002", "lab": "lab3"},
+    d = c.post("/api/bibliotheque/import", data={"cours": "202SNURE_A2026", "groupe": "00002", "lab": "lab3"},
                files=[("fichiers", ("Dubé_lab3.pdf", pdf("Il est important de noter que la tension est stable."),
                                     "application/pdf"))]).json()
     assert d["ranges"], d
@@ -37,7 +37,7 @@ def client(tmp_path, monkeypatch):
 
 
 def test_texte(client):
-    r = client.get(f"/api/indices-ia/texte/202SNURE/00002/lab3/{_id(client)}")
+    r = client.get(f"/api/indices-ia/texte/202SNURE_A2026/00002/lab3/{_id(client)}")
     assert r.status_code == 200 and "tension est stable" in r.json()["texte"]
 
 
@@ -53,7 +53,7 @@ def test_analyse_enregistree_et_extraits_verifies(client, monkeypatch):
         "contre_indices": ["Aucun"],
     })
     monkeypatch.setattr(indices_ia, "obtenir_file", lambda: fausse)
-    base = f"202SNURE/00002/lab3/{_id(client)}"
+    base = f"202SNURE_A2026/00002/lab3/{_id(client)}"
     assert client.get(f"/api/indices-ia/resultat/{base}").json() is None
     r = client.post(f"/api/indices-ia/analyser/{base}")
     assert r.status_code == 200, r.text
@@ -67,29 +67,29 @@ def test_analyse_enregistree_et_extraits_verifies(client, monkeypatch):
 @pytest.mark.parametrize("erreur,code", [(ClaudeNonConnecte("non connecté"), 503), (ClaudeLimite("limit reached"), 429)])
 def test_erreurs_claude(client, monkeypatch, erreur, code):
     monkeypatch.setattr(indices_ia, "obtenir_file", lambda: FileFausse(erreur=erreur))
-    r = client.post(f"/api/indices-ia/analyser/202SNURE/00002/lab3/{_id(client)}")
+    r = client.post(f"/api/indices-ia/analyser/202SNURE_A2026/00002/lab3/{_id(client)}")
     assert r.status_code == code and r.json()["detail"]
 
 
 def test_force_inconnue_ramenee_a_faible(client, monkeypatch):
     monkeypatch.setattr(indices_ia, "obtenir_file",
                         lambda: FileFausse({"force": "certain", "resume": "x", "signaux": [], "contre_indices": []}))
-    r = client.post(f"/api/indices-ia/analyser/202SNURE/00002/lab3/{_id(client)}")
+    r = client.post(f"/api/indices-ia/analyser/202SNURE_A2026/00002/lab3/{_id(client)}")
     assert r.json()["force"] == "faible"
 
 
 def test_rapport_introuvable(client):
-    assert client.get("/api/indices-ia/texte/202SNURE/00002/lab3/inconnu").status_code == 404
-    assert client.get("/api/indices-ia/texte/202SNURE/00002/..%2Fx/inconnu").status_code in (400, 404, 422)
+    assert client.get("/api/indices-ia/texte/202SNURE_A2026/00002/lab3/inconnu").status_code == 404
+    assert client.get("/api/indices-ia/texte/202SNURE_A2026/00002/..%2Fx/inconnu").status_code in (400, 404, 422)
 
 
 def test_noms_masques_avant_envoi(client, monkeypatch):
     c = client
-    c.post("/api/bibliotheque/import", data={"cours": "202SNURE", "groupe": "00002", "lab": "lab4"},
+    c.post("/api/bibliotheque/import", data={"cours": "202SNURE_A2026", "groupe": "00002", "lab": "lab4"},
            files=[("fichiers", ("Roy_lab4.pdf",
                                 pdf("Rapport de Léa Roy sur la tension."), "application/pdf"))])
     fausse = FileFausse({"force": "faible", "resume": "x", "signaux": [], "contre_indices": []})
     monkeypatch.setattr(indices_ia, "obtenir_file", lambda: fausse)
-    r = c.post("/api/indices-ia/analyser/202SNURE/00002/lab4/roy-lea")
+    r = c.post("/api/indices-ia/analyser/202SNURE_A2026/00002/lab4/roy-lea")
     assert r.status_code == 200, r.text
     assert "Roy" not in fausse.appels[0][0] and "[NOM]" in fausse.appels[0][0]
