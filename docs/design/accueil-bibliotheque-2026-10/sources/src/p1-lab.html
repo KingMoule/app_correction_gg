@@ -1,0 +1,308 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>P1 Le lab au centre</title>
+<!--STYLES-->
+<style>
+/* ===== P1 « Le lab au centre » : agir ===== */
+.p1-haut { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 0; padding: 0; overflow: hidden; }
+.p1-reprise { display: flex; align-items: center; gap: 14px; padding: 14px 18px; min-width: 0; }
+.p1-reprise .tuile { width: 44px; height: 44px; border-radius: 11px; display: inline-grid; place-items: center; background: var(--accent-doux); color: var(--accent-fort); flex: none; }
+.p1-reprise .etq { font-size: var(--t-min); font-weight: 600; color: var(--accent-fort); }
+.p1-reprise .nom { font-size: 17px; font-weight: 600; }
+.p1-reprise .btn { margin-left: auto; }
+.p1-chiffres { display: flex; border-left: 1px solid var(--border); }
+.p1-chiffre { padding: 12px 18px; min-width: 112px; border-left: 1px solid var(--border); display: flex; flex-direction: column; justify-content: center; text-decoration: none; color: var(--texte); }
+.p1-chiffre:first-child { border-left: 0; }
+.p1-chiffre .v { font-size: 22px; font-weight: 600; font-variant-numeric: tabular-nums; line-height: 1.2; }
+.p1-chiffre .l { font-size: var(--t-min); color: var(--texte-2); }
+.p1-chiffre .jauge { margin-top: 6px; }
+.p1-faire { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.puce-faire { display: inline-flex; align-items: center; gap: 7px; min-height: 44px; padding: 0 10px 0 6px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); box-shadow: var(--ombre); text-decoration: none; color: var(--texte); font-size: var(--t-s); }
+.puce-faire .tuile { width: 32px; height: 32px; border-radius: 8px; display: inline-grid; place-items: center; background: var(--surface-2); color: var(--neutre); }
+.puce-faire .tuile.attention { background: var(--attention-fond); color: var(--attention); }
+.puce-faire .tuile.plagiat { background: var(--plagiat-fond); color: var(--plagiat); }
+.puce-faire .tuile.claude { background: var(--claude-fond); color: var(--claude); }
+.puce-faire .mu { margin-left: 2px; }
+.p1-faire .etq-faire { display: inline-flex; align-items: center; font-size: var(--t-min); font-weight: 600; color: var(--texte-2); margin-right: 4px; }
+
+.p1-labs { padding: 0; overflow: hidden; }
+.p1-labs .entete, .p1-lab { display: grid; grid-template-columns: 128px minmax(0, 1fr) 132px auto; gap: 14px; align-items: center; padding: 0 16px; }
+.p1-labs .entete { height: 40px; font-size: var(--t-min); font-weight: 600; color: var(--texte-2); border-bottom: 1px solid var(--border); }
+.p1-lab { min-height: 68px; border-bottom: 1px solid var(--border); }
+.p1-lab:last-child { border-bottom: 0; }
+.p1-lab .actions { display: flex; gap: 8px; justify-content: flex-end; }
+.p1-lab .actions .btn { padding: 0 12px; }
+.p1-lab .actions .btn small { font-weight: 500; color: var(--texte-2); }
+.p1-lab .lab-nom { min-height: 44px; display: flex; flex-direction: column; justify-content: center; }
+.p1-lab .etat-lab .chiffres { white-space: normal; line-height: 1.35; }
+.p1-lab .col-export .mu { display: block; margin-top: 2px; }
+.p1-lab .actions .attente { font-size: var(--t-min); color: var(--texte-2); text-align: right; min-height: 44px; display: inline-flex; align-items: center; }
+.p1-lab .nr { color: var(--attention); font-weight: 600; }
+
+.p1-grille { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; }
+.p1-cote { display: none; }
+
+@container page (min-width: 1100px) {
+  .p1-grille { grid-template-columns: minmax(0, 1fr) 290px; }
+  .p1-labs .entete, .p1-lab { grid-template-columns: 96px minmax(0, 1fr) 132px auto; }
+  .p1-cote { display: block; }
+  .p1-faire { display: none; }
+}
+@container page (max-width: 860px) {
+  .p1-haut { grid-template-columns: minmax(0, 1fr); }
+  .p1-chiffres { border-left: 0; border-top: 1px solid var(--border); }
+  .p1-chiffre { flex: 1; }
+  .p1-labs .entete { display: none; }
+  .p1-lab { grid-template-columns: minmax(0, 1fr) 140px; grid-template-areas: "nom export" "etat etat" "actions actions"; row-gap: 10px; padding: 14px 16px; }
+  .p1-lab .lab-nom { grid-area: nom; } .p1-lab .etat-lab { grid-area: etat; } .p1-lab .col-export { grid-area: export; justify-self: end; } .p1-lab .actions { grid-area: actions; justify-content: flex-start; }
+}
+
+/* Page Labs (ex-Bibliothèque) */
+.p1-session { display: flex; align-items: center; gap: 10px; margin: 22px 0 10px; }
+.p1-session h2 { margin: 0; font-size: 16px; }
+.p1-cours { padding: 0; overflow: hidden; margin-bottom: 14px; }
+.p1-cours > .tc { display: flex; align-items: center; gap: 12px; min-height: 56px; padding: 0 8px 0 16px; background: var(--surface-2); border-bottom: 1px solid var(--border); }
+.p1-cours > .tc b { font-size: 16px; }
+.p1-ligne { display: grid; grid-template-columns: 120px minmax(200px, 1fr) 150px 150px 44px; gap: 16px; align-items: center; min-height: 60px; padding: 0 8px 0 16px; border-bottom: 1px solid var(--border); color: var(--texte); text-decoration: none; }
+.p1-ligne:last-child { border-bottom: 0; }
+.p1-ligne:hover { background: #fcfcfd; }
+.p1-ligne .chev { color: var(--texte-3); justify-self: center; }
+.p1-passees .repli { border-bottom: 1px solid var(--border); }
+.p1-passees .repli:last-child { border-bottom: 0; }
+@container page (max-width: 860px) {
+  .p1-ligne { grid-template-columns: 90px minmax(0, 1fr) 44px; grid-template-areas: "lab etat chev" "lab etiq chev"; row-gap: 6px; padding: 12px 8px 12px 16px; }
+  .p1-ligne > .lab-t { grid-area: lab; } .p1-ligne > .etat-lab { grid-area: etat; } .p1-ligne > .col-en { display: none; } .p1-ligne > .col-ex { grid-area: etiq; } .p1-ligne > .chev { grid-area: chev; }
+}
+[data-etat="recherche"] .resultats { display: block; }
+.resultats { display: none; }
+
+/* Vignette : page du lab (suivi + Claude + Export) */
+.p1-fil { display: flex; align-items: center; gap: 6px; font-size: var(--t-s); color: var(--texte-2); margin-bottom: 6px; }
+.p1-fil a { color: var(--texte-2); min-height: 44px; display: inline-flex; align-items: center; }
+.p1-lab-tete { display: flex; align-items: flex-end; gap: 16px; flex-wrap: wrap; }
+.p1-lab-tete h1 { margin: 0; }
+.p1-lab-tete .etat-lab { min-width: 280px; }
+.p1-onglets { margin: 16px 0 14px; }
+.p1-onglets [role=tab] { min-height: 44px; }
+.mini-tab td, .mini-tab th { height: 52px; padding: 0 9px; }
+.mini-tab th { height: 40px; }
+</style>
+</head>
+<body class="maquettes">
+<!--SPRITE-->
+
+<template id="lat">
+  <div class="cq-marque"><span class="cq-logo"><svg class="ic"><use href="#graduation-cap"/></svg></span><span>Correction<small>Rapports de lab</small></span></div>
+  <nav class="cq-nav" aria-label="Navigation">
+    <a class="cq-lien" data-cle="accueil" href="#"><svg class="ic"><use href="#house"/></svg><span>Accueil</span></a>
+    <a class="cq-lien" data-cle="labs" href="#"><svg class="ic"><use href="#flask-conical"/></svg><span>Labs</span></a>
+    <a class="cq-lien" data-cle="importer" href="#"><svg class="ic"><use href="#upload"/></svg><span>Importer</span><span class="cq-n alerte">3</span></a>
+    <a class="cq-lien" data-cle="plagiat" href="#"><svg class="ic"><use href="#scan-search"/></svg><span>Plagiat</span><span class="cq-n">3</span></a>
+  </nav>
+  <a class="cq-conso" href="#"><span class="l1"><span>Claude · 5 h</span><b>≈ 38 %</b></span><span class="jauge"><i style="width:38%"></i><u style="left:80%"></u></span></a>
+  <p class="cq-titre">Labs en cours</p>
+  <div class="cq-labs">
+    <a class="cq-lien" data-cle="lab2" href="#"><span>Lab 2 · NYA</span><small>34 / 80</small></a>
+    <a class="cq-lien" href="#"><span>Lab 3 · NYA</span><small>0 / 83</small></a>
+    <a class="cq-lien" href="#"><span>Lab 1 · NYB</span><small>26 / 27</small></a>
+    <a class="cq-lien" href="#"><span>Lab 2 · NYB</span><small>3 / 27</small></a>
+  </div>
+  <div class="cq-pied">
+    <a class="cq-lien" href="#"><svg class="ic"><use href="#settings"/></svg><span>Réglages</span></a>
+    <div class="cq-ordi ok"><i class="cq-point"></i><span>Ordi connecté</span></div>
+  </div>
+</template>
+
+<template id="haut">
+  <header class="coque-haut"><button class="btn" type="button"><svg class="ic"><use href="#panel-right"/></svg>Menu</button><b>Correction</b></header>
+</template>
+
+<!-- ============ ACCUEIL ============ -->
+<template id="m-accueil">
+<main>
+  <div class="tete">
+    <div><h1>Bonjour Guillaume</h1><p class="sous">Jeudi 22 octobre · <span class="tag courante">Automne 2026</span></p></div>
+    <div class="actions"><a class="btn" href="#"><svg class="ic"><use href="#upload"/></svg>Importer</a></div>
+  </div>
+
+  <section class="carte p1-haut" aria-label="Reprendre et chiffres de la session">
+    <div class="p1-reprise">
+      <span class="tuile"><svg class="ic l"><use href="#file-text"/></svg></span>
+      <div><div class="etq">Reprendre</div><div class="nom">Émile Ouellet</div><div class="mu">Lab 2 · NYA · gr. 02</div></div>
+      <a class="btn primaire" href="#"><svg class="ic"><use href="#arrow-right"/></svg>Reprendre</a>
+    </div>
+    <div class="p1-chiffres">
+      <a class="p1-chiffre" href="#"><span class="v">51</span><span class="l">analysés à corriger</span></a>
+      <a class="p1-chiffre" href="#"><span class="v">103</span><span class="l">à analyser</span></a>
+      <a class="p1-chiffre" href="#" style="min-width:150px"><span class="v">≈ 38 %</span><span class="l">Claude · lot conseillé : 7</span><span class="jauge"><i style="width:38%"></i><u style="left:80%"></u></span></a>
+    </div>
+  </section>
+
+  <div class="p1-faire" aria-label="À faire">
+    <span class="etq-faire">À faire</span>
+    <a class="puce-faire" href="#"><span class="tuile attention"><svg class="ic s"><use href="#upload"/></svg></span><b>3 fichiers à associer</b><span class="mu">Lab 2 · NYA</span></a>
+    <a class="puce-faire" href="#"><span class="tuile plagiat"><svg class="ic s"><use href="#scan-search"/></svg></span><b>3 paires à regarder</b></a>
+    <a class="puce-faire" href="#"><span class="tuile attention"><svg class="ic s"><use href="#file-down"/></svg></span><b>Export à refaire</b><span class="mu">Lab 1 · NYB</span></a>
+    <a class="puce-faire" href="#"><span class="tuile"><svg class="ic s"><use href="#file-text"/></svg></span><b>Énoncé manquant</b><span class="mu">Lab 3 · NYA</span></a>
+  </div>
+
+  <div class="p1-grille">
+    <div>
+      <div class="titre-bloc"><h2>Labs en cours</h2><span class="legende-barre"><span><i style="background:var(--accent)"></i>terminés</span><span><i style="background:var(--accent-bord)"></i>analysés</span></span></div>
+      <section class="carte p1-labs" aria-label="Labs en cours">
+        <div class="entete"><span>Lab</span><span>État</span><span>Export LÉA</span><span style="text-align:right">Actions</span></div>
+        <div class="p1-lab">
+          <a class="lab-nom" href="#" style="color:inherit;text-decoration:none"><b>Lab 2</b><span class="mu">NYA · gr. 01, 02, 03</span></a>
+          <div class="etat-lab"><div class="barre2"><i class="t" style="width:42.5%"></i><i class="a" style="width:41.3%"></i></div><span class="chiffres"><b>34</b> terminés · <b>67</b> analysés<br>80 reçus · <span class="nr">4 non remis</span></span></div>
+          <div class="col-export"><span class="pastille p-neutre">Jamais exporté</span></div>
+          <div class="actions"><a class="btn" href="#"><svg class="ic"><use href="#pen"/></svg>Corriger</a><button class="btn" type="button"><svg class="ic"><use href="#sparkles"/></svg>Analyser 7 <small>· 21 %</small></button></div>
+        </div>
+        <div class="p1-lab">
+          <a class="lab-nom" href="#" style="color:inherit;text-decoration:none"><b>Lab 3</b><span class="mu">NYA · gr. 01, 02, 03</span></a>
+          <div class="etat-lab"><div class="barre2"></div><span class="chiffres"><b>0</b> terminé · <b>0</b> analysé<br>83 reçus · 1 non remis</span></div>
+          <div class="col-export"><span class="mu">—</span></div>
+          <div class="actions"><a class="btn" href="#"><svg class="ic"><use href="#pen"/></svg>Corriger</a><button class="btn" type="button"><svg class="ic"><use href="#sparkles"/></svg>Analyser 7 <small>· 21 %</small></button></div>
+        </div>
+        <div class="p1-lab">
+          <a class="lab-nom" href="#" style="color:inherit;text-decoration:none"><b>Lab 1</b><span class="mu">NYB · gr. 04</span></a>
+          <div class="etat-lab"><div class="barre2"><i class="t" style="width:96.3%"></i><i class="a" style="width:3.7%"></i></div><span class="chiffres"><b>26</b> terminés · <b>27</b> analysés<br>27 reçus · 1 non remis</span></div>
+          <div class="col-export"><span class="pastille">Export à refaire</span><span class="mu">1 rapport modifié</span></div>
+          <div class="actions"><a class="btn" href="#"><svg class="ic"><use href="#pen"/></svg>Corriger</a></div>
+        </div>
+        <div class="p1-lab">
+          <a class="lab-nom" href="#" style="color:inherit;text-decoration:none"><b>Lab 2</b><span class="mu">NYB · gr. 04</span></a>
+          <div class="etat-lab"><div class="barre2"><i class="t" style="width:11.1%"></i><i class="a" style="width:63%"></i></div><span class="chiffres"><b>3</b> terminés · <b>20</b> analysés<br>27 reçus · 1 non remis</span></div>
+          <div class="col-export"><span class="pastille p-neutre">Jamais exporté</span></div>
+          <div class="actions"><a class="btn" href="#"><svg class="ic"><use href="#pen"/></svg>Corriger</a><button class="btn" type="button"><svg class="ic"><use href="#sparkles"/></svg>Analyser 7 <small>· 21 %</small></button></div>
+        </div>
+      </section>
+      <p class="mu" style="margin:10px 2px 0">« Corriger » ouvre le prochain rapport analysé et pas terminé. Un seul lot à la fois : « Analyser 7 » lance le lot en une touche (toast « Arrêter »); les autres boutons attendent. Ligne touchée = page du lab.</p>
+    </div>
+    <aside class="p1-cote">
+      <div class="titre-bloc"><h2>À faire</h2><span class="mu">exceptions seulement</span></div>
+      <section class="carte exceptions">
+        <h3>Bloquant</h3>
+        <a class="exc" href="#"><span class="tuile attention"><svg class="ic"><use href="#upload"/></svg></span><span class="corps"><b>3 fichiers à associer</b><span class="mu">Lab 2 · NYA · import du 21 oct.</span></span><svg class="ic suite"><use href="#chevron-right"/></svg></a>
+        <h3>Revoir</h3>
+        <a class="exc" href="#"><span class="tuile plagiat"><svg class="ic"><use href="#scan-search"/></svg></span><span class="corps"><b>3 paires de plagiat</b><span class="mu">indices à revérifier, jamais un verdict</span></span><svg class="ic suite"><use href="#chevron-right"/></svg></a>
+        <a class="exc" href="#"><span class="tuile"><svg class="ic"><use href="#sparkles"/></svg></span><span class="corps"><b>2 « Claude manquant »</b><span class="mu">Lab 2 · NYA · passe à refaire</span></span><svg class="ic suite"><use href="#chevron-right"/></svg></a>
+        <h3>Clore</h3>
+        <a class="exc" href="#"><span class="tuile attention"><svg class="ic"><use href="#file-down"/></svg></span><span class="corps"><b>Export à refaire</b><span class="mu">Lab 1 · NYB · 1 rapport modifié</span></span><svg class="ic suite"><use href="#chevron-right"/></svg></a>
+        <a class="exc" href="#"><span class="tuile"><svg class="ic"><use href="#file-text"/></svg></span><span class="corps"><b>Énoncé manquant</b><span class="mu">Lab 3 · NYA · le plagiat le compterait</span></span><svg class="ic suite"><use href="#chevron-right"/></svg></a>
+      </section>
+    </aside>
+  </div>
+</main>
+</template>
+
+<!-- ============ LABS (ex-Bibliothèque) ============ -->
+<template id="m-labs">
+<main>
+  <div class="tete">
+    <div><h1>Labs</h1><p class="sous">Automne 2026 · 2 cours · 5 labs · 112 inscrits</p></div>
+    <div class="actions"><a class="btn" href="#"><svg class="ic"><use href="#upload"/></svg>Importer</a></div>
+  </div>
+  <div class="recherche">
+    <svg class="ic"><use href="#search"/></svg>
+    <input class="saisie" type="search" placeholder="Chercher un étudiant, un DA ou un lab (toutes les sessions)" value="" aria-label="Chercher">
+    <kbd>Ctrl K</kbd>
+    <div class="resultats" role="listbox" aria-label="Résultats">
+      <div class="grp">Rapports · 4 résultats pour « lach »</div>
+      <a class="sel" href="#"><span class="avatar">RL</span><span><b>Raphaël <mark>Lach</mark>ance</b> · Lab 2 · NYA · gr. 02</span><span class="pastille p-nouv">En cours</span><span class="tag courante">A26</span></a>
+      <a href="#"><span class="avatar">RL</span><span><b>Raphaël <mark>Lach</mark>ance</b> · Lab 1 · NYA · gr. 02</span><span class="pastille p-fini">Terminé · 16,5</span><span class="tag courante">A26</span></a>
+      <a href="#"><span class="avatar">RL</span><span><b>Raphaël <mark>Lach</mark>ance</b> · Lab 3 · NYA · gr. 02</span><span class="pastille p-neutre">Reçu · à analyser</span><span class="tag courante">A26</span></a>
+      <a href="#"><span class="avatar">SL</span><span><b>Simone <mark>Lach</mark>ance</b> · Lab 4 · NYC · gr. 05</span><span class="pastille p-fini">Terminé · 14,0</span><span class="tag">H26</span></a>
+      <div class="grp">Fichier à associer</div>
+      <a href="#"><span class="tuile" style="width:30px;height:30px;border-radius:8px;display:inline-grid;place-items:center;background:var(--attention-fond);color:var(--attention)"><svg class="ic s"><use href="#upload"/></svg></span><span><b><mark>Lach</mark>ance_Rapport_Lab2.pdf</b> · ambigu (2 étudiants)</span><span class="mu">Importer</span></a>
+    </div>
+  </div>
+
+  <div class="p1-session"><h2>Automne 2026</h2><span class="tag courante">en cours</span><span class="esp"></span><button class="btn-ico" type="button" aria-label="Actions de la session (clore la session)"><svg class="ic"><use href="#ellipsis"/></svg></button></div>
+
+  <section class="carte p1-cours">
+    <div class="tc"><b>NYA</b><span>Chimie générale</span><span class="mu">gr. 01, 02, 03 · 84 inscrits</span><span class="esp"></span><a class="btn tertiaire" href="#"><svg class="ic"><use href="#upload"/></svg>Ajouter un lab</a><button class="btn-ico" type="button" aria-label="Réglages du cours NYA (barème, style des références, réimporter la liste)"><svg class="ic"><use href="#ellipsis"/></svg></button></div>
+    <a class="p1-ligne" href="#"><b class="lab-t">Lab 1</b><div class="etat-lab"><div class="barre2"><i class="t" style="width:100%"></i></div><span class="chiffres"><b>81</b> terminés / 81 reçus · 3 non remis</span></div><span class="col-en"><span class="pastille p-fini">Énoncé</span></span><span class="col-ex"><span class="pastille p-fini">Exporté · 12 oct.</span></span><svg class="ic chev"><use href="#chevron-right"/></svg></a>
+    <a class="p1-ligne" href="#"><b class="lab-t">Lab 2</b><div class="etat-lab"><div class="barre2"><i class="t" style="width:42.5%"></i><i class="a" style="width:41.3%"></i></div><span class="chiffres"><b>34</b> terminés · <b>67</b> analysés / 80 reçus · <span style="color:var(--attention);font-weight:600">4 non remis</span></span></div><span class="col-en"><span class="pastille p-fini">Énoncé</span></span><span class="col-ex"><span class="pastille p-neutre">Jamais exporté</span></span><svg class="ic chev"><use href="#chevron-right"/></svg></a>
+    <a class="p1-ligne" href="#"><b class="lab-t">Lab 3</b><div class="etat-lab"><div class="barre2"></div><span class="chiffres"><b>0</b> analysé / 83 reçus · 1 non remis</span></div><span class="col-en"><span class="pastille">Énoncé manquant</span></span><span class="col-ex"><span class="mu">—</span></span><svg class="ic chev"><use href="#chevron-right"/></svg></a>
+  </section>
+
+  <section class="carte p1-cours">
+    <div class="tc"><b>NYB</b><span>Chimie des solutions</span><span class="mu">gr. 04 · 28 inscrits</span><span class="esp"></span><a class="btn tertiaire" href="#"><svg class="ic"><use href="#upload"/></svg>Ajouter un lab</a><button class="btn-ico" type="button" aria-label="Réglages du cours NYB"><svg class="ic"><use href="#ellipsis"/></svg></button></div>
+    <a class="p1-ligne" href="#"><b class="lab-t">Lab 1</b><div class="etat-lab"><div class="barre2"><i class="t" style="width:96.3%"></i><i class="a" style="width:3.7%"></i></div><span class="chiffres"><b>26</b> terminés · <b>27</b> analysés / 27 reçus</span></div><span class="col-en"><span class="pastille p-fini">Énoncé</span></span><span class="col-ex"><span class="pastille">À refaire · 1 modifié</span></span><svg class="ic chev"><use href="#chevron-right"/></svg></a>
+    <a class="p1-ligne" href="#"><b class="lab-t">Lab 2</b><div class="etat-lab"><div class="barre2"><i class="t" style="width:11.1%"></i><i class="a" style="width:63%"></i></div><span class="chiffres"><b>3</b> terminés · <b>20</b> analysés / 27 reçus</span></div><span class="col-en"><span class="pastille p-fini">Énoncé</span></span><span class="col-ex"><span class="pastille p-neutre">Jamais exporté</span></span><svg class="ic chev"><use href="#chevron-right"/></svg></a>
+  </section>
+
+  <div class="p1-session"><h2>Sessions passées</h2><span class="mu">lecture seule : hors lot, hors « À faire »</span></div>
+  <section class="carte p1-passees">
+    <div class="repli"><svg class="ic chevron"><use href="#chevron-right"/></svg><b>Hiver 2026</b><span>NYA, NYC · 10 labs · 3 groupes</span><span class="esp"></span><span class="pastille p-fini">Close · tout exporté</span></div>
+    <div class="repli"><svg class="ic chevron"><use href="#chevron-right"/></svg><b>Automne 2025</b><span>NYA, NYB · 9 labs · 4 groupes</span><span class="esp"></span><span class="pastille p-fini">Close · tout exporté</span></div>
+  </section>
+</main>
+</template>
+
+<!-- ============ PAGE DU LAB (vignette) ============ -->
+<template id="m-lab">
+<main>
+  <div class="p1-fil"><a href="#">Labs</a><svg class="ic s"><use href="#chevron-right"/></svg><span>Automne 2026 · NYA</span></div>
+  <div class="p1-lab-tete">
+    <div><h1>Lab 2 · Chimie générale</h1><p class="sous" style="margin:2px 0 0;color:var(--texte-2)">gr. 01, 02, 03 · prochain non terminé : Gabrielle Bélanger</p></div>
+    <span class="esp"></span>
+    <div class="etat-lab"><div class="barre2"><i class="t" style="width:42.5%"></i><i class="a" style="width:41.3%"></i></div><span class="chiffres"><b>34</b> terminés · <b>67</b> analysés / 80 reçus · 4 non remis</span></div>
+    <a class="btn primaire" href="#"><svg class="ic"><use href="#pen"/></svg>Corriger le suivant</a>
+  </div>
+  <div class="onglets p1-onglets" role="tablist">
+    <button role="tab" aria-selected="true">Rapports <span class="n">80</span></button>
+    <button role="tab" aria-selected="false">Claude <span class="n">13 à analyser</span></button>
+    <button role="tab" aria-selected="false">Export LÉA <span class="n">jamais</span></button>
+    <span class="esp"></span>
+    <button class="btn" type="button" style="align-self:center"><svg class="ic"><use href="#sparkles"/></svg>Analyser 7 · ≈ 21 %</button>
+    <button class="btn-ico" type="button" aria-label="Actions du lab : énoncé, ajouter des rapports, clore le lab" style="align-self:center"><svg class="ic"><use href="#ellipsis"/></svg></button>
+  </div>
+  <div class="rangee" style="margin-bottom:12px">
+    <div class="seg" role="group"><button class="on">Tous <span class="n">80</span></button><button>À corriger <span class="n">33</span></button><button>À analyser <span class="n">13</span></button><button>Terminés <span class="n">34</span></button><button>À revoir <span class="n">21</span></button><button>Non remis <span class="n">4</span></button></div>
+    <span class="esp"></span>
+    <select class="saisie" style="width:170px" aria-label="Groupe"><option>Tous les groupes</option></select>
+  </div>
+  <div class="tableau-defil">
+    <table class="tableau mini-tab">
+      <thead><tr><th>Étudiant</th><th>Français</th><th>Indice d'IA</th><th>Plagiat</th><th>Références</th><th>État</th><th class="nombre">Note</th><th></th></tr></thead>
+      <tbody>
+        <tr class="groupe"><td colspan="8">Groupe 01 · 26 reçus · 2 non remis</td></tr>
+        <tr><td><span class="nom-etu"><span class="avatar">GB</span>Gabrielle Bélanger</span></td><td>−1,5 pt</td><td>Faible</td><td><span class="pastille p-plagiat">suspecte</span></td><td>OK</td><td><span class="pastille p-nouv">En cours</span></td><td class="nombre">—</td><td class="actions"><button class="btn-ico" aria-label="Actions"><svg class="ic"><use href="#ellipsis"/></svg></button></td></tr>
+        <tr><td><span class="nom-etu"><span class="avatar">AD</span>Antoine Desrosiers</span></td><td><span class="pastille">5 à trancher</span></td><td><span class="pastille p-ia"><svg class="ic"><use href="#search"/></svg>Modéré</span></td><td>—</td><td><span class="pastille">2 à revoir</span></td><td><span class="pastille p-nouv">En cours</span></td><td class="nombre">—</td><td class="actions"><button class="btn-ico" aria-label="Actions"><svg class="ic"><use href="#ellipsis"/></svg></button></td></tr>
+        <tr><td><span class="nom-etu"><span class="avatar">OD</span>Olivier Desrosiers</span></td><td class="mu">À analyser</td><td class="mu">À analyser</td><td>—</td><td class="mu">À analyser</td><td><span class="pastille p-neutre">À corriger</span></td><td class="nombre">—</td><td class="actions"><button class="btn-ico" aria-label="Actions"><svg class="ic"><use href="#ellipsis"/></svg></button></td></tr>
+        <tr><td><span class="nom-etu"><span class="avatar">JB</span>Juliette Bélanger</span></td><td>−2 pt</td><td>Faible</td><td>—</td><td>OK</td><td><span class="pastille p-fini">Terminé</span></td><td class="nombre"><b>16,0</b></td><td class="actions"><button class="btn-ico" aria-label="Actions"><svg class="ic"><use href="#ellipsis"/></svg></button></td></tr>
+        <tr><td><span class="nom-etu"><span class="avatar" style="background:transparent;border:1.5px dashed var(--border-champ)">SG</span><span class="mu" style="font-size:15px">Sarah Gosselin</span></span></td><td colspan="5" class="mu">Non remis · aucun rapport ni équipe pour ce lab</td><td class="nombre">—</td><td class="actions"><button class="btn-ico" aria-label="Ajouter ce rapport"><svg class="ic"><use href="#plus"/></svg></button></td></tr>
+      </tbody>
+    </table>
+  </div>
+</main>
+</template>
+
+<div class="planche">
+  <header>
+    <h1>P1 « Le lab au centre » : agir</h1>
+    <p>Une seule porte par lab. L'accueil montre chaque lab en cours avec son état chiffré (Reçus / Analysés / Terminés / Export) et ses deux actions fixes : <b>Corriger</b> (le prochain rapport analysé) et <b>Analyser 7</b> (lot de Claude, une touche). « À faire » ne garde que les exceptions. La Bibliothèque devient <b>Labs</b> : recherche en tête, session courante par cours, sessions passées repliées. La page du lab (le suivi actuel) réunit Rapports, Claude et Export. Données fictives.</p>
+  </header>
+
+  <div class="ecran" id="accueil-ipad"><h2>Accueil · iPad paysage 1180 × 820</h2><p class="leg">Seul bouton plein : « Reprendre ». En-tête chiffré : rapports analysés à corriger, rapports à analyser, Claude. Les exceptions tiennent en une rangée de puces (rubriques Bloquant, Revoir, Clore, dans cet ordre).</p>
+    <div class="cadre ipad" data-modele="m-accueil" data-actif="accueil"></div></div>
+  <div class="ecran" id="labs-ipad"><h2>Labs (ex-Bibliothèque) · iPad paysage</h2><p class="leg">Aucune ligne d'étudiant ici : un lab mène à sa page. « … » du cours = barème, style des références, réimporter la liste. « … » de la session = clore la session.</p>
+    <div class="cadre ipad" data-modele="m-labs" data-actif="labs"></div></div>
+  <div class="ecran" id="lab-ipad"><h2>Page du lab (vignette) · iPad paysage</h2><p class="leg">Le suivi actuel, avec trois onglets (Rapports, Claude, Export LÉA), le lot du lab en une touche, le filtre « Non remis » et « Ajouter ce rapport » sur un non-remis. Hors périmètre de cette PR : seulement pour montrer où vont le lot et l'export.</p>
+    <div class="cadre ipad" data-modele="m-lab" data-actif="lab2"></div></div>
+  <div class="ecran" id="accueil-portrait"><h2>Accueil · iPad portrait 820 × 1180</h2><p class="leg">Chaque lab passe sur trois niveaux (nom et export, état, actions). La barre latérale est un tiroir.</p>
+    <div class="cadre portrait" data-modele="m-accueil" data-actif="accueil"></div></div>
+  <div class="ecran" id="labs-portrait"><h2>Labs · iPad portrait</h2><p class="leg">La recherche reste en tête de page (jamais dans le tiroir).</p>
+    <div class="cadre portrait" data-modele="m-labs" data-actif="labs"></div></div>
+  <div class="ecran" id="accueil-pc"><h2>Accueil · PC 1440 × 900</h2><p class="leg">Sur grand écran, « À faire » devient une colonne à droite avec ses trois rubriques.</p>
+    <div class="cadre pc" data-modele="m-accueil" data-actif="accueil"></div></div>
+  <div class="ecran" id="labs-pc"><h2>Labs · PC, recherche « lach »</h2><p class="leg">Un résultat = un rapport, avec lab, session, état et note : la note d'une session passée se lit sans rien ouvrir. Ctrl+K ouvre la recherche de partout.</p>
+    <div class="cadre pc" data-modele="m-labs" data-actif="labs" data-etat="recherche" data-q="lach"></div></div>
+</div>
+<!--SCRIPT-->
+</body>
+</html>
