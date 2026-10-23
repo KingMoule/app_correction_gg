@@ -78,7 +78,7 @@
     }
   };
 
-  const peutAnalyser = (r) => !r.termine && (r.francais.etat === "non_analyse" || !r.ia) && !enAnalyse.has(`${r.groupe}/${r.etudiant}`);
+  const peutAnalyser = (r) => !r.termine && (r.francais.etat === "non_analyse" || !r.ia || r.references.etat === "non_analyse") && !enAnalyse.has(`${r.groupe}/${r.etudiant}`);
 
   const menuLigne = (r) => [
     { libelle: "Ouvrir le rapport", icone: "file-text", surClic: () => { location.href = lien(r); } },
@@ -123,6 +123,22 @@
     return td("", pastille(F[r.ia] || r.ia, "p-ia", "search", "· à revoir"));
   };
 
+  // Références : un indice à revérifier (jamais une note). Le détail est dans l'onglet « Références » du lecteur.
+  const cellReferences = (r) => {
+    const rf = r.references;
+    if (rf.etat === "non_analyse") return td("", mu("Non vérifié"));
+    if (rf.etat === "ok") return td("", mu(rf.resume.total ? "Rien à signaler" : "Aucune référence"));
+    const s = rf.resume, n = s.introuvables + s.divergentes + s.douteuses + s.sans_lien + s.erreurs_forme + s.liaison;
+    const a = el("a", "", "pastille");
+    a.href = lien(r) + "&panneau=references";
+    a.append(document.createTextNode(s.total || n ? `${n} à revoir` : "Section absente"));
+    a.title = `${rf.texte} (indice à revérifier)`;
+    a.onclick = (e) => e.stopPropagation();
+    const c = td("double", a);
+    if (rf.texte) c.append(el("span", rf.texte, "sous-ligne ref-detail"));
+    return c;
+  };
+
   // Plusieurs paires : une seule pastille « N paires » (le détail en infobulle et sur l'écran du plagiat), pour garder la ligne à 52 px.
   const cellPlagiat = (r) => {
     const p = r.plagiat;
@@ -156,7 +172,7 @@
     bloc.append(a);
     if (r.equipe.length) bloc.append(el("small", `avec ${r.equipe.join(", ")}`));
     nom.append(el("span", initiales, "avatar"), bloc);
-    tr.append(td("nom", nom), cellFrancais(r), cellIa(r), cellPlagiat(r), cellEtat(r),
+    tr.append(td("nom", nom), cellFrancais(r), cellIa(r), cellPlagiat(r), cellReferences(r), cellEtat(r),
       td("nombre val-note", document.createTextNode(r.termine && r.note ? r.note : "—")));
     const plus = el("button", "", "btn-ico");
     plus.type = "button"; plus.setAttribute("aria-label", `Actions pour ${nomComplet(r)}`);
@@ -335,7 +351,7 @@
     }
     const tab = el("table", "", "tableau");
     const tete = el("thead"); const tr = el("tr");
-    for (const [t, cl] of [["Étudiant", ""], ["Français", ""], ["Indice d'IA", ""], ["Plagiat", ""], ["État", ""], ["Note", "nombre"], ["", ""]]) {
+    for (const [t, cl] of [["Étudiant", ""], ["Français", ""], ["Indice d'IA", ""], ["Plagiat", ""], ["Références", ""], ["État", ""], ["Note", "nombre"], ["", ""]]) {
       const th = el("th", t, cl); th.scope = "col";
       if (!t) th.setAttribute("aria-label", "Actions");
       tr.append(th);
@@ -347,7 +363,7 @@
       if (r.groupe !== g) {
         g = r.groupe;
         const gr = el("tr", "", "groupe"), cel = el("td", `Groupe ${g} · ${lignes.filter((x) => x.groupe === g).length} rapport(s)`);
-        cel.colSpan = 7; gr.append(cel); corps.append(gr);
+        cel.colSpan = 8; gr.append(cel); corps.append(gr);
       }
       corps.append(ligne(r));
     }

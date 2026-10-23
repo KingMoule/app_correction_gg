@@ -92,8 +92,8 @@ a.btn-ico { text-decoration: none; }
 #onglets > [role=tab] { padding: 0 7px; gap: 4px; white-space: nowrap; }
 #onglets .n.pt-ia { width: 8px; height: 8px; padding: 0; border-radius: 50%; background: var(--ia); }
 #fr-compact { margin-left: auto; padding-right: 6px; white-space: nowrap; font-variant-numeric: tabular-nums; }
-#francais, #vue-ia, #vue-plagiat { flex: 1; min-height: 0; display: flex; flex-direction: column; overflow: hidden; }
-#vue-ia, #vue-plagiat { overflow-y: auto; -webkit-overflow-scrolling: touch; padding: var(--e3) var(--e4) var(--e4); gap: var(--e3); }
+#francais, #vue-ia, #vue-plagiat, #vue-references { flex: 1; min-height: 0; display: flex; flex-direction: column; overflow: hidden; }
+#vue-ia, #vue-plagiat, #vue-references { overflow-y: auto; -webkit-overflow-scrolling: touch; padding: var(--e3) var(--e4) var(--e4); gap: var(--e3); }
 
 .fr-haut { flex: none; padding: var(--e3) var(--e4) 0; display: flex; flex-direction: column; gap: var(--e2); }
 .fr-vide { display: flex; flex-direction: column; align-items: flex-start; gap: var(--e2); padding: var(--e2) 0 var(--e3); }
@@ -208,3 +208,26 @@ a.btn-ico { text-decoration: none; }
 }
 @media (max-width: 1000px) { #sous-titre { display: none; } }
 @media (min-aspect-ratio: 1/1) { #fr-compact { display: none; } }
+
+/* ----- Onglet Références ----- */
+.ref-resume { display: flex; flex-direction: column; gap: 2px; }
+.ref-resume b { font-size: var(--t); }
+.ref-liaison { margin: 0; padding-left: 1.2em; font-size: var(--t-s); display: flex; flex-direction: column; gap: var(--e1); }
+.ref-liste { display: flex; flex-direction: column; gap: var(--e2); }
+.ref-carte { border: 1px solid var(--border); border-radius: var(--r-m); background: var(--surface); box-shadow: var(--ombre); }
+.ref-ligne { display: grid; grid-template-columns: auto 1fr; gap: var(--e1) var(--e2); width: 100%; min-height: var(--cible); padding: var(--e2) var(--e3); text-align: left; background: none; border: 0; box-shadow: none; font: inherit; color: inherit; cursor: pointer; border-radius: var(--r-m); }
+.ref-ligne:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.ref-num { color: var(--texte-2); font-size: var(--t-s); font-weight: 600; }
+.ref-texte { font-size: var(--t-s); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
+.ref-carte .ref-ligne[aria-expanded=true] .ref-texte { -webkit-line-clamp: unset; display: block; }
+.ref-pastilles { grid-column: 1 / 3; display: flex; flex-wrap: wrap; gap: var(--e1); }
+.ref-detail { padding: 0 var(--e3) var(--e3); display: flex; flex-direction: column; gap: var(--e1); border-top: 1px solid var(--border); }
+.ref-detail h4 { margin: var(--e2) 0 0; font-size: var(--t-s); }
+.ref-detail p { margin: 0; overflow-wrap: anywhere; }
+.ref-detail .ref-brut { display: none; }
+.ref-detail ul { margin: 0; padding-left: 1.2em; font-size: var(--t-s); }
+.ref-detail blockquote { margin: 0; padding: 0 0 0 var(--e3); border-left: 3px solid var(--claude-fond); font-size: var(--t-s); color: var(--texte-2); }
+.ref-detail a.btn { align-self: flex-start; }
+.ref-style { border-top: 1px solid var(--border); padding-top: var(--e2); }
+.ref-style summary { min-height: var(--cible); display: flex; align-items: center; gap: var(--e2); cursor: pointer; }
+#onglets > [role=tab] .ic { display: none; } /* 4 onglets dans 320 px : libellés seuls */

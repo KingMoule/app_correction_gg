@@ -1,9 +1,9 @@
-// Inspecteur du lecteur : onglets Français / Indice IA / Plagiat, ouverture et fermeture, feuille à 3 hauteurs en portrait.
+// Inspecteur du lecteur : onglets Français / Indice IA / Plagiat / Références (references.js), ouverture et fermeture, feuille à 3 hauteurs en portrait.
 // Les onglets Indice IA et Plagiat n'affichent que ce que les API donnent déjà (/api/indices-ia, /api/plagiat) : un indice
 // à revérifier, jamais un verdict. L'envoi d'une paire à Claude reste à l'écran Plagiat (confirmation de Guillaume).
 // Dépend de lecteur.js ($, ref, base, params) et de ui.js (UI).
 (() => {
-  const PANNEAUX = { francais: "francais", ia: "vue-ia", plagiat: "vue-plagiat" };
+  const PANNEAUX = { francais: "francais", ia: "vue-ia", plagiat: "vue-plagiat", references: "vue-references" };
   const FEUILLES = ["bas", "moyen", "haut"];
   const insp = $("inspecteur"), portrait = matchMedia("(max-aspect-ratio: 1/1)");
   const etat = { ouvert: true, onglet: "francais", feuille: "moyen" };
@@ -14,6 +14,7 @@
     if (FEUILLES.includes(m.feuille)) etat.feuille = m.feuille;
   } catch { /* stockage indisponible */ }
   if (params.get("panneau") === "francais") { etat.ouvert = true; etat.onglet = "francais"; } // « Français » de la bibliothèque
+  if (params.get("panneau") === "references") { etat.ouvert = true; etat.onglet = "references"; } // « Références » du tableau de suivi
   const garder = () => { try { localStorage.setItem("inspecteur-lecteur", JSON.stringify(etat)); } catch { /* idem */ } };
 
   const h = (tag, classe, texte) => {
@@ -88,6 +89,7 @@
     appliquer(); garder();
     if (onglet === "ia") chargerIA();
     if (onglet === "plagiat") chargerPlagiat();
+    if (onglet === "references") window.Refs?.charger(); // references.js, chargé après ce fichier
   }
   for (const o of Object.keys(PANNEAUX)) $("onglet-" + o).onclick = () => choisir(o);
   $("onglets").addEventListener("keydown", (e) => { // flèches gauche / droite entre onglets
@@ -99,7 +101,9 @@
   $("panneau-bouton").onclick = () => { etat.ouvert = !etat.ouvert; appliquer(); garder(); };
 
   // Utilisé par francais.js : ouvre l'inspecteur sur un onglet; `minimum` relève la feuille en portrait.
+  window.InspecteurUI = { h, bouton, banniere, erreurApi }; // partagé avec references.js
   window.Inspecteur = {
+    onglet: () => etat.onglet,
     ouvrir(onglet, options = {}) {
       etat.ouvert = true;
       if (onglet && onglet !== etat.onglet) { choisir(onglet); }

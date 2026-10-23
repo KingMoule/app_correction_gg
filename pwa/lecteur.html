@@ -56,13 +56,14 @@
         <span id="page-info" class="num" aria-live="off"></span>
       </div>
 
-      <!-- Inspecteur : onglets Français, Indice IA, Plagiat. En portrait, feuille sous le PDF à 3 hauteurs. -->
+      <!-- Inspecteur : onglets Français, Indice IA, Plagiat, Références. En portrait, feuille sous le PDF à 3 hauteurs. -->
       <aside id="inspecteur" aria-label="Correction du rapport">
         <button id="poignee" type="button" aria-label="Hauteur de la feuille : toucher pour la changer, ou glisser"><i></i></button>
         <div id="onglets" class="onglets" role="tablist">
           <button id="onglet-francais" role="tab" type="button" aria-selected="true" aria-controls="francais"><svg class="ic s" aria-hidden="true"><use href="vendor/lucide-sprite.svg#spell-check"/></svg>Français <span id="n-francais" class="n" hidden></span></button>
           <button id="onglet-ia" role="tab" type="button" aria-selected="false" aria-controls="vue-ia"><svg class="ic s" aria-hidden="true"><use href="vendor/lucide-sprite.svg#scan-search"/></svg>Indice IA <span id="n-ia" class="n pt-ia" role="img" hidden></span></button>
           <button id="onglet-plagiat" role="tab" type="button" aria-selected="false" aria-controls="vue-plagiat"><svg class="ic s" aria-hidden="true"><use href="vendor/lucide-sprite.svg#copy"/></svg>Plagiat <span id="n-plagiat" class="n" hidden></span></button>
+          <button id="onglet-references" role="tab" type="button" aria-selected="false" aria-controls="vue-references"><svg class="ic s" aria-hidden="true"><use href="vendor/lucide-sprite.svg#library"/></svg>Références <span id="n-references" class="n" hidden></span></button>
           <span id="fr-compact" class="mu" hidden></span>
         </div>
 
@@ -96,6 +97,7 @@
 
         <section id="vue-ia" role="tabpanel" aria-labelledby="onglet-ia" hidden></section>
         <section id="vue-plagiat" role="tabpanel" aria-labelledby="onglet-plagiat" hidden></section>
+        <section id="vue-references" role="tabpanel" aria-labelledby="onglet-references" hidden></section>
       </aside>
     </div>
   </div>
@@ -140,6 +142,7 @@
   <script src="envoi-francais.js"></script>
   <script src="francais.js"></script>
   <script src="inspecteur.js"></script>
+  <script src="references.js"></script>
   <script src="navigation-lecteur.js"></script>
 </body>
 </html>
