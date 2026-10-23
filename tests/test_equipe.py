@@ -126,10 +126,10 @@ def test_equipe_modifiee_prise_en_compte_par_suivi_export_et_plagiat(client):
     client.put(url_equipe(), json={"equipe": [{"groupe": "00001", "id": "bele-gombos-anna"}]})
     rapport = client.get(f"/api/suivi/{COURS}/lab-1").json()["rapports"][0]
     assert rapport["equipe"] == ["Anna Bele-Gombos"]
-    tableau = client.get(f"/api/export-lot/tableau/{COURS}/lab-1").content.decode("utf-8-sig")
+    tableau = client.get(f"/api/export-lot/tableau/{COURS}/lab-1?inacheves=true").content.decode("utf-8-sig")
     assert ";Bele-Gombos;Anna;00001;" in tableau  # une ligne par coéquipier
     x = {"cours": COURS, "groupe": "00002", "etudiant": "dube-alice", "lab": "lab-1", "equipe": ["00001/bele-gombos-anna"]}
     y = {"cours": COURS, "groupe": "00001", "etudiant": "bele-gombos-anna", "lab": "lab-1"}
     assert _meme_etudiant(x, y) and _meme_etudiant(y, x)
     client.put(url_equipe(), json={"equipe": []})
-    assert ";Bele-Gombos;Anna;00001;équipe" not in client.get(f"/api/export-lot/tableau/{COURS}/lab-1").content.decode("utf-8-sig")
+    assert ";Bele-Gombos;Anna;00001;équipe" not in client.get(f"/api/export-lot/tableau/{COURS}/lab-1?inacheves=true").content.decode("utf-8-sig")

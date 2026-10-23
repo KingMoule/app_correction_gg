@@ -60,7 +60,7 @@
     const etiquette = el("label", "", "interrupteur inacheves");
     const inacheves = document.createElement("input");
     inacheves.type = "checkbox";
-    inacheves.checked = true;
+    inacheves.checked = false;
     etiquette.append(inacheves, el("i"), el("span", "Inclure les rapports inachevés (signalés dans le tableau)"));
 
     const etat = el("div", "", "export-etat");

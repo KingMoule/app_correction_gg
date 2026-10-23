@@ -64,7 +64,7 @@ Tout est fusionné dans `main` jusqu'à la PR #56. Les 4 étapes sont faites cô
 - **Jauge discrète** dans la barre latérale, page « Consommation », estimation dans l'écran du lot. **Marge de 20 % réglable**; un lot qui dépasse la marge est **signalé, jamais bloqué**. Taille de lot par défaut inchangée (10) tant que Guillaume ne décide pas; la taille conseillée est affichée.
 
 ### Export et exploitation
-- **Export LÉA** : `Travaux_<date>.zip` (PDF au nom d'origine + `_corrige`) et CSV (`;`, UTF-8 avec BOM, virgule décimale); inachevés exclus sauf case « inclure » et signalés; « Claude manquant » compte comme inachevé; l'export se déclare périmé si un rapport change; note saisie à « Terminé ».
+- **Export LÉA** : `Travaux_<date>.zip` (PDF au nom d'origine + `_corrige`) et CSV (`;`, UTF-8 avec BOM, virgule décimale); inachevés **exclus par défaut** (case « Inclure les rapports inachevés » décochée au départ, API `inacheves=false`), signalés quand on les inclut; « Claude manquant » compte comme inachevé; l'export se déclare périmé si un rapport change; note saisie à « Terminé ».
 - **Sauvegarde** : 2e dossier sur l'ordi (`C:\correction_donnees_sauvegardes`, `CORRECTION_SAUVEGARDES`), à chaque lancement de `demarrer.bat` (ni bouton ni tâche planifiée), 10 dernières + 1 par semaine sur 8 semaines, tout sauf `plagiat/textes/`; restauration sans jamais supprimer.
 - **Code d'accès** : 8 caractères au moins, défini au premier lancement, session d'un an glissante, `--local` sans code, aucune route `/api/` publique.
 - **Démarrage** : `demarrer.bat` en un clic, `git pull --ff-only` sur `main` propre (`docs/DEMARRAGE.md`).
