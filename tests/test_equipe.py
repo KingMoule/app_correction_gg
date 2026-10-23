@@ -11,7 +11,7 @@ from moteur.app import creer_app
 from moteur.bibliotheque import coequipiers
 from moteur.plagiat import _meme_etudiant
 
-COURS = "202SNURE"
+COURS = "202SNURE_A2026"
 ETUDIANTS = [
     {"id": "dube-alice", "groupe": "00002", "nom": "Dubé", "prenom": "Alice"},
     {"id": "roy-marie", "groupe": "00002", "nom": "Roy", "prenom": "Marie"},
@@ -82,7 +82,7 @@ def client(tmp_path, monkeypatch):
                            ("00002", [("2000001", "Dubé", "Alice"), ("2000002", "Roy", "Marie")])]:
         texte = "No de DA;Nom de l'étudiant;Prénom de l'étudiant\r\n" + "\r\n".join(
             f'="{da}";="{n}";="{p}"' for da, n, p in lignes)
-        r = c.post("/api/bibliotheque/classes", files={"fichier": (f"ListeEtudiants_cours{COURS}_gr{groupe}.csv", texte.encode("cp1252"))})
+        r = c.post("/api/bibliotheque/classes", files={"fichier": (f"ListeEtudiants_cours{COURS.split("_")[0]}_gr{groupe}.csv", texte.encode("cp1252"))})
         assert r.status_code == 200, r.text
     return c
 

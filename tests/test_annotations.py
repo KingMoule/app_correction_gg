@@ -6,7 +6,7 @@ import threading
 import pytest
 from tests.test_bibliotheque import charger_classe, client, importer, pdf  # noqa: F401
 
-URL = "/api/annotations/202SNURE/00002/lab-3/dube-alice"
+URL = "/api/annotations/202SNURE_A2026/00002/lab-3/dube-alice"
 
 TRAIT = {
     "outil": "crayon", "couleur": "#d32f2f", "largeur_min": 0.6, "largeur_max": 3.8,
@@ -31,16 +31,16 @@ def test_aller_retour_et_fichier_a_cote_du_rapport(rapport, tmp_path):
     r = rapport.put(URL, json={"version": 2, "revision": 0, "pages": {"1": [{**TRAIT, "id": "t1"}], "2": []}})
     assert r.json() == {"ok": True, "traits": 1, "revision": 1}
     assert rapport.get(URL).json()["pages"] == {"1": [{**TRAIT, "id": "t1"}]}
-    assert (tmp_path / "bibliotheque/202SNURE/00002/lab-3/dube-alice/annotations.json").is_file()
+    assert (tmp_path / "bibliotheque/202SNURE_A2026/00002/lab-3/dube-alice/annotations.json").is_file()
 
 
 def test_rapport_inconnu(rapport):
-    assert rapport.get("/api/annotations/202SNURE/00002/lab-3/personne").status_code == 404
-    assert rapport.put("/api/annotations/202SNURE/00002/lab-9/dube-alice", json={}).status_code == 404
+    assert rapport.get("/api/annotations/202SNURE_A2026/00002/lab-3/personne").status_code == 404
+    assert rapport.put("/api/annotations/202SNURE_A2026/00002/lab-9/dube-alice", json={}).status_code == 404
 
 
 def test_segment_dangereux(rapport):
-    assert rapport.get("/api/annotations/202SNURE/00002/lab-3/..%2F..").status_code in (400, 404)
+    assert rapport.get("/api/annotations/202SNURE_A2026/00002/lab-3/..%2F..").status_code in (400, 404)
 
 
 @pytest.mark.parametrize("modif", [
@@ -53,7 +53,7 @@ def test_trait_invalide(rapport, modif):
 
 # --- Révision, fusion entre appareils, migration (audit E2) ----------------------
 
-DOSSIER = "bibliotheque/202SNURE/00002/lab-3/dube-alice"
+DOSSIER = "bibliotheque/202SNURE_A2026/00002/lab-3/dube-alice"
 
 
 def trait(id_, x=10):

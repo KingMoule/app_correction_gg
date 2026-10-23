@@ -56,14 +56,14 @@ def charger_classe(client):
 def importer(client, noms_pdf, lab="Lab 3"):
     return client.post(
         "/api/bibliotheque/import",
-        data={"cours": "202SNURE", "groupe": "00002", "lab": lab},
+        data={"cours": "202SNURE_A2026", "groupe": "00002", "lab": lab},
         files=[("fichiers", (n, c, "application/pdf")) for n, c in noms_pdf],
     ).json()
 
 
 def test_liste_de_classe(client):
     classe = charger_classe(client)
-    assert (classe["cours"], classe["groupe"]) == ("202SNURE", "00002")
+    assert (classe["cours"], classe["groupe"]) == ("202SNURE_A2026", "00002")
     assert [e["id"] for e in classe["etudiants"]] == [
         "dube-alice", "gagnon-marc", "gagnon-julie", "roy-lea", "tremblay-roy-paul"]
 
@@ -117,10 +117,10 @@ def test_association_automatique_et_rangement(client, tmp_path):
     charger_classe(client)
     res = importer(client, [("Rapport_DUBE_lab3.pdf", pdf()), ("tremblay-roy.pdf", pdf())])
     assert [r["etudiant"]["id"] for r in res["ranges"]] == ["dube-alice", "tremblay-roy-paul"]
-    assert (tmp_path / "bibliotheque/202SNURE/00002/lab-3/dube-alice/rapport.pdf").is_file()
+    assert (tmp_path / "bibliotheque/202SNURE_A2026/00002/lab-3/dube-alice/rapport.pdf").is_file()
     arbre = client.get("/api/bibliotheque").json()
     assert arbre[0]["etudiants"][0]["labs"] == ["lab-3"]
-    r = client.get("/api/bibliotheque/rapport/202SNURE/00002/lab-3/dube-alice")
+    r = client.get("/api/bibliotheque/rapport/202SNURE_A2026/00002/lab-3/dube-alice")
     assert r.headers["content-type"] == "application/pdf"
 
 
@@ -140,7 +140,7 @@ def test_sans_correspondance_puis_decision(client, tmp_path):
     assert client.get("/api/bibliotheque/attente").json()[0]["id"] == attente["id"]
     r = client.post(f"/api/bibliotheque/attente/{attente['id']}", json={"etudiant": "roy-lea"})
     assert r.status_code == 200
-    assert (tmp_path / "bibliotheque/202SNURE/00002/lab-3/roy-lea/rapport.pdf").is_file()
+    assert (tmp_path / "bibliotheque/202SNURE_A2026/00002/lab-3/roy-lea/rapport.pdf").is_file()
     assert client.get("/api/bibliotheque/attente").json() == []
 
 
@@ -183,7 +183,7 @@ def deux_groupes(client):
 def importer_cours(client, noms_pdf, groupe=""):
     return client.post(
         "/api/bibliotheque/import",
-        data={"cours": "202SNURE", "groupe": groupe, "lab": "Lab 1"},
+        data={"cours": "202SNURE_A2026", "groupe": groupe, "lab": "Lab 1"},
         files=[("fichiers", (n, c, "application/pdf")) for n, c in noms_pdf],
     ).json()
 
@@ -220,12 +220,12 @@ def test_import_multigroupes_et_recap(client, tmp_path):
     assert res["par_groupe"] == {"00001": 1, "00002": 2}
     assert {a["raison"] for a in res["en_attente"]} == {"ambigu", "da_inconnu"}
     assert len(res["refuses"]) == 1
-    assert (tmp_path / "bibliotheque/202SNURE/00001/lab-1/bele-gombos-anna/rapport.pdf").is_file()
-    assert (tmp_path / "bibliotheque/202SNURE/00002/lab-1/martin-zoe/rapport.pdf").is_file()
+    assert (tmp_path / "bibliotheque/202SNURE_A2026/00001/lab-1/bele-gombos-anna/rapport.pdf").is_file()
+    assert (tmp_path / "bibliotheque/202SNURE_A2026/00002/lab-1/martin-zoe/rapport.pdf").is_file()
     ambigu = next(a for a in res["en_attente"] if a["raison"] == "ambigu")
     r = client.post(f"/api/bibliotheque/attente/{ambigu['id']}", json={"etudiant": "martin-luc", "groupe": "00001"})
     assert r.status_code == 200
-    assert (tmp_path / "bibliotheque/202SNURE/00001/lab-1/martin-luc/rapport.pdf").is_file()
+    assert (tmp_path / "bibliotheque/202SNURE_A2026/00001/lab-1/martin-luc/rapport.pdf").is_file()
 
 
 def test_groupe_restreint_limite_la_recherche(client):
@@ -262,19 +262,19 @@ def test_statut_termine_et_archive(client):
     alice = next(e for e in arbre["etudiants"] if e["nom"] == "Dubé")
     assert alice["labs"] == ["lab-3"] and alice["termines"] == [] and arbre["labs_archives"] == []
 
-    base = f"/api/bibliotheque/statut/202SNURE/00002/lab-3/{alice['id']}"
+    base = f"/api/bibliotheque/statut/202SNURE_A2026/00002/lab-3/{alice['id']}"
     assert client.put(base, json={"termine": True}).json() == {"termine": True, "note": ""}
     arbre = client.get("/api/bibliotheque").json()[0]
     assert next(e for e in arbre["etudiants"] if e["nom"] == "Dubé")["termines"] == ["lab-3"]
     client.put(base, json={"termine": False})
     assert next(e for e in client.get("/api/bibliotheque").json()[0]["etudiants"] if e["nom"] == "Dubé")["termines"] == []
 
-    assert client.put("/api/bibliotheque/statut/202SNURE/00002/lab-9/abc", json={"termine": True}).status_code == 404
-    assert client.put("/api/bibliotheque/archive/202SNURE/00002/lab-3", json={"archive": True}).status_code == 200
+    assert client.put("/api/bibliotheque/statut/202SNURE_A2026/00002/lab-9/abc", json={"termine": True}).status_code == 404
+    assert client.put("/api/bibliotheque/archive/202SNURE_A2026/00002/lab-3", json={"archive": True}).status_code == 200
     assert client.get("/api/bibliotheque").json()[0]["labs_archives"] == ["lab-3"]
-    client.put("/api/bibliotheque/archive/202SNURE/00002/lab-3", json={"archive": False})
+    client.put("/api/bibliotheque/archive/202SNURE_A2026/00002/lab-3", json={"archive": False})
     assert client.get("/api/bibliotheque").json()[0]["labs_archives"] == []
-    assert client.put("/api/bibliotheque/archive/202SNURE/00002/lab-9", json={"archive": True}).status_code == 404
+    assert client.put("/api/bibliotheque/archive/202SNURE_A2026/00002/lab-9", json={"archive": True}).status_code == 404
 
 
 # --- Réimport de liste stable (audit E4) -------------------------------------
@@ -364,6 +364,6 @@ def test_reimport_homonymes_sans_da_sont_a_trancher(client):
 
 def test_reimport_liste_abimee_refuse(client, tmp_path):
     liste(client, HOMONYMES)
-    (tmp_path / "bibliotheque/202SNURE/00002/classe.json").write_text("{tronque", encoding="utf-8")
+    (tmp_path / "bibliotheque/202SNURE_A2026/00002/classe.json").write_text("{tronque", encoding="utf-8")
     r = client.post("/api/bibliotheque/classes", files={"fichier": (NOM_LISTE, xlsx([["Nom", "Prénom"], ["Roy", "Léa"]]))})
     assert r.status_code == 422

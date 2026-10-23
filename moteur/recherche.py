@@ -8,6 +8,7 @@ fichiers d'état. Jamais le contenu des PDF. Accents et casse ignorés; chaque m
 from fastapi import APIRouter, HTTPException, Query
 
 from . import bibliotheque, suivi
+from . import session as sessions
 
 router = APIRouter(prefix="/api/recherche")
 
@@ -36,9 +37,9 @@ def rechercher(q: str = Query("", max_length=100)) -> dict:
             da = str(e.get("da") or "")
             deposes = [(lab, norm) for lab, norm in labs if (f.parent / lab / e["id"] / "rapport.pdf").is_file()]
             if _correspond(mots, noms, da):
-                etudiants.append({"id": e["id"], "nom": e["nom"], "prenom": e["prenom"], "da": da, "cours": cours,
+                etudiants.append({"id": e["id"], "nom": e["nom"], "prenom": e["prenom"], "da": da, "cours": cours, "session": sessions.separer(cours)[1],
                                   "groupe": groupe, "nb_rapports": len(deposes), "retire": bool(e.get("retire"))})
-            rapports += [{"cours": cours, "groupe": groupe, "lab": lab, "etudiant": e["id"],
+            rapports += [{"cours": cours, "session": sessions.separer(cours)[1], "groupe": groupe, "lab": lab, "etudiant": e["id"],
                           "nom": e["nom"], "prenom": e["prenom"]}
                          for lab, norm in deposes if _correspond(mots, noms, da, norm)]
     cle = lambda r: (bibliotheque.normaliser(r["nom"]), bibliotheque.normaliser(r["prenom"]), r["cours"], r["groupe"])  # noqa: E731

@@ -9,6 +9,7 @@ from moteur import acces
 def _sans_code_par_defaut(monkeypatch):
     monkeypatch.setenv("CORRECTION_SANS_CODE", "1")
     monkeypatch.setenv("CORRECTION_HOTES", "testserver")
+    monkeypatch.setenv("CORRECTION_SESSION", "A2026")  # session par défaut des listes importées sans session
     acces.limiteur.reinitialiser()
     yield
     acces.limiteur.reinitialiser()

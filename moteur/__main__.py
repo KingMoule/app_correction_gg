@@ -7,7 +7,7 @@ import sys
 
 import uvicorn
 
-from . import acces
+from . import acces, migration_session
 from .config import chemin_a_risque, dossier_donnees
 
 
@@ -63,6 +63,7 @@ def main() -> None:
               "commités ou synchronisés par erreur.\n"
               "Choisis un autre dossier avec la variable CORRECTION_DONNEES "
               "(ex. C:\\correction_donnees).")
+    migration_session.executer_au_demarrage()  # rangement par session : sauvegarde, puis renommage (idempotent)
     print(f"Sur l'iPad (même Wi-Fi) : http://{adresse_reseau()}:{args.port}")
     uvicorn.run("moteur.app:app", host=hote, port=args.port)
 

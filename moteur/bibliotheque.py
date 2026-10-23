@@ -25,7 +25,7 @@ from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 from pypdf import PdfReader
 
-from . import stockage
+from . import session as sessions, stockage
 from .config import dossier_donnees
 
 router = APIRouter(prefix="/api/bibliotheque")
@@ -247,14 +247,39 @@ def charger_classe(cours: str, groupe: str) -> dict:
     return classe
 
 
+def _reprendre_reglages(cours: str) -> None:
+    """Nouveau cours d'une session : barème et style des références de la session précédente du même
+    code de cours (copie; la session précédente n'est pas touchée). Modifiables ensuite par session."""
+    code, session = sessions.separer(cours)
+    if session is None:
+        return
+    dossier = racine() / cours
+    precedentes = sorted(
+        (d for d in racine().glob(f"{code}_*")
+         if d.is_dir() and d != dossier and (autre := sessions.separer(d.name)[1])
+         and sessions.ordre(autre) < sessions.ordre(session)),
+        key=lambda d: sessions.ordre(sessions.separer(d.name)[1]), reverse=True)
+    for nom in ("bareme.json", "style_references.json"):
+        source = next((d / nom for d in precedentes if (d / nom).is_file()), None)
+        if source and not (dossier / nom).exists():
+            shutil.copy2(source, dossier / nom)
+
+
 @router.post("/classes")
-async def importer_classe(fichier: UploadFile = File(...)) -> dict:
-    cours, groupe = lire_cours_groupe(fichier.filename or "")
+async def importer_classe(fichier: UploadFile = File(...), session: str = Form("")) -> dict:
+    """Importe (ou réimporte) une liste de classe dans la session indiquée (celle en cours par défaut).
+    Le nom du fichier Omnivox ne contient pas la session : c'est elle qui sépare les cours d'une session
+    à l'autre quand le code de cours et le n° de groupe reviennent."""
+    code, groupe = lire_cours_groupe(fichier.filename or "")
+    cours = sessions.cle_cours(code, session.strip() or sessions.session_courante())
     etudiants = extraire_etudiants(lignes_du_fichier(fichier.filename, await fichier.read()))
     if not etudiants:
         raise HTTPException(400, "La liste ne contient aucun étudiant.")
     dossier = dossier_groupe(cours, groupe)
+    nouveau_cours = not dossier.parent.exists()
     dossier.mkdir(parents=True, exist_ok=True)
+    if nouveau_cours:
+        _reprendre_reglages(cours)
     with stockage.verrou(dossier):
         existante = _classe_lisible(dossier / "classe.json")
         if existante is None and (dossier / "classe.json").is_file():
@@ -262,7 +287,37 @@ async def importer_classe(fichier: UploadFile = File(...)) -> dict:
         fusion, recap = fusionner_classe(existante["etudiants"] if existante else [], etudiants)
         classe = {"cours": cours, "groupe": groupe, "etudiants": fusion}
         stockage.ecrire_json(dossier / "classe.json", classe, indent=1)
-    return {**classe, "recap": recap}
+    return {**classe, **_session_de(cours), "recap": recap}
+
+
+def _session_de(cours: str) -> dict:
+    code, session = sessions.separer(cours)
+    return {"code": code, "session": session}
+
+
+@router.get("/sessions")
+def lister_sessions() -> dict:
+    """Sessions de la bibliothèque (la plus récente d'abord) avec leurs cours, et la session en cours."""
+    courante = sessions.session_courante()
+    par_session: dict[str, list[str]] = {}
+    for d in sorted(racine().glob("*/")):
+        if d.is_dir() and not d.name.startswith("_") and any(d.glob("*/classe.json")):
+            par_session.setdefault(sessions.separer(d.name)[1] or "", []).append(d.name)
+    par_session.setdefault(courante, [])
+    liste = sorted(par_session, key=lambda s: sessions.ordre(s) if s else (0, -1), reverse=True)
+    return {"courante": courante, "deduite": sessions.session_du_jour(),
+            "sessions": [{"session": s, "libelle": sessions.libelle(s) if s else "Sans session",
+                          "courante": s == courante, "cours": par_session[s]} for s in liste]}
+
+
+class SessionCourante(BaseModel):
+    session: str
+
+
+@router.put("/sessions/courante")
+def changer_session_courante(corps: SessionCourante) -> dict:
+    """Choisit la session en cours (celle que l'accueil, Labs et l'import proposent)."""
+    return {"courante": sessions.choisir_courante(corps.session)}
 
 
 # --- Association d'un PDF à un étudiant -------------------------------------
@@ -543,6 +598,7 @@ def arbre() -> list[dict]:
             notes = {p.parent.parent.name: n for p in rapports if (n := lire_note(p.parent))}
             if notes:
                 e["notes"] = notes
+        classe.update(_session_de(f.parent.parent.name))
         classe["labs_archives"] = sorted(a.parent.name for a in f.parent.glob("*/archive.json") if _lire_drapeau(a, "archive"))
         sortie.append(classe)
     return sortie

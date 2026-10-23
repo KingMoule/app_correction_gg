@@ -70,7 +70,7 @@ def test_sans_journal_rien_nest_ecrit(donnees, tmp_path):
 
 def test_aucune_donnee_d_etudiant_dans_le_journal(donnees, tmp_path):
     file = FileClaude(ClientFaux([resultat()]), journal=True)
-    with c.contexte("francais", "202SNURE", "lab-3", "dupont-marie"):
+    with c.contexte("francais", "202SNURE_A2026", "lab-3", "dupont-marie"):
         file.soumettre("<rapport>Marie Dupont, DA 1234567</rapport>").result(timeout=5)
     file.arreter()
     brut = (tmp_path / "consommation" / "journal.json").read_text(encoding="utf-8").lower()

@@ -6,7 +6,7 @@ import pytest
 
 from moteur.anonymat import Anonymiseur
 
-COURS = "202SNURE"
+COURS = "202SNURE_A2026"
 GROUPE1 = [
     {"id": "bouchard-simon", "nom": "Bouchard", "prenom": "Simon", "da": "1000001"},
     {"id": "wu-li", "nom": "Wu", "prenom": "Li", "da": "1000002"},

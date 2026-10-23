@@ -406,10 +406,10 @@ def client(reseau, claude):
         f"[1] DUPONT, Marie. Turbidimetric determination of sulfate ions in water. Analyst, 2015. DOI {SULFATE}.",
         f"[2] LEBLANC, Jean. Copper corrosion in marine alloys. Corrosion Science, 2018. DOI {CUIVRE}.",
     ]
-    d = c.post("/api/bibliotheque/import", data={"cours": "202SNURE", "groupe": "00002", "lab": "lab3"},
+    d = c.post("/api/bibliotheque/import", data={"cours": "202SNURE_A2026", "groupe": "00002", "lab": "lab3"},
                files=[("fichiers", ("Dubé_lab3.pdf", pdf_lignes(lignes), "application/pdf"))]).json()
     assert d["ranges"], d
-    c.base = "202SNURE/00002/lab3/dube-alice"
+    c.base = "202SNURE_A2026/00002/lab3/dube-alice"
     return c
 
 
@@ -423,41 +423,41 @@ def test_api_analyser_et_relire(client, claude):
     assert "Alice" not in claude.appels[0][0] and "Dubé" not in claude.appels[0][0]
     assert client.get(f"/api/references/resultat/{client.base}").json()["resume"] == d["resume"]
     assert client.post(f"/api/references/analyser/{client.base}?rafraichir=true").status_code == 200
-    assert client.get("/api/references/resultat/202SNURE/00002/lab3/inconnu").status_code == 404
+    assert client.get("/api/references/resultat/202SNURE_A2026/00002/lab3/inconnu").status_code == 404
 
 
 def test_api_noms_masques_dans_les_phrases(client, claude):
     lignes = ["Introduction", "Alice Dubé a mesuré le sulfate par turbidimétrie [1].", "Références",
               f"[1] LEBLANC, Jean. Copper corrosion in marine alloys. 2018. DOI {CUIVRE}."]
-    client.post("/api/bibliotheque/import", data={"cours": "202SNURE", "groupe": "00002", "lab": "lab4"},
+    client.post("/api/bibliotheque/import", data={"cours": "202SNURE_A2026", "groupe": "00002", "lab": "lab4"},
                 files=[("fichiers", ("Dubé_lab4.pdf", pdf_lignes(lignes), "application/pdf"))])
-    assert client.post(f"/api/references/analyser/202SNURE/00002/lab4/dube-alice").status_code == 200
+    assert client.post(f"/api/references/analyser/202SNURE_A2026/00002/lab4/dube-alice").status_code == 200
     envoye = claude.appels[-1][0]
     assert "Alice" not in envoye and "Dubé" not in envoye and "[PRÉNOM]" in envoye
 
 
 def test_style_par_cours(client):
-    assert client.get("/api/references/style/202SNURE").json()["style"] == "iso690"
-    assert client.put("/api/references/style/202SNURE", json={"style": "apa7"}).json()["style"] == "apa7"
-    assert client.put("/api/references/style/202SNURE", json={"style": "mla"}).status_code == 422
+    assert client.get("/api/references/style/202SNURE_A2026").json()["style"] == "iso690"
+    assert client.put("/api/references/style/202SNURE_A2026", json={"style": "apa7"}).json()["style"] == "apa7"
+    assert client.put("/api/references/style/202SNURE_A2026", json={"style": "mla"}).status_code == 422
     assert client.get("/api/references/style/ZZZ").status_code == 404
     d = client.post(f"/api/references/analyser/{client.base}").json()
     assert d["style"] == "apa7" and d["entrees"][0]["forme"]["problemes"]  # numérotées : pas APA
 
 
 def test_suivi_et_lot(client, claude):
-    assert client.get("/api/suivi/202SNURE/lab3").json()["rapports"][0]["references"] == {"etat": "non_analyse"}
-    assert lot.a_faire("202SNURE", "00002", "lab3", "dube-alice") == (True, True, True)
+    assert client.get("/api/suivi/202SNURE_A2026/lab3").json()["rapports"][0]["references"] == {"etat": "non_analyse"}
+    assert lot.a_faire("202SNURE_A2026", "00002", "lab3", "dube-alice") == (True, True, True)
     client.post(f"/api/references/analyser/{client.base}")
-    r = client.get("/api/suivi/202SNURE/lab3").json()["rapports"][0]["references"]
+    r = client.get("/api/suivi/202SNURE_A2026/lab3").json()["rapports"][0]["references"]
     assert r["etat"] == "a_revoir" and r["texte"] == "1 sans lien" and r["claude_ok"]
-    assert lot.a_faire("202SNURE", "00002", "lab3", "dube-alice") == (True, True, False)
+    assert lot.a_faire("202SNURE_A2026", "00002", "lab3", "dube-alice") == (True, True, False)
 
 
 def test_lot_relance_les_references_si_claude_avait_echoue(client, monkeypatch):
     monkeypatch.setattr(references, "obtenir_file", lambda: FileFausse(ClaudeLimite("limit reached")))
     client.post(f"/api/references/analyser/{client.base}")
-    assert lot.a_faire("202SNURE", "00002", "lab3", "dube-alice")[2] is True
+    assert lot.a_faire("202SNURE_A2026", "00002", "lab3", "dube-alice")[2] is True
     monkeypatch.setattr(references, "obtenir_file", lambda: FileFausse())
     client.post(f"/api/references/analyser/{client.base}")
-    assert lot.a_faire("202SNURE", "00002", "lab3", "dube-alice")[2] is False
+    assert lot.a_faire("202SNURE_A2026", "00002", "lab3", "dube-alice")[2] is False

@@ -12,7 +12,7 @@ from tests.test_bibliotheque import charger_classe, client, importer, pdf  # noq
 
 SORTIE = {"fautes": [], "force": "faible", "resume": "RAS", "signaux": [], "contre_indices": []}
 NOMS = ["Rapport_DUBE.pdf", "Rapport_GAGNON_Marc.pdf", "Rapport_GAGNON_Julie.pdf", "Rapport_ROY.pdf"]
-LAB = "202SNURE/00002/lab-3"
+LAB = "202SNURE_A2026/00002/lab-3"
 
 
 class FileFausse:
@@ -146,7 +146,7 @@ def test_un_seul_lot_a_la_fois(labo, monkeypatch):
 def test_analyses_et_decisions_jamais_ecrasees(labo, monkeypatch):
     brancher(monkeypatch, FileFausse())
     eleve = next(iter(rapports(labo)))
-    dossier = lot._dossier_lab("202SNURE", "00002", "lab-3") / eleve
+    dossier = lot._dossier_lab("202SNURE_A2026", "00002", "lab-3") / eleve
     # un rapport déjà analysé, avec une décision de Guillaume
     francais_json = {"version": 1, "fautes": [], "decisions": {"0": "acceptee"}, "choix": {}, "masquees": [],
                      "claude": {"ok": True, "erreur": None, "ajoutees": 0}}
@@ -165,7 +165,7 @@ def test_le_lot_verifie_aussi_les_references(labo, monkeypatch):
     labo.post(f"/api/lot/{LAB}")
     assert attendre(labo)["fait"] == 4
     for e in rapports(labo):
-        doc = json.loads((lot._dossier_lab("202SNURE", "00002", "lab-3") / e / "references.json").read_text(encoding="utf-8"))
+        doc = json.loads((lot._dossier_lab("202SNURE_A2026", "00002", "lab-3") / e / "references.json").read_text(encoding="utf-8"))
         assert doc["section"]["trouvee"] is False and doc["claude"]["ok"] is True  # rapport sans section : rien à envoyer
 
 
@@ -174,7 +174,7 @@ def test_refaire_retraite_tous_les_rapports(labo, monkeypatch):
     labo.post(f"/api/lot/{LAB}")
     attendre(labo)
     eleve = next(iter(rapports(labo)))
-    chemin = lot._dossier_lab("202SNURE", "00002", "lab-3") / eleve / "francais.json"
+    chemin = lot._dossier_lab("202SNURE_A2026", "00002", "lab-3") / eleve / "francais.json"
     doc = json.loads(chemin.read_text(encoding="utf-8"))
     doc["decisions"] = {"7": "refusee"}
     chemin.write_text(json.dumps(doc), encoding="utf-8")
@@ -186,5 +186,5 @@ def test_refaire_retraite_tous_les_rapports(labo, monkeypatch):
 
 
 def test_lab_inconnu_et_n_invalide(labo):
-    assert labo.post("/api/lot/202SNURE/00002/inconnu").status_code == 404
+    assert labo.post("/api/lot/202SNURE_A2026/00002/inconnu").status_code == 404
     assert labo.post(f"/api/lot/{LAB}", json={"n": 0}).status_code == 422

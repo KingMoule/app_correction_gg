@@ -334,11 +334,11 @@ def test_pdf_et_exports_proteges(rapport, monkeypatch):
     client, _ = rapport
     monkeypatch.delenv("CORRECTION_SANS_CODE")
     acces.definir_code(CODE)
-    urls = ["/api/bibliotheque/rapport/202SNURE/00002/lab-3/dube-alice",
-            "/api/annotations/202SNURE/00002/lab-3/dube-alice",
-            "/api/export/202SNURE/00002/lab-3/dube-alice",
-            "/api/export-lot/travaux", "/api/export-lot/tableau/202SNURE/lab-3",
-            "/api/bibliotheque", "/api/indices-ia/texte/202SNURE/00002/lab-3/dube-alice"]
+    urls = ["/api/bibliotheque/rapport/202SNURE_A2026/00002/lab-3/dube-alice",
+            "/api/annotations/202SNURE_A2026/00002/lab-3/dube-alice",
+            "/api/export/202SNURE_A2026/00002/lab-3/dube-alice",
+            "/api/export-lot/travaux", "/api/export-lot/tableau/202SNURE_A2026/lab-3",
+            "/api/bibliotheque", "/api/indices-ia/texte/202SNURE_A2026/00002/lab-3/dube-alice"]
     for url in urls:
         assert client.get(url).status_code == 401, url
     client.post("/api/connexion", json={"code": CODE})
