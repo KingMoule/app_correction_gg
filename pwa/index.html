@@ -54,16 +54,6 @@
       </header>
       <div id="recherche-place"></div>
       <div id="labs-cours"></div>
-
-      <section id="section-ia" hidden>
-        <h2>Indices d'IA</h2>
-        <p id="ia-titre"></p>
-        <p class="aide" id="ia-avertissement">Indice à revérifier, jamais un verdict.</p>
-        <button type="button" id="ia-analyser" class="btn primaire"><svg class="ic"><use href="vendor/lucide-sprite.svg#sparkles"/></svg>Analyser le style avec Claude</button>
-        <button type="button" id="ia-pangram" class="btn"><svg class="ic"><use href="vendor/lucide-sprite.svg#external-link"/></svg>Copier le texte et ouvrir Pangram</button>
-        <p id="ia-etat" aria-live="polite"></p>
-        <div id="ia-resultat"></div>
-      </section>
     </div>
 
     <div class="vue" id="v-importer">
@@ -127,40 +117,15 @@
         <button type="button" class="btn primaire" id="importer"><svg class="ic"><use href="vendor/lucide-sprite.svg#upload"/></svg><span id="importer-libelle">Importer</span></button>
       </div>
     </div>
-
-    <div class="vue" id="v-outils">
-    <header class="page-tete"><div><h1>Analyse par lot</h1><p class="sous">Claude analyse les rapports d'un lab; le plagiat se compare sur toute la bibliothèque.</p></div></header>
-    <section id="section-lot">
-      <h2>Analyse par lot (Claude)</h2>
-      <p class="aide">Français (passe Claude), indices d'IA et vérification des références sur les rapports d'un lab pas encore analysés. Compte dans la limite de ton forfait : l'estimation du lot s'affiche ci-dessous (<a href="consommation.html">détail</a>).</p>
-      <select id="lot-lab"></select>
-      <label>Rapports par lot <input type="number" id="lot-n" value="10" min="1" max="200"></label>
-      <label><input type="checkbox" id="lot-refaire"> Refaire aussi les rapports déjà analysés</label>
-      <p id="lot-apercu" class="aide"></p>
-      <div id="lot-estimation" class="lot-est" hidden></div>
-      <button id="lot-lancer">Lancer le lot</button>
-      <button id="lot-arreter" hidden>Arrêter après le rapport en cours</button>
-      <progress id="lot-barre" hidden></progress>
-      <p id="lot-etat" aria-live="polite"></p>
-      <ul id="lot-erreurs"></ul>
-    </section>
-
-    <section>
-      <h2>Plagiat</h2>
-      <p><a href="plagiat.html">Comparer les rapports de la bibliothèque</a></p>
-      <p id="enonces-manquants" class="note" hidden></p>
-    </section>
-
-    </div>
   </main>
   </div>
 </div>
   <script src="ui.js"></script>
   <script src="coque.js"></script>
   <script src="dialogue.js"></script>
+  <script src="equipe.js"></script>
+  <script src="recherche.js"></script>
+  <script src="fiche-etudiant.js"></script>
   <script src="app.js"></script>
-  <script src="indices-ia.js"></script>
-  <script src="lot.js"></script>
-  <script src="export-lea.js"></script>
 </body>
 </html>

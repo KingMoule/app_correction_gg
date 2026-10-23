@@ -1,0 +1,31 @@
+/* Champ de recherche et résultats (recherche.js). Chargé par recherche.js lui-même. */
+.recherche { position: relative; margin-bottom: var(--e4); }
+.recherche > svg.ic { position: absolute; left: 14px; top: 13px; color: var(--texte-2); pointer-events: none; }
+.recherche > .saisie { width: 100%; padding-left: 42px; padding-right: 52px; height: var(--cible); }
+.recherche .res-effacer { position: absolute; right: 0; top: 0; }
+.recherche > .saisie:placeholder-shown ~ .res-effacer { display: none; }
+.recherche kbd { position: absolute; right: 12px; top: 11px; font: 600 12px var(--font); color: var(--texte-2); border: 1px solid var(--border-fort);
+  border-radius: 5px; padding: 1px 6px; background: var(--surface-2); pointer-events: none; }
+.recherche > .saisie:not(:placeholder-shown) ~ kbd { display: none; }
+@media (pointer: coarse) { .recherche kbd { display: none; } }
+
+.resultats { position: absolute; z-index: 20; left: 0; right: 0; top: calc(100% + 4px); max-height: min(70vh, 34rem); overflow-y: auto;
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-m); box-shadow: var(--ombre-pop); padding: 6px; }
+.resultats[hidden] { display: none; }
+.res-statut { margin: 0; padding: 8px 10px 4px; font-size: var(--t-min); font-weight: 600; color: var(--texte-2); }
+.res-statut:empty { display: none; }
+.res-statut.vide { padding: 14px 10px; font-weight: 500; font-size: var(--t-s); }
+.res-titre { margin: 8px 0 2px; padding: 0 10px; font-size: var(--t-min); font-weight: 600; color: var(--texte-2); }
+.res-plus { margin: 2px 0 0; padding: 4px 10px; font-size: var(--t-min); color: var(--texte-2); }
+.res { display: flex; align-items: center; gap: 12px; min-height: var(--cible); padding: 6px 10px; border-radius: var(--r-s); color: var(--texte);
+  text-decoration: none; cursor: pointer; }
+.res.sel { background: var(--accent-fond, #e6f4f2); }
+.res .corps { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.res .corps .mu { color: var(--texte-2); }
+.res .fin { flex: none; font-size: var(--t-min); }
+.res .pastille { flex: none; }
+.res .avatar { width: 32px; height: 32px; }
+.res .tuile-res { width: 32px; height: 32px; border-radius: 8px; display: inline-grid; place-items: center; flex: none;
+  background: var(--attention-fond); color: var(--attention); }
+.resultats mark { background: #fde68a; color: var(--texte); border-radius: 2px; padding: 0 1px; }
+@media (max-width: 560px) { .res { flex-wrap: wrap; } }

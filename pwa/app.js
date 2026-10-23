@@ -75,45 +75,6 @@ function resumeLabs() {
   return [...parLab.values()].sort((a, b) => a.cours.localeCompare(b.cours, "fr") || a.lab.localeCompare(b.lab, "fr", { numeric: true }));
 }
 
-// Équipe d'un rapport : retirer ou ajouter un coéquipier (étudiants du cours), enregistré tout de suite.
-function editerEquipe(cours, groupe, lab, etudiant, equipe, apres) {
-  const zone = texte("div", "", "equipe-edition");
-  const rendre = (membres) => {
-    zone.replaceChildren(texte("strong", "Équipe"));
-    if (!membres.length) zone.append(texte("p", "Aucun coéquipier.", "aide"));
-    for (const m of membres) {
-      const l = texte("div", "", "membre");
-      l.append(texte("span", `${m.prenom} ${m.nom} (groupe ${m.groupe})`));
-      l.append(bouton("Retirer", { icone: "x", classe: "tertiaire", surClic: () => enregistrer(membres.filter((x) => x !== m)) }));
-      zone.append(l);
-    }
-    const choix = document.createElement("select");
-    choix.className = "saisie";
-    choix.setAttribute("aria-label", "Ajouter un coéquipier");
-    choix.append(texte("option", "Ajouter un coéquipier…"));
-    const deja = new Set(membres.map((m) => `${m.groupe}/${m.id}`));
-    for (const g of arbre.filter((x) => x.cours === cours)) {
-      for (const x of g.etudiants.filter((y) => !y.retire && !deja.has(`${g.groupe}/${y.id}`) && !(g.groupe === groupe && y.id === etudiant))) {
-        const o = texte("option", `${x.nom}, ${x.prenom} (groupe ${g.groupe})`);
-        o.value = JSON.stringify({ id: x.id, groupe: g.groupe, nom: x.nom, prenom: x.prenom });
-        choix.append(o);
-      }
-    }
-    choix.onchange = () => { if (choix.value) enregistrer([...membres, JSON.parse(choix.value)]); };
-    zone.append(choix);
-  };
-  const enregistrer = async (membres) => {
-    const r = await fetch(`${API}/equipe/${[cours, groupe, lab, etudiant].map(encodeURIComponent).join("/")}`, {
-      method: "PUT", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ equipe: membres.map((m) => ({ groupe: m.groupe, id: m.id })) }) });
-    if (!r.ok) { alert(await erreurApi(r)); return; }
-    rendre((await r.json()).equipe);
-    await apres?.();
-  };
-  rendre(equipe);
-  return zone;
-}
-
 // Ouvre ou ferme le panneau d'équipe sous une ligne.
 function basculerEquipe(ligne, creer) {
   if (ligne.nextElementSibling?.classList.contains("equipe-edition")) ligne.nextElementSibling.remove();
@@ -133,7 +94,6 @@ async function charger() {
   enonces = await (await fetch("/api/plagiat/enonces")).json().catch(() => []);
   rendreLabs();
   rendreAccueil();
-  rendreEnoncesManquants();
   const cours = [...new Set(arbre.map((c) => c.cours))];
   const choisi = $("choix-cours").value;
   $("choix-cours").replaceChildren(...cours.map((c) => { const o = texte("option", c); o.value = c; return o; }));
@@ -141,7 +101,6 @@ async function charger() {
   $("choix-cours").onchange = remplirGroupes;
   remplirGroupes();
   rendreClassesChargees();
-  window.rafraichirLot?.(arbre); // l'écran « Analyse par lot » de #outils (retiré par la PR D)
   window.Coque?.labs(arbre);
   await chargerAttente();
   rendreEtapes();
@@ -166,7 +125,7 @@ async function chargerSuivis() {
   consoEtat = conso;
   const d = rep?.dernier;
   reprise = d ? { url: `lecteur.html?${new URLSearchParams({ cours: d.cours, groupe: d.groupe, lab: d.lab, etudiant: d.etudiant, nom: `${d.prenom} ${d.nom}` })}`,
-    nom: `${d.prenom} ${d.nom}`, cours: d.cours, groupe: d.groupe, lab: d.lab } : repriseLocale();
+    nom: `${d.prenom} ${d.nom}`, cours: d.cours, groupe: d.groupe, lab: d.lab } : null;
   apercus = new Map();
   rendreAccueil();
   rendreLabs();
@@ -435,7 +394,8 @@ function afficherRecap(d) {
     const li = ligne(x.fichier, centre, etat);
     etat.append(pastille(`Rangé · groupe ${x.groupe}`, "p-fini"),
       bouton("Équipe", { icone: "users", classe: "tertiaire", titre: "Vérifier ou modifier l'équipe détectée",
-        surClic: () => basculerEquipe(li, () => editerEquipe(d.cours, x.groupe, d.lab, x.etudiant.id, x.equipe, charger)) }));
+        surClic: () => basculerEquipe(li, () => Equipe.editer({ cours: d.cours, groupe: x.groupe, lab: d.lab, etudiant: x.etudiant.id,
+          equipe: x.equipe, classes: arbre, apres: charger })) }));
   }
   for (const x of d.en_attente) ligne(x.fichier, null, pastille(`À trancher · ${RAISONS[x.raison] ?? x.raison}`));
   for (const x of d.refuses) ligne(x.fichier, null, pastille(`Refusé · ${x.raison}`, "p-erreur"));
@@ -455,17 +415,33 @@ function rendreEtapes() {
 }
 
 // --- Navigation entre les vues et accueil ---
-const VUES = ["accueil", "biblio", "importer", "outils"];
+const VUES = ["accueil", "biblio", "importer"];
 
 function aller(vue) {
-  if (!VUES.includes(vue)) vue = "accueil";
+  const chercher = vue === "recherche"; // Ctrl+K depuis une autre page : la page Labs, champ de recherche actif
+  if (chercher) vue = "biblio";
+  if (!VUES.includes(vue)) vue = "accueil"; // dont l'ancien « #outils » (analyse par lot, maintenant dans la page du lab)
   for (const v of VUES) $("v-" + v).hidden = v !== vue;
   window.Coque?.marquer(vue);
   if (location.hash !== "#" + vue) history.replaceState(null, "", "#" + vue);
   scrollTo(0, 0);
+  if (chercher) recherche?.focus();
 }
 document.querySelectorAll("[data-go]").forEach((b) => { b.onclick = () => aller(b.dataset.go); });
 window.onhashchange = () => aller(location.hash.slice(1));
+
+// --- Recherche (page Labs) et fiche d'étudiant ---
+const recherche = Recherche.monter($("recherche-place"), {
+  titreLab: (lab) => window.Coque?.titreLab?.(lab) ?? lab,
+  surEtudiant: (e) => FicheEtudiant.ouvrir({ ...e, apres: charger }),
+});
+document.addEventListener("keydown", (ev) => {
+  if ((ev.ctrlKey || ev.metaKey) && !ev.altKey && ev.key.toLowerCase() === "k") {
+    ev.preventDefault();
+    if ($("v-biblio").hidden) aller("biblio");
+    recherche.focus();
+  }
+});
 
 // --- Titres, états et liens d'un lab ---
 const titreLab = (lab) => window.Coque?.titreLab?.(lab) ?? lab;
@@ -636,18 +612,11 @@ function rendreLabs() {
 }
 
 // --- Accueil : « Le lab au centre » ---
-let reprise = null;       // { url, nom, cours, groupe, lab } : celle du moteur, sinon le localStorage
+let reprise = null;       // { url, nom, cours, groupe, lab } : GET /api/reprendre
 let consoEtat = null;     // GET /api/consommation
 let apercus = new Map();  // « cours|lab » -> { n, pct, depasse, a_analyser } : l'aperçu du lot conseillé
 let lotActif = window.Coque?.lot?.statut === "en_cours";
 let toastLot = null;
-
-function repriseLocale() {
-  try {
-    const d = JSON.parse(localStorage.getItem("dernier"));
-    return d?.url ? { url: d.url, nom: d.nom, cours: d.cours, groupe: d.groupe, lab: d.lab } : null;
-  } catch { return null; }
-}
 
 function urlRapport(cours, lab, r) {
   return `lecteur.html?${new URLSearchParams({ cours, groupe: r.groupe, lab, etudiant: r.etudiant, nom: `${r.prenom} ${r.nom}` })}`;
@@ -866,22 +835,17 @@ document.addEventListener("coque:lot", (ev) => {
 
 aller(location.hash.slice(1));
 
-function rendreEnoncesManquants() {
-  const manquants = [];
-  for (const cours of new Set(arbre.map((c) => c.cours))) {
-    const labs = new Set(arbre.filter((c) => c.cours === cours).flatMap((c) => c.etudiants.flatMap((e) => e.labs)));
-    for (const lab of [...labs].sort()) if (!enonces.some((x) => x.cours === cours && x.lab === lab)) manquants.push({ cours, lab });
+// Import prérempli depuis la page du lab : /?cours=…&lab=…[&groupe=…]#importer (le lien ne porte que cours, lab et groupe).
+function preremplirImport() {
+  const p = new URLSearchParams(location.search);
+  if (!p.has("cours") || !p.has("lab")) return;
+  if (arbre.some((c) => c.cours === p.get("cours"))) {
+    $("choix-cours").value = p.get("cours");
+    remplirGroupes();
+    $("lab").value = p.get("lab");
+    $("seg-groupe").querySelector(`button[data-valeur="${CSS.escape(p.get("groupe") ?? "")}"]`)?.click();
   }
-  const zone = $("enonces-manquants");
-  zone.replaceChildren();
-  zone.hidden = !manquants.length;
-  if (!manquants.length) return;
-  zone.append(texte("strong", `Énoncé manquant (${manquants.length}) : `), texte("span", "sans énoncé, les passages de l'énoncé comptent comme du plagiat. "));
-  for (const m of manquants) {
-    const a = texte("a", `${m.cours} · ${m.lab}`, "bk");
-    a.href = `plagiat.html?${new URLSearchParams(m)}`;
-    zone.append(a, " ");
-  }
+  history.replaceState(null, "", `/${location.hash || "#importer"}`);
 }
 
-charger().catch(() => {});
+charger().then(preremplirImport).catch(() => {});
