@@ -107,7 +107,7 @@ Texte complet : [`critique-independante.md`](critique-independante.md). L'essent
 
 ## Recommandation
 
-**P1 « Le lab au centre »**, avec la fiche d'étudiant de P2 ouverte depuis la recherche. Elle part de l'écran que Guillaume aime déjà (le suivi, qui devient la page du lab), donne une seule porte par lab, met le lot de Claude à une touche et coûte le moins à construire. P3 est la meilleure si Guillaume préfère qu'on lui dise quoi faire plutôt que de voir ses labs; P2 si ses questions sont surtout « où en est tel étudiant ».
+**Choisie par Guillaume le 2026-10-23.** **P1 « Le lab au centre »**, avec la fiche d'étudiant de P2 ouverte depuis la recherche. Elle part de l'écran que Guillaume aime déjà (le suivi, qui devient la page du lab), donne une seule porte par lab, met le lot de Claude à une touche et coûte le moins à construire. P3 est la meilleure si Guillaume préfère qu'on lui dise quoi faire plutôt que de voir ses labs; P2 si ses questions sont surtout « où en est tel étudiant ».
 
 ## Dépendances et suites (hors maquettes)
 
