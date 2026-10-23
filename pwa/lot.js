@@ -26,7 +26,7 @@
     for (const c of arbre) {
       const labs = new Set(c.etudiants.flatMap((e) => e.labs));
       for (const lab of [...labs].sort()) {
-        const o = noeud("option", `${UI.titreCours(c.cours)} · groupe ${c.groupe} · ${lab}`);
+        const o = noeud("option", `${c.cours} · groupe ${c.groupe} · ${lab}`);
         o.value = JSON.stringify({ cours: c.cours, groupe: c.groupe, lab });
         options.push(o);
       }
