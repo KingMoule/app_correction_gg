@@ -235,3 +235,96 @@ def test_api(donnees):
     assert r["calibrage"]["calibre"]
     assert cl.post("/api/consommation/calibrage", json={"session": 140}).status_code == 422
     assert cl.post("/api/consommation/reglages", json={"marge_pct": 30}).json()["marge_pct"] == 30
+
+
+# --- Usage total saisi (lecture de /usage, toutes sources) ---------------------------------
+
+def avancer(donnees, **delta):
+    donnees["t"] = donnees["t"] + timedelta(**delta)
+
+
+def test_sans_saisie_pas_de_total_et_l_estimation_part_de_l_app(donnees):
+    ajouter(donnees, "ia", 0.30)
+    r = c.resume()
+    assert r["total"]["session"]["etat"] == "aucune" and r["total"]["session"]["total"] is None
+    assert c.estimer([("a", True, True, True)])["source"] == "app"
+
+
+def test_saisie_donne_total_app_autres_et_reste(donnees):
+    ajouter(donnees, "ia", 0.40)  # app ~ 10,8 % (27 %/$ par défaut)
+    r = c.enregistrer_total(session=40)
+    t = r["total"]["session"]
+    assert t["etat"] == "ok" and t["total"] == 40 and t["reste"] == 60
+    assert t["app"] == pytest.approx(10.8, abs=0.1) and t["autres"] == pytest.approx(29.2, abs=0.1)
+    assert t["age_min"] == 0 and t["saisi"] == 40
+
+
+def test_le_total_vieillit_avec_la_consommation_de_l_app(donnees):
+    donnees["t"] = MAINTENANT - timedelta(minutes=40)
+    c.enregistrer_total(session=40)
+    ajouter(donnees, "ia", 0.10, il_y_a=timedelta(minutes=10))  # +2,7 % après la saisie
+    t = c.resume()["total"]["session"]
+    assert t["age_min"] == 40 and t["depuis_app"] == pytest.approx(2.7, abs=0.1)
+    assert t["total"] == pytest.approx(42.7, abs=0.1) and t["reste"] == pytest.approx(57.3, abs=0.1)
+
+
+def test_saisie_de_plus_de_cinq_heures_n_est_plus_fiable(donnees):
+    c.enregistrer_total(session=40, semaine=30)
+    avancer(donnees, hours=5, minutes=1)
+    r = c.resume()["total"]
+    assert r["session"]["etat"] == "perimee" and r["session"]["total"] is None and r["session"]["reste"] is None
+    assert r["semaine"]["etat"] == "ok"  # la semaine tient encore
+    e = c.estimer([("a", True, True, True)])
+    assert e["source"] == "app" and e["reste"] is None and e["depasse_reste"] is False
+    avancer(donnees, days=7)
+    assert c.resume()["total"]["semaine"]["etat"] == "perimee"
+
+
+def test_semaine_non_saisie_garde_la_derniere_lecture_de_semaine(donnees):
+    c.enregistrer_total(session=10, semaine=20)
+    avancer(donnees, hours=1)
+    c.enregistrer_total(session=15)  # sans semaine
+    r = c.resume()["total"]
+    assert r["session"]["saisi"] == 15 and r["semaine"]["saisi"] == 20 and r["semaine"]["age_min"] == 60
+
+
+def test_saisie_sans_calibrer_ne_change_pas_le_rapport(donnees):
+    ajouter(donnees, "ia", 0.50)
+    r = c.enregistrer_total(session=60)  # d'autres usages ont consommé : pas de calibrage
+    assert r["calibrage"]["calibre"] is False and r["calibrage"]["derniere"] is None
+    assert r["session"]["pct"] == pytest.approx(0.5 * c.PCT_PAR_USD_DEFAUT, abs=0.1)
+    r = c.enregistrer_total(session=20, calibrer=True)  # l'app était seule
+    assert r["calibrage"]["calibre"] and r["calibrage"]["pct_par_usd"] == pytest.approx(40)
+    assert r["total"]["session"]["saisi"] == 20
+
+
+def test_estimation_du_lot_contre_le_reste(donnees):
+    c.enregistrer_total(session=70)  # reste 30 %, plafond (marge 20 %) à 80
+    lot = [(str(i), True, True, True) for i in range(5)]
+    e = c.estimer(lot)
+    unitaire = e["pct"] / 5
+    assert e["source"] == "total" and e["utilise"] == 70 and e["reste"] == 30
+    assert e["depasse"] and e["depasse_reste"] == (e["pct"] > 30)
+    assert e["max_rapports"] == int((80 - 70) // unitaire)
+    assert e["max_rapports_reste"] == min(5, int(30 // unitaire))
+    petit = c.estimer(lot[:1])
+    assert petit["depasse_reste"] is False and petit["max_rapports_reste"] == 1
+    c.enregistrer_total(session=95)
+    e = c.estimer(lot)
+    assert e["depasse_reste"] is True and e["max_rapports_reste"] < 5
+
+
+def test_api_total(donnees):
+    client = TestClient(creer_app())
+    r = client.post("/api/consommation/total", json={"session": 33, "semaine": 12, "calibrer": False})
+    assert r.status_code == 200
+    assert r.json()["total"]["session"]["total"] == 33 and r.json()["calibrage"]["derniere"] is None
+    assert client.post("/api/consommation/total", json={"session": 120}).status_code == 422
+    r = client.post("/api/consommation/calibrage", json={"session": 5})  # ancien point d'entrée = calibrer aussi
+    assert r.json()["calibrage"]["derniere"]["session"] == 5
+
+
+def test_rapports_restants_partent_du_total_saisi(donnees):
+    avant = c.resume()["restants"]
+    r = c.enregistrer_total(session=50)
+    assert r["restants"] < avant and r["restants"] == int((80 - 50) // r["pct_par_rapport"])
