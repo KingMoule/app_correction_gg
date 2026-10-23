@@ -1,9 +1,12 @@
-// Tableau de suivi d'un lab : un seul appel au moteur (GET /api/suivi/<cours>/<lab>) pour tous les rapports.
-// Direction Atelier : tableau dense, filtres segmentés, menu « … » par ligne, balayage d'une ligne au doigt.
+// Page du lab (P1) : un seul appel au moteur (GET /api/suivi/<cours>/<lab>) pour tous les rapports.
+// En-tête chiffré (terminés / analysés / reçus / non remis), trois onglets : Rapports (tableau dense, filtres segmentés, menu « … »
+// par ligne, balayage d'une ligne au doigt), Claude (lot du lab : lot-lab.js) et Export LÉA (export-lea.js). Énoncé, ajout de
+// rapports et clôture dans le menu « … » du lab; équipe d'un rapport : equipe.js.
 (async () => {
   const q = new URLSearchParams(location.search);
   const cours = q.get("cours"), lab = q.get("lab");
   const $ = (id) => document.getElementById(id);
+  const enc = encodeURIComponent;
   const el = (tag, contenu = "", classe = "") => {
     const n = document.createElement(tag);
     n.textContent = contenu; // jamais de HTML : les noms viennent de la bibliothèque
@@ -13,9 +16,16 @@
   const lire = (cle, defaut) => { try { return localStorage.getItem("suivi:" + cle) ?? defaut; } catch { return defaut; } };
   const ecrire = (cle, v) => { try { localStorage.setItem("suivi:" + cle, v); } catch { /* stockage indisponible */ } };
   const F = { moderee: "Modéré", marquee: "Marqué", faible: "Faible" };
-  const FILTRES = ["tout", "a_corriger", "en_cours", "termine", "revoir"];
-  let donnees = { rapports: [], groupes: [], compte: {} };
+  const FILTRES = ["tout", "a_corriger", "en_cours", "termine", "revoir", "non_remis"];
+  const ONGLETS = ["rapports", "claude", "export"];
+  // « lab-2 » -> « Lab 2 » (affichage seulement : les adresses gardent le nom du dossier)
+  const libelleLab = (s) => { const t = String(s).replace(/[-_]+/g, " ").trim(); return t.charAt(0).toUpperCase() + t.slice(1); };
+  const detail = async (r) => (await r.json().catch(() => ({}))).detail || `Erreur ${r.status}`;
+  let donnees = { rapports: [], groupes: [], compte: {}, non_remis: [] };
+  let onglet = "rapports", exportMonte = false, enonceExiste = false, cleMenuLab = null;
   const enAnalyse = new Set(); // rapports que Claude analyse en ce moment (un seul à la fois côté moteur)
+
+  if (!cours || !lab) { $("message").textContent = "Lab non précisé : ouvre-le depuis la liste des labs."; return; }
 
   const chemin = (r) => [cours, r.groupe, lab, r.etudiant].map(encodeURIComponent).join("/");
   const nomComplet = (r) => `${r.prenom} ${r.nom}`;
@@ -41,6 +51,7 @@
     const rep = await fetch(`/api/lot/${chemin(r)}`, { method: "POST" });
     if (!rep.ok) { message((await rep.json().catch(() => ({}))).detail || `Erreur ${rep.status}`); return; }
     enAnalyse.add(`${r.groupe}/${r.etudiant}`);
+    lotLab.suivre();
     rendre();
     message(`Analyse de ${nomComplet(r)} en cours…`);
     for (;;) {
@@ -83,6 +94,7 @@
   const menuLigne = (r) => [
     { libelle: "Ouvrir le rapport", icone: "file-text", surClic: () => { location.href = lien(r); } },
     ...(peutAnalyser(r) ? [{ libelle: "Analyser avec Claude", icone: "sparkles", surClic: () => analyser(r) }] : []),
+    { libelle: "Équipe…", icone: "users", surClic: () => Equipe.ouvrir({ cours, groupe: r.groupe, lab, etudiant: r.etudiant, nom: nomComplet(r), apres: charger }) },
     { libelle: r.termine ? "Ré-ouvrir le rapport" : "Marquer terminé…", icone: r.termine ? "rotate-ccw" : "circle-check", surClic: () => terminer(r) },
     ...(r.plagiat ? [{ separateur: true }, { libelle: "Voir les paires de plagiat", icone: "scan-search", surClic: () => { location.href = "plagiat.html"; } }] : []),
   ];
@@ -224,7 +236,7 @@
     let depart = null;
     conteneur.addEventListener("pointerdown", (e) => {
       if (e.pointerType !== "touch") return;
-      const tr = e.target.closest("tbody tr:not(.groupe)");
+      const tr = e.target.closest("tbody tr:not(.groupe):not(.non-remis)");
       if (ouverte && !e.target.closest(".balayage") && ouverte.tr !== tr) refermer();
       if (!tr || e.target.closest("button, a")) return;
       depart = { tr, x: e.clientX, y: e.clientY, id: e.pointerId, actif: false, deja: ouverte?.tr === tr, largeur: 0 };
@@ -263,63 +275,209 @@
   }
   brancherBalayage();
 
-  // --- Rendu ---
-  function rendre() {
-    refermer();
-    let filtre = lire("filtre", "tout");
-    if (!FILTRES.includes(filtre)) filtre = "tout"; // anciennes valeurs (« cours »)
-    const groupe = lire("groupe", "");
-    const c = donnees.compte;
-    $("titre").textContent = `Suivi du ${lab}`;
-    document.title = `Suivi ${lab} · ${cours}`;
-    $("fil").replaceChildren(UI.icone("chevron-right"), document.createTextNode(`${cours} `), UI.icone("chevron-right"), el("b", lab));
-    const pas = (donnees.rapports.filter((r) => !r.termine)[0]);
-    const nbGroupes = donnees.groupes.length;
-    $("sous").textContent = `${donnees.total} rapport(s) · ${cours} · ${nbGroupes} groupe(s)` + (donnees.archive ? " · lab archivé" : "")
-      + (pas ? ` · prochain non terminé : ${nomComplet(pas)}` : "");
+  // --- Menu « … » du lab : énoncé, ajouter des rapports, clore ---
+  const urlImport = (extra = {}) => `/?${new URLSearchParams({ cours, lab, ...extra })}#importer`; // cours et lab sont lisibles par l'import
+  const urlEnonce = `/api/plagiat/enonces/${enc(cours)}/${enc(lab)}`;
 
-    const lot = $("vers-lot"); lot.replaceChildren(UI.icone("sparkles"), document.createTextNode("Analyse par lot"));
-    const suivant = $("suivant");
+  const chargerEnonce = async () => {
+    try {
+      const l = await (await fetch("/api/plagiat/enonces")).json();
+      enonceExiste = l.some((x) => x.cours === cours && x.lab === lab);
+    } catch { /* moteur injoignable : le menu propose « Téléverser » */ }
+    rendreMenuLab();
+  };
+
+  $("enonce-fichier").onchange = async (e) => {
+    const f = e.target.files[0];
+    e.target.value = "";
+    if (!f) return;
+    if (enonceExiste && !(await Dialogue.confirmer({
+      titre: `Remplacer l'énoncé de ${libelleLab(lab)} ?`, danger: true, ok: "Remplacer",
+      texte: "L'énoncé actuel est remplacé par ce fichier. Les prochaines comparaisons de plagiat ignorent les passages du nouvel énoncé." }))) return;
+    const form = new FormData();
+    form.append("pdf", f);
+    const r = await fetch(urlEnonce, { method: "POST", body: form });
+    if (!r.ok) { UI.toast(await detail(r), { erreur: true }); return; }
+    UI.toast("Énoncé enregistré");
+    await chargerEnonce();
+  };
+
+  // Clore = archiver chaque groupe du lab (rien n'est déplacé ni supprimé); un groupe sans ce lab (404) est ignoré.
+  const clore = async (archive) => {
+    const reps = await Promise.all(donnees.groupes.map((g) => fetch(`/api/bibliotheque/archive/${enc(cours)}/${enc(g)}/${enc(lab)}`, {
+      method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ archive }) })));
+    if (reps.some((r) => !r.ok && r.status !== 404)) { UI.toast("Impossible de modifier l'état du lab.", { erreur: true }); return; }
+    UI.toast(archive ? `${libelleLab(lab)} clos` : `${libelleLab(lab)} ré-ouvert`,
+      archive ? { action: { libelle: "Annuler", surClic: () => clore(false) } } : {});
+    await charger();
+    try { window.Coque?.labs(await (await fetch("/api/bibliotheque")).json()); } catch { /* la barre latérale se met à jour au prochain chargement */ }
+  };
+
+  function rendreMenuLab() {
+    const cle = `${enonceExiste}|${donnees.archive}`;
+    if (cle === cleMenuLab) return;
+    cleMenuLab = cle;
+    const b = el("button", "", "btn-ico");
+    b.type = "button";
+    b.setAttribute("aria-label", "Actions du lab : énoncé, ajouter des rapports, clore le lab");
+    b.append(UI.icone("ellipsis", "l"));
+    UI.menu(b, [
+      ...(enonceExiste ? [{ libelle: "Voir l'énoncé", icone: "external-link", surClic: () => window.open(urlEnonce, "_blank") }] : []),
+      { libelle: enonceExiste ? "Remplacer l'énoncé…" : "Téléverser l'énoncé…", icone: "file-up", surClic: () => $("enonce-fichier").click() },
+      { libelle: "Ajouter des rapports", icone: "upload", surClic: () => { location.href = urlImport(); } },
+      { separateur: true },
+      donnees.archive
+        ? { libelle: "Ré-ouvrir le lab", icone: "rotate-ccw", surClic: () => clore(false) }
+        : { libelle: "Clore le lab", icone: "archive", surClic: () => clore(true) },
+    ]);
+    $("zone-menu-lab").replaceChildren(b);
+  }
+
+  // --- Onglets : Rapports / Claude / Export LÉA (gardé dans l'adresse : suivi.html?…#claude) ---
+  function monterExport() {
+    if (exportMonte || !donnees.groupes.length) return;
+    exportMonte = true;
+    $("export-zone").append(window.blocExportLea(cours, lab, donnees.groupes));
+  }
+
+  function choisir(nom) {
+    if (!ONGLETS.includes(nom)) nom = "rapports";
+    const avant = onglet;
+    onglet = nom;
+    for (const b of document.querySelectorAll("#onglets [role=tab]")) {
+      const on = b.dataset.onglet === nom;
+      b.setAttribute("aria-selected", String(on));
+      b.tabIndex = on ? 0 : -1;
+      $("p-" + b.dataset.onglet).hidden = !on;
+    }
+    $("lot-rapide").hidden = nom === "claude"; // l'onglet a son propre bouton « Analyser »
+    const h = nom === "rapports" ? "" : `#${nom}`;
+    if (location.hash !== h) history.replaceState(null, "", location.pathname + location.search + h);
+    if (nom === "export") monterExport();
+    if (avant === "export" && nom !== "export") charger(); // l'état d'export a pu changer
+    else rendreBanniereExport();
+  }
+
+  $("onglets").addEventListener("click", (e) => { const b = e.target.closest("[role=tab]"); if (b) choisir(b.dataset.onglet); });
+  $("onglets").addEventListener("keydown", (e) => {
+    const i = ONGLETS.indexOf(onglet);
+    const j = { ArrowRight: i + 1, ArrowLeft: i - 1, Home: 0, End: ONGLETS.length - 1 }[e.key];
+    if (j === undefined) return;
+    e.preventDefault();
+    choisir(ONGLETS[(j + ONGLETS.length) % ONGLETS.length]);
+    $("t-" + onglet).focus();
+  });
+  window.addEventListener("hashchange", () => choisir(location.hash.slice(1)));
+
+  // --- Rendu ---
+  // Bannière « export périmé » : visible hors de l'onglet Export (qui a la sienne), avec le chemin vers l'export.
+  function rendreBanniereExport() {
+    const ex = donnees.export || {}, ban = $("export");
+    if (ex.statut !== "perime" || onglet === "export") { ban.replaceChildren(); return; }
+    const b = el("div", "", "banniere attention"); b.setAttribute("role", "alert");
+    const corps = el("div", "", "corps");
+    corps.append(el("b", "Export pour LÉA périmé : "), document.createTextNode(`${ex.modifies} rapport(s) modifié(s) depuis le dernier export (${dateFr(ex.date)}).`));
+    const refaire = el("button", "Refaire l'export", "btn"); refaire.type = "button";
+    refaire.onclick = () => choisir("export");
+    b.append(UI.icone("triangle-alert"), corps, refaire);
+    ban.replaceChildren(b);
+  }
+
+  function rendreTete() {
+    const c = donnees.compte;
+    const nomLab = libelleLab(lab);
+    $("titre").replaceChildren(document.createTextNode(`${nomLab} · ${cours}`));
+    if (donnees.archive) $("titre").append(pastille("Lab clos", "p-neutre"));
+    document.title = `${nomLab} · ${cours}`;
+    $("fil").replaceChildren(UI.icone("chevron-right"), el("b", cours));
+    const pas = donnees.rapports.find((r) => !r.termine);
+    const g = donnees.groupes;
+    $("sous").textContent = (g.length ? `${g.length > 1 ? "gr." : "groupe"} ${g.join(", ")}` : cours)
+      + (donnees.total ? (pas ? ` · prochain non terminé : ${nomComplet(pas)}` : " · tous les rapports sont terminés") : " · aucun rapport reçu");
+
+    const suivant = $("suivant"), groupe = lire("groupe", "");
     const cible = donnees.rapports.filter((r) => (!groupe || r.groupe === groupe) && !r.termine)[0];
     suivant.hidden = !cible;
     if (cible) { suivant.href = lien(cible); suivant.replaceChildren(UI.icone("pen"), document.createTextNode("Corriger le suivant")); suivant.title = nomComplet(cible); }
 
-    // Progression : terminés et en cours
-    const total = donnees.total || 0;
-    $("prog").hidden = !total;
-    if (total) {
-      $("prog-texte").replaceChildren(el("b", String(c.termine ?? 0)), document.createTextNode(` terminés · `), el("b", String(c.en_cours ?? 0)), document.createTextNode(" en cours"));
-      $("prog-pct").textContent = `${Math.round(100 * (c.termine ?? 0) / total)} %`;
-      const fait = el("i", "", "fait"), cours_ = el("i", "", "cours");
-      fait.style.width = `${100 * (c.termine ?? 0) / total}%`; cours_.style.width = `${100 * (c.en_cours ?? 0) / total}%`;
-      $("prog-barre").replaceChildren(fait, cours_);
-    }
+    // État du lab : barre à deux segments (terminés, puis analysés pas encore terminés) et chiffres
+    const recus = c.recus ?? donnees.total ?? 0, termines = c.termines ?? 0, analyses = c.analyses ?? 0;
+    $("prog").hidden = !(recus || c.non_remis);
+    const t = el("i", "", "t"), a = el("i", "", "a");
+    t.style.width = recus ? `${100 * termines / recus}%` : "0";
+    a.style.width = recus ? `${100 * donnees.rapports.filter((r) => r.analyse && !r.termine).length / recus}%` : "0";
+    $("prog-barre").replaceChildren(t, a);
+    $("prog-barre").setAttribute("aria-label", `${termines} terminés, ${analyses} analysés sur ${recus} reçus`);
+    $("prog-texte").replaceChildren(el("b", String(termines)), document.createTextNode(" terminés · "), el("b", String(analyses)),
+      document.createTextNode(` analysés / ${recus} reçus` + (c.non_remis ? ` · ${c.non_remis} non remis` : "")));
 
-    // État de l'export pour LÉA
-    const ex = donnees.export || {}, quand = dateFr(ex.date);
-    const ban = $("export");
-    if (ex.statut === "perime") {
-      const b = el("div", "", "banniere attention"); b.setAttribute("role", "alert");
-      const corps = el("div", "", "corps");
-      corps.append(el("b", "Export pour LÉA périmé : "), document.createTextNode(`${ex.modifies} rapport(s) modifié(s) depuis le dernier export (${quand}).`));
-      const refaire = el("a", "Refaire l'export", "btn"); refaire.href = "/#biblio";
-      b.append(UI.icone("triangle-alert"), corps, refaire);
-      ban.replaceChildren(b);
-    } else {
-      const ok = ex.statut !== "jamais";
-      const b = el("div", "", "banniere" + (ok ? " ok" : "")); b.setAttribute("role", "status");
-      const corps = el("div", "", "corps");
-      corps.textContent = ok ? `Export pour LÉA à jour (${quand})` + (ex.non_exportes ? `, ${ex.non_exportes} rapport(s) pas encore exporté(s).` : ".") : "Export pour LÉA : jamais exporté.";
-      b.append(UI.icone(ok ? "circle-check" : "info"), corps);
-      ban.replaceChildren(b);
+    // Pastilles des onglets
+    const aAnalyser = donnees.rapports.filter((r) => !r.analyse).length;
+    $("n-rapports").textContent = String(recus);
+    $("n-claude").textContent = !recus ? "" : aAnalyser ? `${aAnalyser} à analyser` : "à jour";
+    const ex = donnees.export || {};
+    const nExport = $("n-export");
+    nExport.textContent = !recus ? "" : { jamais: "jamais", a_jour: "à jour", perime: "périmé" }[ex.statut] ?? "";
+    nExport.classList.toggle("attention", ex.statut === "perime");
+  }
+
+  function rendre() {
+    refermer();
+    rendreTete();
+    rendreMenuLab();
+    rendreBanniereExport();
+    if (onglet === "export") monterExport();
+    rendreTableau();
+  }
+
+  function entete(...titres) {
+    const tete = el("thead"), tr = el("tr");
+    for (const [t, cl] of titres) {
+      const th = el("th", t, cl); th.scope = "col";
+      if (!t) th.setAttribute("aria-label", "Actions");
+      tr.append(th);
     }
+    tete.append(tr);
+    return tete;
+  }
+
+  // Non remis : inscrits sans rapport ni place dans une équipe; « Ajouter ce rapport » mène à l'import (cours et lab dans l'adresse).
+  function tableauNonRemis(liste) {
+    const tab = el("table", "", "tableau");
+    tab.append(entete(["Étudiant", ""], ["État", ""], ["", ""]));
+    const corps = el("tbody");
+    let g = null;
+    for (const n of liste) {
+      if (n.groupe !== g) {
+        g = n.groupe;
+        const gr = el("tr", "", "groupe"), cel = el("td", `Groupe ${g} · ${liste.filter((x) => x.groupe === g).length} non remis`);
+        cel.colSpan = 3; gr.append(cel); corps.append(gr);
+      }
+      const tr = el("tr", "", "non-remis");
+      const nom = el("div", "", "nom-etu");
+      nom.append(el("span", ((n.prenom[0] || "") + (n.nom[0] || "")).toUpperCase(), "avatar sans-rapport"), el("span", `${n.prenom} ${n.nom}`, "mu"));
+      const ajout = el("a", "", "btn"); ajout.href = urlImport({ groupe: n.groupe, etudiant: n.id });
+      ajout.append(UI.icone("plus"), document.createTextNode("Ajouter ce rapport"));
+      ajout.setAttribute("aria-label", `Ajouter ce rapport : ${n.prenom} ${n.nom}`); // contient le libellé visible
+      tr.append(td("nom", nom), td("mu", document.createTextNode("Non remis · aucun rapport ni équipe pour ce lab")), td("actions", ajout));
+      corps.append(tr);
+    }
+    tab.append(corps);
+    return tab;
+  }
+
+  function rendreTableau() {
+    let filtre = lire("filtre", "tout");
+    if (!FILTRES.includes(filtre)) filtre = "tout"; // anciennes valeurs (« cours »)
+    const groupe = lire("groupe", "");
 
     // Filtres segmentés avec compteurs
     const dansGroupe = donnees.rapports.filter((r) => !groupe || r.groupe === groupe);
+    const nonRemis = donnees.non_remis.filter((n) => !groupe || n.groupe === groupe);
     const compte = {
       tout: dansGroupe.length, a_corriger: dansGroupe.filter((r) => r.etat === "a_corriger").length,
       en_cours: dansGroupe.filter((r) => r.etat === "en_cours").length, termine: dansGroupe.filter((r) => r.termine).length,
-      revoir: dansGroupe.filter((r) => r.a_revoir && !r.termine).length,
+      revoir: dansGroupe.filter((r) => r.a_revoir && !r.termine).length, non_remis: nonRemis.length,
     };
     for (const b of document.querySelectorAll("#filtres button")) {
       const on = b.dataset.f === filtre;
@@ -331,6 +489,12 @@
     sel.value = groupe;
     sel.hidden = donnees.groupes.length < 2 && !groupe;
 
+    if (filtre === "non_remis") {
+      if (!nonRemis.length) { vide("Tous les inscrits ont remis un rapport.", filtre); return; }
+      conteneur.replaceChildren(tableauNonRemis(nonRemis));
+      return;
+    }
+
     let lignes = dansGroupe;
     if (filtre === "a_corriger") lignes = lignes.filter((r) => r.etat === "a_corriger");
     if (filtre === "en_cours") lignes = lignes.filter((r) => r.etat === "en_cours");
@@ -338,31 +502,20 @@
     if (filtre === "revoir") lignes = lignes.filter((r) => r.a_revoir && !r.termine);
 
     if (!lignes.length) {
-      const v = el("div", "", "vide suivi-vide");
-      v.append(UI.icone("inbox"), el("p", { a_corriger: "Rien à corriger ici.", en_cours: "Aucun rapport en cours.", termine: "Aucun rapport terminé pour l'instant.",
-        revoir: "Rien à revoir : aucun indice à vérifier." }[filtre] || "Aucun rapport."));
-      if (filtre !== "tout") {
-        const b = el("button", "Voir tous les rapports", "btn"); b.type = "button";
-        b.onclick = () => { ecrire("filtre", "tout"); rendre(); };
-        v.append(b);
-      }
-      conteneur.replaceChildren(v);
+      vide({ a_corriger: "Rien à corriger ici.", en_cours: "Aucun rapport en cours.", termine: "Aucun rapport terminé pour l'instant.",
+        revoir: "Rien à revoir : aucun indice à vérifier." }[filtre] || "Aucun rapport reçu pour ce lab.", filtre);
       return;
     }
     const tab = el("table", "", "tableau");
-    const tete = el("thead"); const tr = el("tr");
-    for (const [t, cl] of [["Étudiant", ""], ["Français", ""], ["Indice d'IA", ""], ["Plagiat", ""], ["Références", ""], ["État", ""], ["Note", "nombre"], ["", ""]]) {
-      const th = el("th", t, cl); th.scope = "col";
-      if (!t) th.setAttribute("aria-label", "Actions");
-      tr.append(th);
-    }
-    tete.append(tr); tab.append(tete);
+    tab.append(entete(["Étudiant", ""], ["Français", ""], ["Indice d'IA", ""], ["Plagiat", ""], ["Références", ""], ["État", ""], ["Note", "nombre"], ["", ""]));
     const corps = el("tbody");
     let g = null;
     for (const r of lignes) {
       if (r.groupe !== g) {
         g = r.groupe;
-        const gr = el("tr", "", "groupe"), cel = el("td", `Groupe ${g} · ${lignes.filter((x) => x.groupe === g).length} rapport(s)`);
+        const manque = filtre === "tout" ? nonRemis.filter((n) => n.groupe === g).length : 0;
+        const gr = el("tr", "", "groupe"),
+          cel = el("td", `Groupe ${g} · ${lignes.filter((x) => x.groupe === g).length} rapport(s)` + (manque ? ` · ${manque} non remis` : ""));
         cel.colSpan = 8; gr.append(cel); corps.append(gr);
       }
       corps.append(ligne(r));
@@ -371,9 +524,24 @@
     conteneur.replaceChildren(tab);
   }
 
+  function vide(phrase, filtre) {
+    const v = el("div", "", "vide suivi-vide");
+    v.append(UI.icone("inbox"), el("p", phrase));
+    if (filtre !== "tout") {
+      const b = el("button", "Voir tous les rapports", "btn"); b.type = "button";
+      b.onclick = () => { ecrire("filtre", "tout"); rendreTableau(); };
+      v.append(b);
+    }
+    conteneur.replaceChildren(v);
+  }
+
   UI.segmente($("filtres"), (b) => { ecrire("filtre", b.dataset.f); rendre(); });
   $("groupe").onchange = (e) => { ecrire("groupe", e.target.value); rendre(); };
   $("ic-avert").append(UI.icone("info"));
   try { for (const cle of [cours, `${cours}/${lab}`]) localStorage.setItem("ouvert:" + cle, "1"); } catch { /* stockage indisponible */ }
+  window.charger = () => charger(); // export-lea.js le rappelle après « Marquer ce lab terminé »
+  const lotLab = LotLab.monter({ cours, lab, panneau: $("lot-panneau"), rapide: $("lot-rapide"), surProgres: () => charger() });
+  choisir(location.hash.slice(1));
+  chargerEnonce();
   await charger();
 })();

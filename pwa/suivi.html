@@ -5,12 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="theme-color" content="#0f6f66">
+  <link rel="icon" href="icone.svg" type="image/svg+xml">
   <script src="acces.js"></script>
   <link rel="stylesheet" href="design.css">
   <link rel="stylesheet" href="composants.css">
   <link rel="stylesheet" href="coque.css">
   <link rel="stylesheet" href="suivi.css">
-  <title>Suivi du lab</title>
+  <title>Lab</title>
 </head>
 <body class="avec-coque">
 <div class="coque">
@@ -18,42 +19,67 @@
   <div class="coque-corps">
   <main id="suivi-page">
     <div class="suivi-haut">
-      <div class="fil"><a href="/#biblio" id="retour-biblio">Bibliothèque</a><span id="fil"></span></div>
-      <span class="esp"></span>
-      <a class="btn" href="/#outils" id="vers-lot"></a>
-      <a class="btn primaire" id="suivant" hidden></a>
+      <div class="fil"><a href="/#biblio" id="retour-biblio">Labs</a><span id="fil"></span></div>
     </div>
-    <div class="suivi-titre">
-      <div>
+    <header class="lab-tete">
+      <div class="lab-titre">
         <h1 id="titre"></h1>
         <p class="sous" id="sous"></p>
       </div>
-      <div class="progression suivi-prog" id="prog" hidden>
-        <div class="progression-tete"><span id="prog-texte"></span><span class="num" id="prog-pct"></span></div>
-        <div class="barre" id="prog-barre"></div>
+      <div class="etat-lab" id="prog" hidden>
+        <div class="barre2" id="prog-barre" role="img"></div>
+        <span class="chiffres" id="prog-texte"></span>
       </div>
-    </div>
-    <div id="export" role="status"></div>
-    <div class="suivi-filtres">
-      <div class="seg" id="filtres" role="group" aria-label="Filtrer les rapports">
-        <button data-f="tout">Tous <span class="n"></span></button>
-        <button data-f="a_corriger">À corriger <span class="n"></span></button>
-        <button data-f="en_cours">En cours <span class="n"></span></button>
-        <button data-f="termine">Terminés <span class="n"></span></button>
-        <button data-f="revoir" id="revoir">À revoir <span class="n"></span></button>
+      <a class="btn primaire" id="suivant" hidden></a>
+    </header>
+    <div class="lab-barre">
+      <div class="onglets" role="tablist" aria-label="Sections du lab" id="onglets">
+        <button type="button" role="tab" id="t-rapports" data-onglet="rapports" aria-controls="p-rapports">Rapports <span class="n" id="n-rapports"></span></button>
+        <button type="button" role="tab" id="t-claude" data-onglet="claude" aria-controls="p-claude">Claude <span class="n" id="n-claude"></span></button>
+        <button type="button" role="tab" id="t-export" data-onglet="export" aria-controls="p-export">Export LÉA <span class="n" id="n-export"></span></button>
       </div>
       <span class="esp"></span>
-      <select id="groupe" class="saisie" aria-label="Groupe"></select>
+      <div class="lab-rapide" id="lot-rapide"></div>
+      <span id="zone-menu-lab"></span>
     </div>
-    <p id="message" class="aide" aria-live="polite"></p>
-    <div class="tableau-defil suivi-tab" id="tab"></div>
-    <div class="banniere suivi-avert" role="note"><span id="ic-avert"></span><div class="corps">Les indices d'IA et de plagiat sont des <b>indices à revérifier</b>, jamais un verdict. Touche une ligne pour ouvrir le rapport; glisse-la vers la gauche pour analyser ou terminer.</div></div>
+    <div id="export" role="status"></div>
+
+    <section id="p-rapports" role="tabpanel" aria-labelledby="t-rapports">
+      <div class="suivi-filtres">
+        <div class="seg" id="filtres" role="group" aria-label="Filtrer les rapports">
+          <button data-f="tout">Tous <span class="n"></span></button>
+          <button data-f="a_corriger">À corriger <span class="n"></span></button>
+          <button data-f="en_cours">En cours <span class="n"></span></button>
+          <button data-f="termine">Terminés <span class="n"></span></button>
+          <button data-f="revoir" id="revoir">À revoir <span class="n"></span></button>
+          <button data-f="non_remis" id="non-remis">Non remis <span class="n"></span></button>
+        </div>
+        <span class="esp"></span>
+        <select id="groupe" class="saisie" aria-label="Groupe"></select>
+      </div>
+      <p id="message" class="aide" aria-live="polite"></p>
+      <div class="tableau-defil suivi-tab" id="tab"></div>
+      <div class="banniere suivi-avert" role="note"><span id="ic-avert"></span><div class="corps">Les indices d'IA et de plagiat sont des <b>indices à revérifier</b>, jamais un verdict. Touche une ligne pour ouvrir le rapport; glisse-la vers la gauche pour analyser ou terminer.</div></div>
+    </section>
+
+    <section id="p-claude" role="tabpanel" aria-labelledby="t-claude" hidden>
+      <div class="lab-carte" id="lot-panneau"></div>
+    </section>
+
+    <section id="p-export" role="tabpanel" aria-labelledby="t-export" hidden>
+      <div id="export-zone"></div>
+    </section>
+
+    <input type="file" id="enonce-fichier" accept="application/pdf" hidden>
   </main>
   </div>
 </div>
   <script src="ui.js"></script>
   <script src="coque.js"></script>
   <script src="dialogue.js"></script>
+  <script src="equipe.js"></script>
+  <script src="export-lea.js"></script>
+  <script src="lot-lab.js"></script>
   <script src="suivi.js"></script>
 </body>
 </html>
