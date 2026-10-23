@@ -1,0 +1,38 @@
+/* Fiche d'un étudiant (fiche-etudiant.js) : panneau à droite en paysage et sur PC, feuille depuis le bas sous 900 px. */
+.fiche { position: fixed; z-index: 40; top: 0; right: 0; bottom: 0; width: 380px; display: flex; flex-direction: column; background: var(--surface);
+  border-left: 1px solid var(--border); box-shadow: var(--ombre-pop); outline: none; }
+.fiche-scrim { display: none; }
+body.fiche-ouverte .coque-corps { padding-right: 380px; }
+.fiche-charge { margin: 0; padding: var(--e5); color: var(--texte-2); }
+.fiche-poignee { display: none; }
+.fiche-tete { display: flex; align-items: center; gap: 12px; padding: 14px 8px 12px 16px; border-bottom: 1px solid var(--border); }
+.fiche-tete .avatar { width: 40px; height: 40px; font-size: 14px; }
+.fiche-tete .noms { min-width: 0; display: flex; flex-direction: column; }
+.fiche-tete .noms b { font-size: 17px; overflow-wrap: anywhere; }
+.fiche-tete .esp { flex: 1; }
+.fiche-corps { flex: 1; min-height: 0; overflow-y: auto; padding-bottom: var(--e3); }
+.fiche h3 { margin: 14px 16px 4px; font-size: var(--t-min); color: var(--texte-2); }
+.fiche-vide { margin: 0 16px; color: var(--texte-2); font-size: var(--t-s); }
+.fiche-rapport { display: grid; grid-template-columns: 54px minmax(0, 1fr) auto; gap: 10px; align-items: center; min-height: 56px; padding: 6px 12px 6px 16px;
+  border-top: 1px solid var(--border); }
+.fiche-rapport:first-of-type { border-top: 0; }
+.fiche-rapport .lab { font-weight: 600; }
+.fiche-rapport .d { display: flex; flex-direction: column; font-size: var(--t-min); color: var(--texte-2); line-height: 1.35; min-width: 0; overflow-wrap: anywhere; }
+.fiche-rapport .d .etat { font-size: var(--t-s); color: var(--texte); }
+.fiche-rapport .d .etat.p-fini { color: var(--ok); }
+.fiche-rapport .d .etat.p-nouv { color: var(--info); }
+.fiche-hist { margin: 0 16px; padding: 10px 12px; border-radius: var(--r-s); background: var(--surface-2); font-size: var(--t-min); color: var(--texte-2); }
+.fiche-hist p { margin: 0 0 4px; overflow-wrap: anywhere; }
+.fiche-hist p:last-child { margin-bottom: 0; }
+.fiche-pied { display: flex; gap: 8px; padding: 12px 16px 16px; border-top: 1px solid var(--border); }
+.fiche-pied .tertiaire { color: var(--accent-fort); }
+
+@media (max-width: 899px) {
+  body.fiche-ouverte .coque-corps { padding-right: 0; }
+  .fiche-scrim { display: block; position: fixed; z-index: 39; inset: 0; background: rgba(16, 24, 40, .32); }
+  .fiche { top: auto; left: 0; right: 0; width: auto; max-height: 78vh; border: 0; border-radius: 16px 16px 0 0; box-shadow: 0 -8px 30px rgba(16, 24, 40, .18);
+    padding-bottom: env(safe-area-inset-bottom); animation: fiche-monte .18s ease-out; }
+  .fiche-poignee { display: block; width: 44px; height: 5px; border-radius: 3px; background: var(--border-fort); margin: 8px auto 0; flex: none; }
+}
+@keyframes fiche-monte { from { transform: translateY(24px); opacity: .6; } to { transform: none; opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .fiche { animation: none; } }
