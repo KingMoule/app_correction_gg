@@ -273,7 +273,7 @@ _nom_zip = NOM_ZIP + ".zip"
 
 class Demande(BaseModel):
     groupe: str | None = None  # vide = tous les groupes du cours
-    inacheves: bool = True     # inclure les rapports à trancher / non analysés
+    inacheves: bool = False    # inclure les rapports à trancher / non analysés (exclus par défaut)
 
 
 def _executer(cours: str, lab: str, rapports: list[dict], iso: str) -> None:
@@ -351,7 +351,7 @@ def telecharger_zip(cours: str, lab: str, groupe: str | None = None) -> Response
 
 
 @router.get("/tableau/{cours}/{lab}")
-def telecharger_tableau(cours: str, lab: str, groupe: str | None = None, inacheves: bool = True) -> Response:
+def telecharger_tableau(cours: str, lab: str, groupe: str | None = None, inacheves: bool = False) -> Response:
     contenu = tableau_csv(cours, lab, groupe or None, inacheves)
     nom = nom_tableau(cours, lab, horodatage())
     return Response(contenu, media_type="text/csv; charset=utf-8",

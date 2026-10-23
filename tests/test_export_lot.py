@@ -94,6 +94,21 @@ def test_zip_une_classe_seulement_et_sans_inacheves(lab):
     assert exporter_zip(client, inacheves=False).namelist() == ["dube_2000001_Rapport_remis_corrige.pdf"]
 
 
+def test_inacheves_exclus_par_defaut(lab):
+    """Sans le paramètre, seuls les rapports « Corrigé » partent (ZIP et tableau)."""
+    client, _ = lab
+    par_defaut = lire_csv(client.get(f"/api/export-lot/tableau/{COURS}/lab-1").content)
+    assert par_defaut == lire_csv(client.get(f"/api/export-lot/tableau/{COURS}/lab-1?inacheves=false").content)
+    assert len(par_defaut) < len(lire_csv(client.get(f"/api/export-lot/tableau/{COURS}/lab-1?inacheves=true").content))
+    assert client.post(f"/api/export-lot/{COURS}/lab-1", json={}).status_code == 200
+    for _ in range(100):
+        if client.get("/api/export-lot/etat").json()["statut"] != "en_cours":
+            break
+        time.sleep(0.05)
+    z = zipfile.ZipFile(io.BytesIO(client.get(f"/api/export-lot/travaux/{COURS}/lab-1").content))
+    assert z.namelist() == ["dube_2000001_Rapport_remis_corrige.pdf"]
+
+
 def test_apercu_compte_les_inacheves(lab):
     client, _ = lab
     a = client.get(f"/api/export-lot/apercu/{COURS}/lab-1").json()
@@ -103,7 +118,7 @@ def test_apercu_compte_les_inacheves(lab):
 
 def test_tableau_csv_encodage_excel_francais(lab):
     client, _ = lab
-    r = client.get(f"/api/export-lot/tableau/{COURS}/lab-1")
+    r = client.get(f"/api/export-lot/tableau/{COURS}/lab-1?inacheves=true")
     assert r.status_code == 200 and re.search(r"Recapitulatif_202SNURE_lab-1_\d{4}-\d{2}-\d{2}_\d{2}h\d{2}\.csv", r.headers["content-disposition"])
     assert r.content.startswith(b"\xef\xbb\xbf")  # BOM : Excel lit l'UTF-8
     en_tete = r.content.decode("utf-8-sig").splitlines()[0]
@@ -113,7 +128,7 @@ def test_tableau_csv_encodage_excel_francais(lab):
 
 def test_tableau_lignes_penalites_equipe_etats(lab):
     client, _ = lab
-    lignes = {(l["Nom"], l["Prénom"]): l for l in lire_csv(client.get(f"/api/export-lot/tableau/{COURS}/lab-1").content)}
+    lignes = {(l["Nom"], l["Prénom"]): l for l in lire_csv(client.get(f"/api/export-lot/tableau/{COURS}/lab-1?inacheves=true").content)}
     assert len(lignes) == 4  # Alice, Anna (coéquipière), Luc, Zoé : une ligne chacun
     alice, anna = lignes[("Dubé", "Alice")], lignes[("Bele-Gombos", "Anna")]
     assert alice["DA"] == "2000001" and alice["Groupe"] == "00002"
@@ -135,7 +150,7 @@ def test_tableau_lignes_penalites_equipe_etats(lab):
 def test_plafond_du_bareme(lab):
     client, _ = lab
     client.put("/api/francais/bareme/202SNURE", json={"points_par_faute": 0.75, "plafond": 1})
-    alice = next(l for l in lire_csv(client.get(f"/api/export-lot/tableau/{COURS}/lab-1").content) if l["Nom"] == "Dubé")
+    alice = next(l for l in lire_csv(client.get(f"/api/export-lot/tableau/{COURS}/lab-1?inacheves=true").content) if l["Nom"] == "Dubé")
     assert alice["Pénalité français"] == "1"
 
 
@@ -143,7 +158,7 @@ def test_tableau_sans_inacheves_et_groupe(lab):
     client, _ = lab
     corriges = lire_csv(client.get(f"/api/export-lot/tableau/{COURS}/lab-1?inacheves=false").content)
     assert {l["Nom"] for l in corriges} == {"Dubé", "Bele-Gombos"}  # Alice et sa coéquipière seulement
-    g1 = lire_csv(client.get(f"/api/export-lot/tableau/{COURS}/lab-1?groupe=00001").content)
+    g1 = lire_csv(client.get(f"/api/export-lot/tableau/{COURS}/lab-1?groupe=00001&inacheves=true").content)
     assert {l["Prénom"] for l in g1} == {"Anna", "Luc"}
 
 
@@ -152,7 +167,7 @@ def test_non_remis_signales(lab):
     # Lab 2 : seule Alice a remis (avec Anna); Luc et Zoé n'ont rien remis
     client.post("/api/bibliotheque/import", data={"cours": COURS, "groupe": "", "lab": "Lab 2"},
                 files=[("fichiers", ("dube_2000001_L2.pdf", pdf(PAGE_ALICE), "application/pdf"))])
-    etats = {l["Prénom"]: l["État"] for l in lire_csv(client.get(f"/api/export-lot/tableau/{COURS}/lab-2").content)}
+    etats = {l["Prénom"]: l["État"] for l in lire_csv(client.get(f"/api/export-lot/tableau/{COURS}/lab-2?inacheves=true").content)}
     assert etats == {"Alice": "Non analysé", "Anna": "Non analysé", "Luc": "Non remis", "Zoé": "Non remis"}
 
 
@@ -160,7 +175,7 @@ def test_rien_n_est_ecrit_dans_la_bibliotheque(lab):
     client, tmp = lab
     avant = {p: p.stat().st_mtime_ns for p in (tmp / "bibliotheque").rglob("*") if p.is_file()}
     exporter_zip(client)
-    client.get(f"/api/export-lot/tableau/{COURS}/lab-1")
+    client.get(f"/api/export-lot/tableau/{COURS}/lab-1?inacheves=true")
     apres = {p: p.stat().st_mtime_ns for p in (tmp / "bibliotheque").rglob("*") if p.is_file()}
     assert avant == apres
 
@@ -254,7 +269,7 @@ def test_claude_manquant_dans_apercu_tableau_et_suivi(lab):
     ecrire_francais(alice, {"0": "acceptee", "1": "refusee", "2": "acceptee"}, claude_ok=False)
     a = client.get(f"/api/export-lot/apercu/{COURS}/lab-1").json()
     assert (a["corrige"], a["claude_manquant"], a["a_trancher"]) == (0, 1, 1)
-    ligne = next(l for l in lire_csv(client.get(f"/api/export-lot/tableau/{COURS}/lab-1").content) if l["Nom"] == "Dubé")
+    ligne = next(l for l in lire_csv(client.get(f"/api/export-lot/tableau/{COURS}/lab-1?inacheves=true").content) if l["Nom"] == "Dubé")
     assert ligne["État"] == "Claude manquant"
     # sans inachevés, un rapport « Claude manquant » ne part pas comme s'il était complet
     assert lire_csv(client.get(f"/api/export-lot/tableau/{COURS}/lab-1?inacheves=false").content) == []
