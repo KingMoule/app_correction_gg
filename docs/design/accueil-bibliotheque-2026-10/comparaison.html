@@ -1,0 +1,216 @@
+<title>Maquettes Accueil Bibliothèque</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+<style>
+/* Mise en page : une colonne de lecture (64 rem), galeries d'images pleine largeur, onglets P1 / P2 / P3.
+   Jetons repris de la direction « Atelier » de l'app (neutres froids, accent sarcelle unique). */
+:root {
+  --bg: #fafafa; --surface: #ffffff; --surface-2: #f4f4f5; --border: #e4e4e7; --border-fort: #d4d4d8;
+  --texte: #18181b; --texte-2: #52525b; --accent: #0f6f66; --accent-fort: #0a554e; --accent-doux: #e1f0ed; --accent-bord: #a9d3cc;
+  --ambre: #92400e; --ambre-fond: #fef3c7; --vert: #166534; --vert-fond: #dcfce7;
+  --font: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  --ombre: 0 1px 2px rgba(16, 24, 40, .06);
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #111214; --surface: #1a1b1e; --surface-2: #232428; --border: #2e3035; --border-fort: #3a3c42;
+  --texte: #ececee; --texte-2: #a7a7b0; --accent: #3fb5a8; --accent-fort: #6fd0c4; --accent-doux: #12312e; --accent-bord: #2a6b64;
+  --ambre: #fcd34d; --ambre-fond: #3a2a0c; --vert: #86efac; --vert-fond: #0f2e1b; --ombre: none; color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --bg: #111214; --surface: #1a1b1e; --surface-2: #232428; --border: #2e3035; --border-fort: #3a3c42;
+  --texte: #ececee; --texte-2: #a7a7b0; --accent: #3fb5a8; --accent-fort: #6fd0c4; --accent-doux: #12312e; --accent-bord: #2a6b64;
+  --ambre: #fcd34d; --ambre-fond: #3a2a0c; --vert: #86efac; --vert-fond: #0f2e1b; --ombre: none; color-scheme: dark; }
+body { background: var(--bg); color: var(--texte); font-family: var(--font); font-size: 16px; line-height: 1.55; }
+.page { max-width: 76rem; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 32px 72px; }
+.lecture { max-width: 64rem; }
+h1 { font-size: clamp(26px, 4vw, 34px); line-height: 1.2; letter-spacing: -.015em; margin: 6px 0 8px; text-wrap: balance; }
+h2 { font-size: 21px; margin: 48px 0 12px; letter-spacing: -.01em; text-wrap: balance; }
+h3 { font-size: 17px; margin: 22px 0 8px; }
+p, li { max-width: 68ch; }
+.sur { font-size: 13px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--accent-fort); }
+.chapo { font-size: 18px; color: var(--texte-2); }
+a { color: var(--accent-fort); }
+.reco { display: grid; gap: 6px; margin: 22px 0 0; padding: 18px 20px; border-radius: 12px; background: var(--accent-doux); border: 1px solid var(--accent-bord); }
+.reco b { color: var(--accent-fort); }
+.reco p { margin: 0; }
+.constats { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr)); gap: 16px; margin-top: 16px; }
+figure { margin: 0; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; box-shadow: var(--ombre); }
+figure a { display: block; }
+figure img { display: block; width: 100%; height: auto; max-width: 100%; }
+figcaption { padding: 10px 14px; font-size: 14px; color: var(--texte-2); border-top: 1px solid var(--border); }
+figcaption b { color: var(--texte); }
+ol.liste li, ul.liste li { margin: 6px 0; }
+.onglets { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; display: flex; gap: 4px; padding: 6px; margin: 20px 0 0; background: var(--surface-2); border: 1px solid var(--border); border-radius: 12px; overflow-x: auto; }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--bg); }
+.onglets button { flex: 1 0 auto; min-height: 48px; padding: 0 16px; border: 0; border-radius: 9px; background: transparent; color: var(--texte-2); font: 600 15px var(--font); cursor: pointer; }
+.onglets button[aria-selected="true"] { background: var(--surface); color: var(--texte); box-shadow: var(--ombre), 0 0 0 1px var(--border); }
+.onglets button small { display: block; font-weight: 500; font-size: 12px; color: var(--texte-2); }
+.onglets button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.prop { padding-top: 8px; }
+.prop .idee { font-size: 18px; margin: 16px 0 6px; }
+.pourcontre { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)); gap: 12px; margin: 14px 0 18px; }
+.pc { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 12px 16px; }
+.pc h4 { margin: 0 0 4px; font-size: 14px; color: var(--texte-2); }
+.pc ul { margin: 0; padding-left: 18px; }
+.galerie { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 460px), 1fr)); gap: 16px; }
+.galerie figure.large { grid-column: 1 / -1; }
+.tablo { overflow-x: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; }
+table { border-collapse: collapse; width: 100%; font-size: 15px; font-variant-numeric: tabular-nums; }
+th, td { padding: 10px 14px; border-bottom: 1px solid var(--border); text-align: left; vertical-align: top; }
+th { font-size: 13px; color: var(--texte-2); font-weight: 600; white-space: nowrap; }
+tr:last-child td { border-bottom: 0; }
+td.n { text-align: center; white-space: nowrap; }
+td.mieux { color: var(--vert); font-weight: 700; }
+.question { margin-top: 48px; padding: 20px; border-radius: 12px; background: var(--surface); border: 1px solid var(--border-fort); }
+.question h2 { margin-top: 0; }
+.choix { display: grid; gap: 8px; margin: 12px 0 0; padding: 0; list-style: none; }
+.choix li { padding: 10px 14px; border-radius: 10px; border: 1px solid var(--border); max-width: none; }
+.choix li.rec { border-color: var(--accent-bord); background: var(--accent-doux); }
+.pastille { display: inline-block; font-size: 12px; font-weight: 600; padding: 1px 8px; border-radius: 6px; background: var(--ambre-fond); color: var(--ambre); }
+.pied { margin-top: 40px; font-size: 14px; color: var(--texte-2); }
+@media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
+</style>
+
+<div class="page">
+<header class="lecture">
+  <div class="sur">Correction de labs · direction Atelier en sarcelle · 22 octobre 2026</div>
+  <h1>Accueil et Bibliothèque : trois façons de s'y retrouver</h1>
+  <p class="chapo">Tu aimes le nouveau style, pas ces deux onglets. Voici pourquoi ils déçoivent, trois maquettes nettement différentes, et laquelle je recommande. Toutes les données sont fictives.</p>
+  <div class="reco"><p><b>Recommandation : P1 « Le lab au centre »</b>, avec la fiche d'étudiant de P2 ouverte depuis la recherche.</p><p>Elle part de l'écran que tu aimes déjà (le suivi devient la page du lab), donne une seule porte par lab et met le lot de Claude à une touche. Le second agent, qui n'avait pas vu mon raisonnement, arrive à la même conclusion.</p></div>
+</header>
+
+<section class="lecture" aria-labelledby="t-constats">
+  <h2 id="t-constats">Ce qui ne va pas aujourd'hui</h2>
+  <ol class="liste">
+    <li><b>Quatre sens de « corrigé »</b> pour le même lab : 34 / 80 terminés, « 20 à corriger » dans un groupe, « À corriger 10 » dans le suivi, « 49 rapports corrigés » dans l'export.</li>
+    <li><b>Deux portes par lab</b> : « Suivi » (riche) et la bibliothèque (énoncé, export, et une liste d'étudiants sans état). Il faut savoir laquelle a quelle action.</li>
+    <li><b>La même information trois fois</b> sur l'accueil : les 4 labs en cours dans la barre, dans « À faire » et dans le tableau.</li>
+    <li><b>Rien sur l'analyse</b> : « 0 / 83 » ne dit pas que rien n'est analysé, alors que Claude (6 à 7 rapports par lot) est le goulot. « 90 fautes à trancher » noie les vraies exceptions.</li>
+    <li><b>Bibliothèque profonde et muette</b> : 4 niveaux repliés, aucune recherche, 5 à 7 touchers pour un étudiant, sessions passées mêlées au présent.</li>
+    <li><b>Menus sans contexte</b> : « Export LÉA » ouvre la bibliothèque repliée; « Analyse par lot » fait rechoisir le lab parmi 26, groupe par groupe.</li>
+  </ol>
+  <div class="constats">
+    <figure><a href="captures/actuel-accueil-ipad-complet.webp"><img src="captures/actuel-accueil-ipad-complet.webp" alt="Accueil actuel : reprendre, À faire, tableau des labs" loading="lazy" width="1180" height="843"></a><figcaption><b>Accueil actuel</b> · iPad paysage</figcaption></figure>
+    <figure><a href="captures/actuel-biblio-ouverte-ipad.webp"><img src="captures/actuel-biblio-ouverte-ipad.webp" alt="Bibliothèque actuelle, un lab et un groupe ouverts" loading="lazy" width="1180" height="820"></a><figcaption><b>Bibliothèque actuelle</b> · un lab ouvert : export au milieu, lignes sans état</figcaption></figure>
+  </div>
+</section>
+
+<section aria-labelledby="t-maq">
+  <h2 id="t-maq" class="lecture">Les trois maquettes</h2>
+  <p class="lecture">Même vocabulaire partout (<b>Reçus / Analysés / Terminés / Export</b>), session déduite à l'import, recherche sur toutes les sessions, « À faire » réduit aux exceptions, lot de Claude par lab lancé en une touche. Touche une image pour la voir en grand.</p>
+  <div class="onglets" role="tablist" aria-label="Maquettes">
+    <button role="tab" id="o-p1" aria-controls="p1" aria-selected="true">P1 Le lab au centre<small>agir · recommandée</small></button>
+    <button role="tab" id="o-p2" aria-controls="p2" aria-selected="false">P2 Le carnet<small>trouver</small></button>
+    <button role="tab" id="o-p3" aria-controls="p3" aria-selected="false">P3 Aujourd'hui<small>quoi faire</small></button>
+  </div>
+
+  <div class="prop" id="p1" role="tabpanel" aria-labelledby="o-p1">
+    <p class="idee lecture"><b>Une seule porte par lab.</b> L'accueil montre chaque lab en cours avec son état chiffré et deux actions fixes : « Corriger » et « Analyser 7 · 21 % ». La Bibliothèque devient <b>Labs</b>; la page du lab est le suivi, avec Claude et l'export en onglets.</p>
+    <div class="pourcontre lecture"><div class="pc"><h4>Pour</h4><ul><li>Relancer un lot ou corriger le suivant : 1 touche.</li><li>Part du suivi que tu aimes; la moins chère à construire.</li></ul></div><div class="pc"><h4>Contre</h4><ul><li>Pas de vue par étudiant hors de la recherche.</li><li>Le lot par lab demande un changement au moteur.</li></ul></div></div>
+    <div class="galerie">
+      <figure class="large"><a href="img/p1-lab-accueil-ipad.webp"><img src="img/p1-lab-accueil-ipad.webp" alt="P1 accueil : en-tête chiffré, puces d'exceptions, tableau des labs en cours" loading="lazy" width="1180" height="820"></a><figcaption><b>Accueil</b> · iPad paysage · seul bouton plein : Reprendre</figcaption></figure>
+      <figure><a href="img/p1-lab-labs-ipad.webp"><img src="img/p1-lab-labs-ipad.webp" alt="P1 Labs : recherche, session en cours par cours, sessions passées repliées" loading="lazy" width="1180" height="820"></a><figcaption><b>Labs</b> (ex-Bibliothèque) · iPad</figcaption></figure>
+      <figure><a href="img/p1-lab-lab-ipad.webp"><img src="img/p1-lab-lab-ipad.webp" alt="P1 page du lab : suivi avec onglets Rapports, Claude, Export" loading="lazy" width="1180" height="820"></a><figcaption><b>Page du lab</b> (vignette) · le suivi à 3 onglets, filtre « Non remis »</figcaption></figure>
+      <figure><a href="img/p1-lab-accueil-portrait.webp"><img src="img/p1-lab-accueil-portrait.webp" alt="P1 accueil en portrait" loading="lazy" width="820" height="1180"></a><figcaption><b>Accueil</b> · portrait</figcaption></figure>
+      <figure><a href="img/p1-lab-labs-pc.webp"><img src="img/p1-lab-labs-pc.webp" alt="P1 Labs sur PC avec la recherche « lach »" loading="lazy" width="1440" height="900"></a><figcaption><b>Recherche</b> · PC · un résultat = un rapport, avec session et note</figcaption></figure>
+    </div>
+  </div>
+
+  <div class="prop" id="p2" role="tabpanel" aria-labelledby="o-p2" hidden>
+    <p class="idee lecture"><b>Trouver n'importe qui.</b> L'accueil met la recherche au centre, les rapports récents de tous tes appareils et une ligne par lab, ventilée par groupe, sans bouton. La Bibliothèque devient un <b>carnet</b> étudiants × labs, avec une fiche d'étudiant.</p>
+    <div class="pourcontre lecture"><div class="pc"><h4>Pour</h4><ul><li>Un étudiant, sa note, ses non-remis : 2 touches, toutes sessions.</li><li>Ressemble à Omnivox et LÉA.</li></ul></div><div class="pc"><h4>Contre</h4><ul><li>Changer de lab coûte une touche de plus.</li><li>Le carnet est une vue de plus à construire.</li></ul></div></div>
+    <div class="galerie">
+      <figure class="large"><a href="img/p2-carnet-accueil-ipad.webp"><img src="img/p2-carnet-accueil-ipad.webp" alt="P2 accueil : recherche, récents, exceptions, labs ventilés par groupe" loading="lazy" width="1180" height="820"></a><figcaption><b>Accueil</b> · iPad paysage</figcaption></figure>
+      <figure><a href="img/p2-carnet-carnet-ipad.webp"><img src="img/p2-carnet-carnet-ipad.webp" alt="P2 carnet : grille étudiants par labs et fiche d'étudiant" loading="lazy" width="1180" height="820"></a><figcaption><b>Carnet</b> · iPad · fiche d'étudiant à droite</figcaption></figure>
+      <figure><a href="img/p2-carnet-carnet-portrait.webp"><img src="img/p2-carnet-carnet-portrait.webp" alt="P2 carnet en portrait avec la fiche en feuille" loading="lazy" width="820" height="1180"></a><figcaption><b>Carnet</b> · portrait · fiche en feuille</figcaption></figure>
+      <figure><a href="img/p2-carnet-accueil-portrait.webp"><img src="img/p2-carnet-accueil-portrait.webp" alt="P2 accueil en portrait, recherche dans la barre du haut" loading="lazy" width="820" height="1180"></a><figcaption><b>Accueil</b> · portrait · recherche en haut</figcaption></figure>
+      <figure><a href="img/p2-carnet-recherche-pc.webp"><img src="img/p2-carnet-recherche-pc.webp" alt="P2 recherche sur PC : étudiants puis rapports" loading="lazy" width="1440" height="900"></a><figcaption><b>Recherche</b> · PC</figcaption></figure>
+    </div>
+  </div>
+
+  <div class="prop" id="p3" role="tabpanel" aria-labelledby="o-p3" hidden>
+    <p class="idee lecture"><b>Quoi faire maintenant.</b> L'accueil devient cinq rubriques dans un ordre fixe : Bloquant, Corriger, Claude, Revoir, Clore. Chaque ligne a le bouton qui fait la tâche. La Bibliothèque devient archives et recherche.</p>
+    <div class="pourcontre lecture"><div class="pc"><h4>Pour</h4><ul><li>Le moins de touches; rien à mémoriser.</li><li>Dit quand relancer Claude.</li></ul></div><div class="pc"><h4>Contre</h4><ul><li>Moins de vue d'ensemble des labs.</li><li>« Fait aujourd'hui » demande l'heure des « Terminé » au moteur.</li></ul></div></div>
+    <div class="galerie">
+      <figure class="large"><a href="img/p3-aujourdhui-auj-ipad.webp"><img src="img/p3-aujourdhui-auj-ipad.webp" alt="P3 Aujourd'hui : Reprendre et cinq rubriques, pendant un lot" loading="lazy" width="1180" height="820"></a><figcaption><b>Aujourd'hui</b> · iPad paysage, pendant un lot</figcaption></figure>
+      <figure><a href="img/p3-aujourdhui-biblio-ipad.webp"><img src="img/p3-aujourdhui-biblio-ipad.webp" alt="P3 Bibliothèque : session en cours, sessions passées en cartes, mis de côté" loading="lazy" width="1180" height="820"></a><figcaption><b>Bibliothèque</b> · iPad · archives</figcaption></figure>
+      <figure><a href="img/p3-aujourdhui-resultats-pc.webp"><img src="img/p3-aujourdhui-resultats-pc.webp" alt="P3 recherche d'un DA sur PC" loading="lazy" width="1440" height="900"></a><figcaption><b>Recherche d'un DA</b> · PC · fichiers mis de côté compris</figcaption></figure>
+      <figure><a href="img/p3-aujourdhui-auj-portrait.webp"><img src="img/p3-aujourdhui-auj-portrait.webp" alt="P3 Aujourd'hui en portrait, une colonne dans l'ordre fixe" loading="lazy" width="820" height="1180"></a><figcaption><b>Aujourd'hui</b> · portrait</figcaption></figure>
+      <figure><a href="img/p3-aujourdhui-auj-pc.webp"><img src="img/p3-aujourdhui-auj-pc.webp" alt="P3 Aujourd'hui sur PC" loading="lazy" width="1440" height="900"></a><figcaption><b>Aujourd'hui</b> · PC</figcaption></figure>
+    </div>
+  </div>
+</section>
+
+<section class="lecture" aria-labelledby="t-touch">
+  <h2 id="t-touch">Nombre de touchers</h2>
+  <p>iPad en paysage, départ de l'accueil; import et export mesurés sur le PC. En vert : le meilleur de la ligne.</p>
+  <div class="tablo"><table>
+    <thead><tr><th>Tâche</th><th>Actuel</th><th>P1</th><th>P2</th><th>P3</th></tr></thead>
+    <tbody>
+      <tr><td>Relancer un lot (fenêtre de 5 h renouvelée)</td><td class="n">4 + saisie</td><td class="n mieux">1</td><td class="n">2</td><td class="n mieux">1</td></tr>
+      <tr><td>Corriger le suivant d'un autre lab</td><td class="n">2</td><td class="n mieux">1</td><td class="n">2</td><td class="n mieux">1</td></tr>
+      <tr><td>Changer de lab depuis le lecteur</td><td class="n mieux">3</td><td class="n mieux">3</td><td class="n">4</td><td class="n mieux">3</td></tr>
+      <tr><td>Rapport d'un étudiant, lab en cours</td><td class="n">2 + défiler</td><td class="n">3</td><td class="n mieux">2</td><td class="n mieux">2</td></tr>
+      <tr><td>Rapport et note, session passée</td><td class="n">5 + défiler</td><td class="n">3</td><td class="n mieux">2</td><td class="n mieux">2</td></tr>
+      <tr><td>Importer un lab + 3 « À trancher » (PC)</td><td class="n">≈ 11</td><td class="n">≈ 11</td><td class="n">≈ 11</td><td class="n">≈ 11</td></tr>
+      <tr><td>Exporter un lab terminé (PC)</td><td class="n">3</td><td class="n mieux">2</td><td class="n mieux">2</td><td class="n mieux">2</td></tr>
+      <tr><td>Téléverser l'énoncé</td><td class="n">3</td><td class="n mieux">2</td><td class="n mieux">2</td><td class="n mieux">2</td></tr>
+      <tr><td>Modifier une équipe</td><td class="n">7-8</td><td class="n mieux">4-5</td><td class="n mieux">4-5</td><td class="n mieux">4-5</td></tr>
+      <tr><td>Clore un lab de 3 groupes (rare)</td><td class="n">18</td><td class="n mieux">3</td><td class="n mieux">3</td><td class="n mieux">3</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section class="lecture" aria-labelledby="t-dec">
+  <h2 id="t-dec">Comment les maquettes ont été arrêtées</h2>
+  <p>Mon analyse, puis la critique d'un second agent qui n'avait vu que l'app, les captures et mes trois propositions. Il a trouvé ce que j'avais manqué : les quatre sens de « corrigé », les non-remis invisibles, l'interrupteur des inachevés coché par défaut, et le fait qu'une seule « étape suivante » ne colle pas quand l'analyse et la correction se chevauchent pendant des jours. Nous avons ensuite signé onze décisions communes (dans le README).</p>
+  <h3>Désaccords tranchés</h3>
+  <ul class="liste">
+    <li><b>« Labs en cours » dans la barre</b> : il voulait le retirer (doublon). Gardé dans P1 et P3, car c'est le seul moyen de changer de lab depuis le suivi ou le plagiat; retiré dans P2.</li>
+    <li><b>Accueil de P2</b> : je voulais le groupe au centre. Il a montré que tout se fait par lab : une ligne par lab, ventilée par groupe, sans bouton.</li>
+    <li><b>Confirmer avant un lot</b> : retiré; le bouton porte l'estimation et un toast offre « Arrêter ».</li>
+  </ul>
+  <h3>À régler avant d'implémenter</h3>
+  <ul class="liste">
+    <li><span class="pastille">À vérifier</span> <b>La session</b> : un vrai nom de fichier Omnivox change-t-il d'une session à l'autre ? Sinon, la liste et le « lab-1 » d'automne tomberont dans ceux d'hiver.</li>
+    <li>Le lot par lab (moteur), « Équipe… » dans le suivi, « Reprendre » enregistré par le moteur, inachevés exclus par défaut à l'export.</li>
+  </ul>
+</section>
+
+<section class="lecture question" aria-labelledby="t-q">
+  <h2 id="t-q">Ta décision</h2>
+  <p>Quelle maquette implémenter, ou quel mélange ?</p>
+  <ul class="choix">
+    <li class="rec"><b>P1 Le lab au centre</b>, avec la fiche d'étudiant de P2 (recommandée)</li>
+    <li><b>P3 Aujourd'hui</b> si tu préfères qu'on te dise quoi faire</li>
+    <li><b>P2 Le carnet</b> si tes questions sont surtout « où en est tel étudiant »</li>
+  </ul>
+</section>
+
+<p class="lecture pied">Maquettes HTML et raisonnement complet : <code>docs/design/accueil-bibliotheque-2026-10/</code> dans le dépôt. Contraste WCAG AA vérifié sur chaque texte des maquettes, cibles d'au moins 44 px, données fictives.</p>
+</div>
+
+<script>
+(() => {
+  const onglets = [...document.querySelectorAll('[role=tab]')];
+  const montrer = (id, focus) => {
+    for (const o of onglets) {
+      const actif = o.getAttribute('aria-controls') === id;
+      o.setAttribute('aria-selected', String(actif));
+      o.tabIndex = actif ? 0 : -1;
+      document.getElementById(o.getAttribute('aria-controls')).hidden = !actif;
+      if (actif && focus) o.focus();
+    }
+  };
+  onglets.forEach((o, i) => {
+    o.addEventListener('click', () => { montrer(o.getAttribute('aria-controls')); try { history.replaceState(null, '', '#' + o.getAttribute('aria-controls')); } catch {} });
+    o.addEventListener('keydown', (e) => {
+      if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+      const s = onglets[(i + (e.key === 'ArrowRight' ? 1 : onglets.length - 1)) % onglets.length];
+      montrer(s.getAttribute('aria-controls'), true);
+    });
+  });
+  const h = location.hash.slice(1);
+  if (['p1', 'p2', 'p3'].includes(h)) montrer(h);
+})();
+</script>

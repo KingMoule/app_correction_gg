@@ -1,0 +1,105 @@
+
+/* ===== Maquettes : cadres d'écran (rien ici n'est destiné à l'app telle quelle) ===== */
+body.maquettes { margin: 0; background: #e9e9ec; }
+.planche { max-width: 1500px; margin: 0 auto; padding: 32px 24px 80px; }
+.planche > header h1 { margin: 0 0 4px; }
+.planche > header p { margin: 0 0 8px; color: var(--texte-2); max-width: 64rem; }
+.ecran { margin: 48px 0 0; }
+.ecran > h2 { margin: 0 0 4px; font-size: 18px; }
+.ecran > p.leg { margin: 0 0 12px; color: var(--texte-2); font-size: var(--t-s); max-width: 72rem; }
+.cadre { position: relative; overflow: hidden; background: var(--bg); border-radius: 14px; box-shadow: 0 0 0 1px #d4d4d8, 0 12px 32px rgba(16, 24, 40, .12); }
+.cadre.ipad { width: 1180px; height: 820px; }
+.cadre.portrait { width: 820px; height: 1180px; }
+.cadre.pc { width: 1440px; height: 900px; }
+.cadre .coque { min-height: 0; height: 100%; }
+.cadre .coque-lat { position: relative; height: 100%; }
+.cadre .coque-corps { height: 100%; overflow: hidden; container-type: inline-size; container-name: page; }
+.cadre .coque-corps > main { max-width: none; margin: 0; padding: 24px 28px 32px; box-sizing: border-box; }
+.cadre.pc .coque-corps > main { padding: 28px 40px; }
+.cadre.portrait .coque-lat { display: none; }
+.cadre.portrait .coque-haut { display: flex; }
+.cadre:not(.portrait) .coque-haut { display: none; }
+body.seul { background: var(--bg); }
+body.seul .planche { padding: 0; max-width: none; }
+body.seul .planche > header, body.seul .ecran, body.seul .notes { display: none; }
+body.seul .ecran.cible { display: block; margin: 0; }
+body.seul .ecran.cible > h2, body.seul .ecran.cible > p.leg { display: none; }
+body.seul .cadre { border-radius: 0; box-shadow: none; }
+.notes { margin-top: 40px; max-width: 72rem; background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-m); padding: 16px 24px; }
+.notes h2 { margin-top: 8px; font-size: 18px; }
+.notes li { margin: 4px 0; }
+
+/* ===== Éléments proposés (communs aux 3 maquettes) ===== */
+.tete { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 18px; }
+.tete h1 { margin: 0; }
+.tete .sous { margin: 2px 0 0; color: var(--texte-2); }
+.tete .actions { display: flex; gap: 8px; align-items: center; }
+.titre-bloc { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 22px 0 10px; }
+.titre-bloc h2 { margin: 0; font-size: 16px; }
+.titre-bloc .mu { font-size: var(--t-min); }
+.carte { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-m); box-shadow: var(--ombre); }
+.rangee { display: flex; align-items: center; gap: 12px; }
+.esp { flex: 1; }
+.lab-nom b { display: block; font-weight: 600; }
+.lab-nom .mu { display: block; }
+
+/* Barre à deux segments : analysés (sarcelle pâle) et terminés (sarcelle), toujours avec les chiffres en mots */
+.barre2 { height: 6px; border-radius: 3px; background: var(--surface-3); overflow: hidden; display: flex; min-width: 80px; }
+.barre2 > .t { background: var(--accent); }
+.barre2 > .a { background: var(--accent-bord); }
+.etat-lab { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.etat-lab .chiffres { font-size: var(--t-min); color: var(--texte-2); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.etat-lab .chiffres b { color: var(--texte); font-weight: 600; }
+.legende-barre { display: inline-flex; align-items: center; gap: 14px; font-size: var(--t-min); color: var(--texte-2); }
+.legende-barre i { display: inline-block; width: 10px; height: 6px; border-radius: 2px; margin-right: 5px; vertical-align: middle; }
+
+/* Recherche */
+.recherche { position: relative; }
+.recherche > svg.ic { position: absolute; left: 13px; top: 13px; color: var(--texte-2); }
+.recherche > .saisie { padding-left: 40px; height: 44px; }
+.recherche kbd { position: absolute; right: 10px; top: 11px; font: 600 12px var(--font); color: var(--texte-2); border: 1px solid var(--border-fort); border-radius: 5px; padding: 1px 6px; background: var(--surface-2); }
+.resultats { position: absolute; z-index: 5; left: 0; right: 0; top: 50px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; box-shadow: var(--ombre-pop); padding: 6px; }
+.resultats .grp { font-size: var(--t-min); font-weight: 600; color: var(--texte-2); padding: 8px 10px 4px; }
+.resultats a { display: flex; align-items: center; gap: 10px; min-height: 48px; padding: 0 10px; border-radius: 6px; color: var(--texte); text-decoration: none; }
+.resultats a.sel { background: var(--accent-doux); }
+.resultats a .mu { margin-left: auto; }
+mark { background: #fde68a; color: inherit; border-radius: 2px; padding: 0 1px; }
+
+/* Barre latérale : lot en cours sous la jauge, recherche */
+.cq-lot { display: block; margin: 2px 0 0; padding: 8px 10px 10px; border-radius: var(--r-s); color: var(--texte-2); text-decoration: none; font-size: var(--t-min); }
+.cq-lot:hover { background: var(--surface-3); }
+.cq-lot .l1 { display: flex; justify-content: space-between; gap: 8px; }
+.cq-lot .l1 b { color: var(--texte); font-weight: 600; }
+.cq-lot .jauge > i { background: var(--claude); }
+.cq-recherche { margin: 10px 0 2px; }
+.cq-recherche .saisie { font-size: 15px; background: var(--surface); }
+.cq-labs .cq-lien small { margin-left: auto; font-size: var(--t-min); color: var(--texte-2); font-variant-numeric: tabular-nums; }
+.cq-session { display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 10px; margin-top: 6px; border-radius: var(--r-s); font-size: var(--t-s); color: var(--texte-2); }
+.cq-session b { color: var(--texte); }
+
+/* « À faire » : exceptions seulement, en rubriques fixes */
+.exceptions { padding: 6px; }
+.exceptions h3 { margin: 6px 10px 4px; font-size: var(--t-min); font-weight: 600; color: var(--texte-2); text-transform: none; }
+.exc { display: flex; align-items: center; gap: 12px; min-height: 52px; padding: 6px 10px; border-radius: var(--r-s); text-decoration: none; color: var(--texte); }
+.exc:hover { background: var(--surface-2); }
+.exc .tuile { width: 34px; height: 34px; border-radius: 9px; display: inline-grid; place-items: center; flex: none; background: var(--surface-2); color: var(--neutre); }
+.exc .tuile.attention { background: var(--attention-fond); color: var(--attention); }
+.exc .tuile.plagiat { background: var(--plagiat-fond); color: var(--plagiat); }
+.exc .tuile.ia { background: var(--ia-fond); color: var(--ia); }
+.exc .tuile.accent { background: var(--accent-doux); color: var(--accent-fort); }
+.exc .corps { display: flex; flex-direction: column; min-width: 0; line-height: 1.3; }
+.exc .corps b { font-weight: 600; }
+.exc .suite { margin-left: auto; color: var(--texte-3); }
+.exc .btn { margin-left: auto; }
+
+/* Ligne Claude (état de la fenêtre de 5 h) */
+.claude-ligne { display: flex; align-items: center; gap: 12px; }
+.claude-ligne .tuile { width: 40px; height: 40px; border-radius: 10px; display: inline-grid; place-items: center; background: var(--claude-fond); color: var(--claude); flex: none; }
+.claude-ligne .jauge { width: 140px; }
+
+/* Petites étiquettes de session */
+.tag { display: inline-flex; align-items: center; font-size: 12px; font-weight: 600; color: var(--texte-2); background: var(--surface-2); border: 1px solid var(--border); border-radius: 5px; padding: 0 6px; line-height: 18px; white-space: nowrap; }
+.tag.courante { color: var(--accent-fort); background: var(--accent-doux); border-color: var(--accent-bord); }
+.repli { display: flex; align-items: center; gap: 12px; min-height: 52px; padding: 0 16px; color: var(--texte-2); }
+.repli b { color: var(--texte); }
+.repli .chevron { color: var(--texte-3); }

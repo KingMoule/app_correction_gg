@@ -1,0 +1,244 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>P3 Aujourd'hui</title>
+<!--STYLES-->
+<style>
+/* ===== P3 « Aujourd'hui » : quoi faire maintenant ===== */
+.p3-reprise { display: flex; align-items: center; gap: 14px; padding: 14px 16px 14px 18px; margin-bottom: 16px; }
+.p3-reprise .tuile { width: 44px; height: 44px; border-radius: 11px; display: inline-grid; place-items: center; background: var(--accent-doux); color: var(--accent-fort); flex: none; }
+.p3-reprise .etq { font-size: var(--t-min); font-weight: 600; color: var(--accent-fort); }
+.p3-reprise .nom { font-size: 17px; font-weight: 600; }
+.p3-reprise .btn { margin-left: auto; }
+.p3-cols { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+.p3-col { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.rub { padding: 0; overflow: hidden; }
+.rub > .rt { display: flex; align-items: center; gap: 10px; min-height: 48px; padding: 0 16px; border-bottom: 1px solid var(--border); }
+.rub > .rt h2 { margin: 0; font-size: 15px; }
+.rub > .rt .n { font-size: var(--t-min); color: var(--texte-2); }
+.rub > .rt .ord { width: 22px; height: 22px; border-radius: 6px; display: inline-grid; place-items: center; font-size: 12px; font-weight: 700; background: var(--surface-2); color: var(--texte-2); }
+.rub.bloquant { border-color: #fcd34d; }
+.rub.bloquant > .rt { background: var(--attention-fond); color: var(--attention); border-bottom-color: #fcd34d; }
+.rub.bloquant > .rt h2 { color: var(--attention); }
+.li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px; align-items: center; min-height: 60px; padding: 6px 12px 6px 16px; border-top: 1px solid var(--border); color: var(--texte); text-decoration: none; }
+.rub > .li:first-of-type, .rub > .rt + .li { border-top: 0; }
+.li .q b { display: block; font-weight: 600; }
+a.q { min-height: 48px; display: flex; flex-direction: column; justify-content: center; }
+.li .q .mu { display: block; }
+.li .a { display: flex; gap: 6px; align-items: center; }
+.li .a .btn small { font-weight: 500; color: var(--texte-2); }
+.li.avec-tuile { grid-template-columns: 34px minmax(0, 1fr) auto; }
+.li .tuile { width: 34px; height: 34px; border-radius: 9px; display: inline-grid; place-items: center; background: var(--surface-2); color: var(--neutre); }
+.li .tuile.attention { background: var(--attention-fond); color: var(--attention); }
+.li .tuile.plagiat { background: var(--plagiat-fond); color: var(--plagiat); }
+.li .tuile.ia { background: var(--ia-fond); color: var(--ia); }
+.claude-tete { display: flex; align-items: center; gap: 12px; padding: 12px 16px; background: var(--surface-2); border-bottom: 1px solid var(--border); font-size: var(--t-s); }
+.claude-tete .jauge { width: 120px; margin: 0; }
+.p3-fait { display: flex; align-items: center; gap: 10px; margin-top: 16px; padding: 12px 16px; border-radius: var(--r-m); background: var(--ok-fond); color: var(--ok); font-size: var(--t-s); }
+.p3-fait b { color: var(--ok); }
+@container page (max-width: 860px) {
+  .p3-cols { display: flex; flex-direction: column; align-items: stretch; }
+  .p3-col { display: contents; }
+  .r-bloquant { order: 1; } .r-corriger { order: 2; } .r-claude { order: 3; } .r-revoir { order: 4; } .r-clore { order: 5; }
+}
+@container page (min-width: 1100px) {
+  .p3-cols { grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); }
+}
+/* Recherche dans la barre latérale (paysage) et en haut (portrait) */
+.cq-recherche { position: relative; margin: 10px 0 0; }
+.cq-recherche svg.ic { position: absolute; left: 11px; top: 13px; color: var(--texte-2); }
+.cq-recherche .saisie { padding-left: 36px; font-size: 15px; }
+.haut-cherche { flex: 1; position: relative; }
+.haut-cherche .saisie { height: 44px; padding-left: 38px; }
+.haut-cherche svg.ic { position: absolute; left: 12px; top: 13px; color: var(--texte-2); }
+
+/* Bibliothèque : archives et recherche */
+.p3-cherche { position: relative; margin-bottom: 18px; }
+.p3-cherche .saisie { height: 52px; font-size: 17px; padding-left: 46px; border-radius: 12px; }
+.p3-cherche > svg.ic { position: absolute; left: 16px; top: 16px; width: 20px; height: 20px; color: var(--texte-2); }
+.p3-courante { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 14px 16px; }
+.p3-courante .puces { display: flex; gap: 8px; flex-wrap: wrap; width: 100%; }
+.puce-lab { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 12px; border-radius: 10px; border: 1px solid var(--border); background: var(--surface); color: var(--texte); text-decoration: none; font-size: var(--t-s); }
+.puce-lab .mu { font-size: 12px; }
+.p3-sessions { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 14px; }
+.sess { padding: 14px 16px; display: flex; flex-direction: column; gap: 8px; }
+.sess h3 { margin: 0; font-size: 16px; }
+.sess .lg { display: flex; justify-content: space-between; font-size: var(--t-s); color: var(--texte-2); }
+.sess .lg b { color: var(--texte); font-weight: 600; }
+.sess .btn { align-self: flex-start; margin-top: 4px; }
+.p3-cote { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.p3-cote .li { border: 0; }
+.res { padding: 0; overflow: hidden; }
+.res .grp { font-size: var(--t-min); font-weight: 600; color: var(--texte-2); padding: 10px 16px 6px; background: var(--surface-2); border-bottom: 1px solid var(--border); }
+.res .li { grid-template-columns: 30px minmax(0, 1fr) auto auto; }
+@container page (max-width: 860px) { .p3-cote { grid-template-columns: minmax(0, 1fr); } }
+</style>
+</head>
+<body class="maquettes">
+<!--SPRITE-->
+
+<template id="lat">
+  <div class="cq-marque"><span class="cq-logo"><svg class="ic"><use href="#graduation-cap"/></svg></span><span>Correction<small>Rapports de lab</small></span></div>
+  <div class="cq-recherche"><svg class="ic"><use href="#search"/></svg><input class="saisie" type="search" placeholder="Étudiant, DA, lab" aria-label="Chercher dans toutes les sessions"></div>
+  <nav class="cq-nav" aria-label="Navigation">
+    <a class="cq-lien" data-cle="auj" href="#"><svg class="ic"><use href="#sun"/></svg><span>Aujourd'hui</span><span class="cq-n alerte">1</span></a>
+    <a class="cq-lien" data-cle="biblio" href="#"><svg class="ic"><use href="#library"/></svg><span>Bibliothèque</span></a>
+    <a class="cq-lien" data-cle="importer" href="#"><svg class="ic"><use href="#upload"/></svg><span>Importer</span><span class="cq-n alerte">3</span></a>
+    <a class="cq-lien" data-cle="plagiat" href="#"><svg class="ic"><use href="#scan-search"/></svg><span>Plagiat</span><span class="cq-n">3</span></a>
+  </nav>
+  <a class="cq-conso" href="#"><span class="l1"><span>Claude · 5 h</span><b>≈ 38 %</b></span><span class="jauge"><i style="width:38%"></i><u style="left:80%"></u></span></a>
+  <a class="cq-lot" href="#"><span class="l1"><span>Lot · Lab 3 · NYA</span><b>4 / 7</b></span><span class="jauge"><i style="width:57%"></i></span></a>
+  <p class="cq-titre">Labs en cours</p>
+  <div class="cq-labs">
+    <a class="cq-lien" href="#"><span>Lab 2 · NYA</span><small>34 / 80</small></a>
+    <a class="cq-lien" href="#"><span>Lab 3 · NYA</span><small>0 / 83</small></a>
+    <a class="cq-lien" href="#"><span>Lab 1 · NYB</span><small>26 / 27</small></a>
+    <a class="cq-lien" href="#"><span>Lab 2 · NYB</span><small>3 / 27</small></a>
+  </div>
+  <div class="cq-pied">
+    <a class="cq-lien" href="#"><svg class="ic"><use href="#settings"/></svg><span>Réglages</span></a>
+    <div class="cq-ordi ok"><i class="cq-point"></i><span>Ordi connecté</span></div>
+  </div>
+</template>
+
+<template id="haut">
+  <header class="coque-haut"><button class="btn" type="button"><svg class="ic"><use href="#panel-right"/></svg>Menu</button>
+    <div class="haut-cherche"><svg class="ic"><use href="#search"/></svg><input class="saisie" type="search" placeholder="Étudiant, DA ou lab" aria-label="Chercher"></div></header>
+</template>
+
+<!-- ============ AUJOURD'HUI ============ -->
+<template id="m-auj">
+<main>
+  <div class="tete">
+    <div><h1>Aujourd'hui</h1><p class="sous">Jeudi 22 octobre · <span class="tag courante">Automne 2026</span> · rubriques toujours dans le même ordre</p></div>
+    <div class="actions"><a class="btn" href="#"><svg class="ic"><use href="#upload"/></svg>Importer</a></div>
+  </div>
+  <section class="carte p3-reprise">
+    <span class="tuile"><svg class="ic l"><use href="#file-text"/></svg></span>
+    <div><div class="etq">Reprendre là où tu étais</div><div class="nom">Émile Ouellet</div><div class="mu">Lab 2 · NYA · gr. 02 · ouvert sur l'iPad il y a 20 min</div></div>
+    <a class="btn primaire" href="#"><svg class="ic"><use href="#arrow-right"/></svg>Reprendre</a>
+  </section>
+
+  <div class="p3-cols">
+    
+
+    <div class="p3-col"><section class="carte rub r-corriger">
+      <div class="rt"><span class="ord">2</span><h2>Corriger</h2><span class="n">51 rapports analysés à terminer</span></div>
+      <a class="li" href="#"><span class="q"><b>Lab 2 · NYA</b><span class="mu">33 prêts · 13 pas encore analysés · prochain : Gabrielle Bélanger</span></span><span class="a"><span class="btn"><svg class="ic"><use href="#pen"/></svg>Corriger</span></span></a>
+      <a class="li" href="#"><span class="q"><b>Lab 3 · NYA</b><span class="mu">0 prêt · lot en cours (4 / 7)</span></span><span class="a"><span class="btn" aria-disabled="true" style="opacity:.45">Corriger</span></span></a>
+      <a class="li" href="#"><span class="q"><b>Lab 1 · NYB</b><span class="mu">1 prêt · dernier rapport du lab</span></span><span class="a"><span class="btn"><svg class="ic"><use href="#pen"/></svg>Corriger</span></span></a>
+      <a class="li" href="#"><span class="q"><b>Lab 2 · NYB</b><span class="mu">17 prêts · 7 pas encore analysés</span></span><span class="a"><span class="btn"><svg class="ic"><use href="#pen"/></svg>Corriger</span></span></a>
+    </section>
+
+    <section class="carte rub r-claude">
+      <div class="rt"><span class="ord">3</span><h2>Claude</h2><span class="n">103 rapports à analyser</span></div>
+      <div class="claude-tete"><svg class="ic"><use href="#sparkles"/></svg><span>5 h <b>≈ 38 %</b></span><span class="jauge"><i style="width:38%"></i><u style="left:80%"></u></span><span class="esp"></span><span class="mu">lot conseillé : 7</span></div>
+      <div class="li"><span class="q"><b>Lab 3 · NYA</b><span class="mu">83 à analyser · lot en cours 4 / 7 · environ 12 lots</span></span><span class="a"><button class="btn" type="button"><svg class="ic"><use href="#x"/></svg>Arrêter</button></span></div>
+      <div class="li"><span class="q"><b>Lab 2 · NYA</b><span class="mu">13 à analyser · dans l'ordre de correction</span></span><span class="a"><button class="btn" type="button" disabled><svg class="ic"><use href="#hourglass"/></svg>Après le lot</button></span></div>
+      <div class="li"><span class="q"><b>Lab 2 · NYB</b><span class="mu">7 à analyser</span></span><span class="a"><button class="btn" type="button" disabled><svg class="ic"><use href="#hourglass"/></svg>Après le lot</button></span></div>
+    </section>
+
+    </div>
+    <div class="p3-col"><section class="carte rub bloquant r-bloquant">
+      <div class="rt"><span class="ord">1</span><h2>Bloquant</h2><span class="n">1</span></div>
+      <a class="li avec-tuile" href="#"><span class="tuile attention"><svg class="ic"><use href="#upload"/></svg></span><span class="q"><b>3 fichiers à associer</b><span class="mu">Lab 2 · NYA · import du 21 oct.</span></span><span class="a"><span class="btn">Associer</span></span></a>
+    </section>
+    <section class="carte rub r-revoir">
+      <div class="rt"><span class="ord">4</span><h2>Revoir</h2><span class="n">indices à revérifier, jamais un verdict</span></div>
+      <div class="li avec-tuile"><span class="tuile plagiat"><svg class="ic"><use href="#scan-search"/></svg></span><a class="q" href="#" style="color:inherit;text-decoration:none"><b>3 paires de plagiat</b><span class="mu">Lab 2 · NYA</span></a><span class="a"><button class="btn-ico" type="button" aria-label="Plus tard (jusqu'à demain)"><svg class="ic"><use href="#clock"/></svg></button></span></div>
+      <div class="li avec-tuile"><span class="tuile ia"><svg class="ic"><use href="#search"/></svg></span><a class="q" href="#" style="color:inherit;text-decoration:none"><b>2 indices d'IA marqués</b><span class="mu">Lab 2 · NYA · à revérifier</span></a><span class="a"><button class="btn-ico" type="button" aria-label="Plus tard (jusqu'à demain)"><svg class="ic"><use href="#clock"/></svg></button></span></div>
+      <div class="li avec-tuile"><span class="tuile"><svg class="ic"><use href="#sparkles"/></svg></span><a class="q" href="#" style="color:inherit;text-decoration:none"><b>2 « Claude manquant »</b><span class="mu">Lab 2 · NYA · passe à refaire</span></a><span class="a"><button class="btn-ico" type="button" aria-label="Plus tard (jusqu'à demain)"><svg class="ic"><use href="#clock"/></svg></button></span></div>
+    </section>
+
+    <section class="carte rub r-clore">
+      <div class="rt"><span class="ord">5</span><h2>Clore</h2><span class="n">2</span></div>
+      <div class="li avec-tuile"><span class="tuile attention"><svg class="ic"><use href="#file-down"/></svg></span><span class="q"><b>Export à refaire</b><span class="mu">Lab 1 · NYB · 1 rapport modifié</span></span><span class="a"><button class="btn" type="button">Préparer</button></span></div>
+      <div class="li avec-tuile"><span class="tuile"><svg class="ic"><use href="#file-text"/></svg></span><span class="q"><b>Énoncé manquant</b><span class="mu">Lab 3 · NYA</span></span><span class="a"><button class="btn" type="button">Téléverser</button></span></div>
+    </section></div>
+  </div>
+  <p class="p3-fait"><svg class="ic"><use href="#circle-check"/></svg><span><b>Fait aujourd'hui</b> : 12 rapports terminés · 1 lot de 7 analysé · Lab 1 · NYA exporté</span></p>
+</main>
+</template>
+
+<!-- ============ BIBLIOTHÈQUE : archives et recherche ============ -->
+<template id="m-biblio">
+<main>
+  <div class="tete">
+    <div><h1>Bibliothèque</h1><p class="sous">Toutes les sessions · 4 sessions · 1 263 rapports</p></div>
+    <div class="actions"><a class="btn" href="#"><svg class="ic"><use href="#upload"/></svg>Importer</a></div>
+  </div>
+  <div class="p3-cherche"><svg class="ic"><use href="#search"/></svg><input class="saisie" type="search" placeholder="Chercher un étudiant, un DA, un lab ou un fichier" aria-label="Chercher"></div>
+
+  <section class="carte p3-courante">
+    <b>Automne 2026</b><span class="tag courante">en cours</span><span class="mu">NYA (gr. 01, 02, 03) · NYB (gr. 04)</span><span class="esp"></span><a class="btn tertiaire" href="#"><svg class="ic"><use href="#sun"/></svg>4 labs en cours → Aujourd'hui</a><button class="btn-ico" type="button" aria-label="Réglages des cours de la session (barème, style des références, listes)"><svg class="ic"><use href="#ellipsis"/></svg></button>
+    <div class="puces">
+      <a class="puce-lab" href="#"><b>Lab 1 · NYA</b><span class="pastille p-fini">Exporté</span></a>
+      <a class="puce-lab" href="#"><b>Lab 2 · NYA</b><span class="mu">34 / 80</span></a>
+      <a class="puce-lab" href="#"><b>Lab 3 · NYA</b><span class="mu">0 / 83</span></a>
+      <a class="puce-lab" href="#"><b>Lab 1 · NYB</b><span class="mu">26 / 27</span></a>
+      <a class="puce-lab" href="#"><b>Lab 2 · NYB</b><span class="mu">3 / 27</span></a>
+    </div>
+  </section>
+
+  <div class="titre-bloc"><h2>Sessions passées</h2><span class="mu">lecture seule · toujours dans la recherche et le plagiat</span></div>
+  <div class="p3-sessions">
+    <section class="carte sess"><h3>Hiver 2026</h3><span class="lg"><span>NYA · gr. 01, 02</span><b>5 labs</b></span><span class="lg"><span>NYC · gr. 05</span><b>5 labs</b></span><span class="lg"><span>Rapports</span><b>402 · tous exportés</b></span><a class="btn" href="#"><svg class="ic"><use href="#folder-open"/></svg>Ouvrir</a></section>
+    <section class="carte sess"><h3>Automne 2025</h3><span class="lg"><span>NYA · gr. 01, 02, 03</span><b>5 labs</b></span><span class="lg"><span>NYB · gr. 04</span><b>4 labs</b></span><span class="lg"><span>Rapports</span><b>468 · tous exportés</b></span><a class="btn" href="#"><svg class="ic"><use href="#folder-open"/></svg>Ouvrir</a></section>
+    <section class="carte sess"><h3>Hiver 2025</h3><span class="lg"><span>NYA · gr. 01</span><b>5 labs</b></span><span class="lg"><span>NYC · gr. 05</span><b>5 labs</b></span><span class="lg"><span>Rapports</span><b>281 · tous exportés</b></span><a class="btn" href="#"><svg class="ic"><use href="#folder-open"/></svg>Ouvrir</a></section>
+  </div>
+
+  <div class="titre-bloc"><h2>Mis de côté</h2><span class="mu">rien n'est jamais supprimé : tout se récupère</span></div>
+  <div class="p3-cote">
+    <section class="carte"><a class="li avec-tuile" href="#"><span class="tuile"><svg class="ic"><use href="#archive"/></svg></span><span class="q"><b>2 fichiers écartés</b><span class="mu">à l'import · dernier le 21 oct.</span></span><svg class="ic" style="color:var(--texte-3)"><use href="#chevron-right"/></svg></a></section>
+    <section class="carte"><a class="li avec-tuile" href="#"><span class="tuile"><svg class="ic"><use href="#refresh-cw"/></svg></span><span class="q"><b>3 rapports remplacés</b><span class="mu">anciennes versions avec annotations et note</span></span><svg class="ic" style="color:var(--texte-3)"><use href="#chevron-right"/></svg></a></section>
+  </div>
+</main>
+</template>
+
+<!-- ============ BIBLIOTHÈQUE : résultats (PC) ============ -->
+<template id="m-resultats">
+<main>
+  <div class="tete">
+    <div><h1>Bibliothèque</h1><p class="sous">Toutes les sessions · 4 sessions · 1 263 rapports</p></div>
+    <div class="actions"><a class="btn" href="#"><svg class="ic"><use href="#upload"/></svg>Importer</a></div>
+  </div>
+  <div class="p3-cherche"><svg class="ic"><use href="#search"/></svg><input class="saisie" type="search" aria-label="Chercher"></div>
+  <div class="titre-bloc" style="margin-top:0"><h2>7 résultats pour « 24123 »</h2><span class="mu">les résultats d'abord · toutes les sessions</span></div>
+  <section class="carte res">
+    <div class="grp">Étudiant</div>
+    <a class="li" href="#"><span class="avatar">RL</span><span class="q"><b>Raphaël Lachance · DA <mark>24123</mark>45</b><span class="mu">NYA gr. 02 · Automne 2026 · 3 rapports · moyenne 16,5</span></span><span class="tag courante">A26</span><svg class="ic" style="color:var(--texte-3)"><use href="#chevron-right"/></svg></a>
+    <div class="grp">Rapports</div>
+    <a class="li" href="#"><span class="avatar">RL</span><span class="q"><b>Lab 2 · NYA · Raphaël Lachance</b><span class="mu">équipe avec Hugo Fontaine · 5 fautes à trancher</span></span><span class="pastille p-nouv">En cours</span><span class="tag courante">A26</span></a>
+    <a class="li" href="#"><span class="avatar">RL</span><span class="q"><b>Lab 1 · NYA · Raphaël Lachance</b><span class="mu">exporté le 12 oct.</span></span><span class="pastille p-fini">Terminé · 16,5</span><span class="tag courante">A26</span></a>
+    <a class="li" href="#"><span class="avatar">RL</span><span class="q"><b>Lab 3 · NYA · Raphaël Lachance</b><span class="mu">reçu le 20 oct.</span></span><span class="pastille p-neutre">Reçu · à analyser</span><span class="tag courante">A26</span></a>
+    <div class="grp">Fichiers mis de côté</div>
+    <a class="li" href="#"><span class="tuile" style="width:30px;height:30px;border-radius:8px;display:inline-grid;place-items:center;background:var(--surface-2)"><svg class="ic s"><use href="#refresh-cw"/></svg></span><span class="q"><b>Lab 2 · NYA · ancienne version</b><span class="mu">remplacée le 9 oct. · annotations et note gardées</span></span><span class="pastille p-neutre">Remplacé</span><span class="tag courante">A26</span></a>
+    <a class="li" href="#"><span class="tuile" style="width:30px;height:30px;border-radius:8px;display:inline-grid;place-items:center;background:var(--attention-fond);color:var(--attention)"><svg class="ic s"><use href="#upload"/></svg></span><span class="q"><b>Cote_<mark>24123</mark>99_Rapport.pdf</b><span class="mu">à associer · DA inconnu dans les listes</span></span><span class="pastille">À trancher</span><span class="tag courante">A26</span></a>
+    <a class="li" href="#"><span class="avatar">MC</span><span class="q"><b>Lab 3 · NYC · Mathis Côté · DA <mark>24123</mark>02</b><span class="mu">Hiver 2026 · exporté</span></span><span class="pastille p-fini">Terminé · 13,5</span><span class="tag">H26</span></a>
+  </section>
+</main>
+</template>
+
+<div class="planche">
+  <header>
+    <h1>P3 « Aujourd'hui » : quoi faire maintenant</h1>
+    <p>L'accueil devient une <b>liste de rubriques fixes</b>, toujours dans le même ordre (Bloquant, Corriger, Claude, Revoir, Clore), calculée d'après l'état de chaque lab; chaque ligne a le bouton qui fait la tâche. Rien n'est trié par un score : une rubrique vide disparaît, les autres ne bougent pas. La Bibliothèque devient un lieu d'<b>archives et de recherche</b> : la session courante renvoie à « Aujourd'hui », les sessions passées sont des cartes, et « Mis de côté » montre les fichiers écartés ou remplacés. Données fictives.</p>
+  </header>
+  <div class="ecran" id="auj-ipad"><h2>Aujourd'hui · iPad paysage 1180 × 820, pendant un lot</h2><p class="leg">À gauche le travail (Corriger, Claude), à droite les exceptions (Bloquant, Revoir, Clore). Un lot tourne : « Arrêter » sur sa ligne, les autres attendent. « Plus tard » (horloge) n'existe que dans Revoir. Ligne touchée = suivi du lab; bouton = le prochain rapport.</p>
+    <div class="cadre ipad" data-modele="m-auj" data-actif="auj"></div></div>
+  <div class="ecran" id="biblio-ipad"><h2>Bibliothèque · iPad paysage</h2><p class="leg">La session en cours tient en une ligne (ses labs mènent au suivi); les sessions passées sont des cartes, en lecture seule; « Mis de côté » rend visibles `_ecartes` et `_remplaces`.</p>
+    <div class="cadre ipad" data-modele="m-biblio" data-actif="biblio"></div></div>
+  <div class="ecran" id="auj-portrait"><h2>Aujourd'hui · iPad portrait 820 × 1180</h2><p class="leg">Une seule colonne dans l'ordre fixe : Bloquant, Corriger, Claude, Revoir, Clore. La recherche est dans la barre du haut.</p>
+    <div class="cadre portrait" data-modele="m-auj" data-actif="auj"></div></div>
+  <div class="ecran" id="biblio-portrait"><h2>Bibliothèque · iPad portrait</h2><p class="leg">Mêmes blocs, sessions sur une ou deux colonnes.</p>
+    <div class="cadre portrait" data-modele="m-biblio" data-actif="biblio"></div></div>
+  <div class="ecran" id="auj-pc"><h2>Aujourd'hui · PC 1440 × 900</h2><p class="leg">Même ordre, plus d'air; « Fait aujourd'hui » en pied (demande l'heure de chaque « Terminé » dans le moteur).</p>
+    <div class="cadre pc" data-modele="m-auj" data-actif="auj"></div></div>
+  <div class="ecran" id="resultats-pc"><h2>Bibliothèque · PC, recherche d'un DA « 24123 »</h2><p class="leg">Les résultats d'abord : étudiant, rapports, fichiers mis de côté ou à associer, sessions passées comprises.</p>
+    <div class="cadre pc" data-modele="m-resultats" data-actif="biblio" data-q="24123"></div></div>
+</div>
+<!--SCRIPT-->
+</body>
+</html>
