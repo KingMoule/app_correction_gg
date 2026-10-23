@@ -1,0 +1,8 @@
+/* Édition de l'équipe d'un rapport (equipe.js). Chargé par equipe.js lui-même. */
+.equipe-edition { display: flex; flex-direction: column; gap: var(--e2); align-items: stretch; }
+.equipe-edition .aide { margin: 0; }
+.equipe-edition .membre { display: flex; align-items: center; gap: var(--e3); min-height: var(--cible); padding: 0 0 0 var(--e3);
+  background: var(--surface-2); border-radius: var(--r-s); }
+.equipe-edition .membre .nom { flex: 1; min-width: 0; font-weight: 600; }
+.equipe-edition .membre .mu { color: var(--texte-2); font-size: var(--t-s); }
+.equipe-edition select.saisie { width: 100%; }

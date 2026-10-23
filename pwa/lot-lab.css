@@ -1,0 +1,14 @@
+/* Lot de Claude d'un lab (lot-lab.js), dans l'onglet « Claude » de la page du lab. Chargé par lot-lab.js lui-même.
+   L'estimation (.lot-est*) vient de outils.css. */
+.lot-lab-intro { margin: 0 0 var(--e3); color: var(--texte-2); font-size: var(--t-s); }
+.lot-lab-champs { display: flex; align-items: flex-end; gap: var(--e5); flex-wrap: wrap; margin: 0 0 var(--e2); }
+.lot-lab-champs .champ { margin: 0; }
+.lot-lab-champs input.saisie { width: 7rem; }
+.lot-lab-actions { display: flex; gap: var(--e2); flex-wrap: wrap; margin: var(--e3) 0; }
+.lot-lab-actions .btn[hidden] { display: none; }
+.lot-lab-prog { margin: var(--e3) 0 var(--e2); }
+.lot-lab-prog > progress { width: 100%; }
+.lot-lab-erreurs { list-style: none; padding: 0; margin: var(--e2) 0 0; font-size: var(--t-s); }
+.lot-lab-erreurs:empty { display: none; }
+.lot-lab-erreurs li { display: flex; gap: var(--e2); padding: var(--e2) var(--e3); margin-bottom: var(--e1); background: var(--danger-fond); color: var(--danger); border-radius: var(--r-s); }
+.lot-lab-pastille { min-height: var(--cible); box-sizing: border-box; padding: 0 var(--e3); }

@@ -12,13 +12,30 @@ body { margin: 0; }
 .fil svg.ic { color: var(--texte-3); }
 .fil b { color: var(--texte); font-weight: 600; }
 
-.suivi-titre { display: flex; align-items: flex-end; gap: var(--e5); flex-wrap: wrap; margin: var(--e2) 0 var(--e3); }
-.suivi-titre h1 { margin: 0 0 var(--e1); }
-.suivi-prog { margin-left: auto; width: 14rem; }
-.suivi-prog .barre { height: 8px; }
-.barre > .cours { background: var(--neutre); }
-.barre > .fait { background: var(--ok-point); }
-.suivi-prog b { color: var(--texte); }
+/* En-tête du lab : titre, état chiffré (barre à deux segments), « Corriger le suivant » (le seul bouton plein de l'en-tête) */
+.lab-tete { display: flex; align-items: center; gap: var(--e3) var(--e5); flex-wrap: wrap; margin: var(--e1) 0 var(--e4); }
+.lab-titre { flex: 1 1 16rem; min-width: 0; }
+.lab-titre h1 { margin: 0 0 var(--e1); display: flex; align-items: center; gap: var(--e3); flex-wrap: wrap; }
+.etat-lab { display: flex; flex-direction: column; gap: 6px; width: 20rem; max-width: 100%; }
+.barre2 { height: 8px; border-radius: 4px; background: var(--surface-3); overflow: hidden; display: flex; }
+.barre2 > i { display: block; height: 100%; }
+.barre2 > .t { background: var(--accent); }
+.barre2 > .a { background: var(--accent-bord); }
+.etat-lab .chiffres { font-size: var(--t-min); color: var(--texte-2); font-variant-numeric: tabular-nums; }
+.etat-lab .chiffres b { color: var(--texte); font-weight: 600; }
+
+/* Barre d'onglets : onglets à gauche (défilent si besoin), « Analyser N · ≈ X % » et « … » à droite */
+.lab-barre { display: flex; align-items: center; gap: var(--e2); border-bottom: 1px solid var(--border); margin-bottom: var(--e4); }
+.lab-barre .onglets { border-bottom: 0; flex: 0 1 auto; min-width: 0; align-self: flex-end; overflow-x: auto; overflow-y: hidden;
+  padding-bottom: 1px; margin-bottom: -1px; scrollbar-width: none; }
+.lab-barre .onglets::-webkit-scrollbar { display: none; }
+.lab-barre .onglets > [role=tab] { flex: none; white-space: nowrap; }
+.lab-barre .onglets .n:empty { display: none; }
+.lab-barre .onglets .n.attention { background: var(--attention-fond); color: var(--attention); }
+.lab-rapide { display: flex; align-items: center; gap: var(--e2); flex: none; }
+.lab-rapide[hidden] { display: none; }
+.lab-carte { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-m); box-shadow: var(--ombre); padding: var(--e4) var(--e5) var(--e5); max-width: 44rem; }
+#p-export .export-bloc { max-width: 44rem; margin-top: 0; }
 
 #export:not(:empty) { margin-bottom: var(--e3); }
 .suivi-filtres { display: flex; align-items: center; gap: var(--e2); margin: 0 0 var(--e3); flex-wrap: wrap; }
@@ -38,6 +55,8 @@ body { margin: 0; }
 .suivi-tab td.nom { white-space: normal; }
 .suivi-tab .nom-etu a { color: var(--texte); text-decoration: none; font-weight: 600; }
 .suivi-tab .nom-etu small { display: block; color: var(--texte-2); font-size: var(--t-min); font-weight: 400; max-width: 16rem; overflow: hidden; text-overflow: ellipsis; }
+.suivi-tab .avatar.sans-rapport { background: transparent; border: 1.5px dashed var(--border-champ); }
+.suivi-tab tr.non-remis { cursor: default; }
 .suivi-tab .nom-etu svg.ic { color: var(--texte-3); width: 14px; height: 14px; margin-left: 4px; vertical-align: -2px; }
 .suivi-tab tr.fini .nom-etu a, .suivi-tab tr.fini td.mu { color: var(--texte-2); }
 .suivi-tab tr.fini .avatar { opacity: .7; }
@@ -47,7 +66,6 @@ body { margin: 0; }
 .suivi-tab a.pastille { text-decoration: none; }
 .suivi-tab td.val-note { font-weight: 600; }
 .suivi-tab td.act { width: 56px; padding: 0 var(--e1); }
-.suivi-tab td.etat-lie { }
 .suivi-tab .pl-multi { max-width: 14rem; overflow: hidden; text-overflow: ellipsis; }
 .suivi-tab .ref-detail { max-width: 13rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .suivi-vide { padding: var(--e5); }
@@ -76,5 +94,7 @@ body { margin: 0; }
 @media (max-width: 900px) {
   .suivi-tab .avatar { display: none; }
   #suivi-page { padding: var(--e3) var(--e4) var(--e6); }
-  .suivi-prog { margin-left: 0; width: 100%; }
+  /* Portrait : en-tête sur deux lignes (titre + « Corriger le suivant », puis l'état du lab sur toute la largeur) */
+  .lab-titre { flex: 1 1 0; }
+  .etat-lab { order: 3; width: 100%; }
 }
