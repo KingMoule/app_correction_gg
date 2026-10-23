@@ -2,7 +2,7 @@
 
 Avant : `bibliotheque/202SNURE/<groupe>/…`. Après : `bibliotheque/202SNURE_A2026/<groupe>/…`.
 Chaque ancien dossier de cours est **renommé** (même disque : un renommage, aucune copie, rien de supprimé),
-puis les fichiers qui citent l'ancien nom de cours sont corrigés (`classe.json`, `_attente`, `reprendre.json`,
+puis les fichiers qui citent l'ancien nom de cours sont corrigés (`classe.json`, `_attente`, `_ecartes`, `_remplaces` (dossiers renommés), `reprendre.json`,
 `exports.json`, comparaisons du plagiat). Avant de toucher à quoi que ce soit : sauvegarde automatique.
 
 Idempotente : sans ancien dossier, rien ne se passe. Si un lancement est interrompu entre le renommage et la
@@ -110,6 +110,21 @@ def _corriger_exports(donnees: Path, bibliotheque: Path, session: str, journal: 
         journal.append(f"exports.json : {n} clé(s) de lab corrigée(s)")
 
 
+def _remplaces_a_renommer(bibliotheque: Path, session: str) -> list[tuple[Path, Path]]:
+    """Dossiers de `_remplaces/` au nom `<ancien cours>_<groupe>_…` à renommer en `<cours>_<session>_<groupe>_…`
+    (la fiche d'étudiant les retrouve par le nom du cours)."""
+    base = bibliotheque / "_remplaces"
+    if not base.is_dir():
+        return []
+    a_faire = []
+    for d in sorted(base.iterdir()):
+        ancien, _, reste = d.name.partition("_")
+        nouveau = _nouveau_nom(ancien, bibliotheque, session)
+        if d.is_dir() and nouveau and reste and not sessions.MOTIF_CLE.match(f"{ancien}_{reste.split('_')[0]}"):
+            a_faire.append((d, base / f"{nouveau}_{reste}"))
+    return a_faire
+
+
 def corriger_references(donnees: Path, session: str, journal: list[str]) -> None:
     """Corrige les fichiers qui citent un ancien nom de cours (idempotent, relançable)."""
     bibliotheque = donnees / "bibliotheque"
@@ -122,8 +137,15 @@ def corriger_references(donnees: Path, session: str, journal: list[str]) -> None
             doc["cours"] = classe.parent.parent.name
             stockage.ecrire_json(classe, doc, indent=1)
             journal.append(f"{classe.relative_to(donnees).as_posix()} : cours = {doc['cours']}")
-    for meta in sorted((bibliotheque / "_attente").glob("*.json")):
-        _reecrire(meta, bibliotheque, session, journal, donnees)
+    for dossier in ("_attente", "_ecartes"):
+        for meta in sorted((bibliotheque / dossier).glob("*.json")):
+            _reecrire(meta, bibliotheque, session, journal, donnees)
+    for source, cible in _remplaces_a_renommer(bibliotheque, session):
+        if cible.exists():
+            journal.append(f"_remplaces/{source.name} : laissé tel quel ({cible.name} existe déjà)")
+            continue
+        source.rename(cible)
+        journal.append(f"_remplaces/{source.name} renommé en {cible.name}")
     _reecrire(donnees / "reprendre.json", bibliotheque, session, journal, donnees)
     _corriger_exports(donnees, bibliotheque, session, journal)
     plagiat = donnees / "plagiat"
@@ -187,7 +209,9 @@ def _references_a_corriger(donnees: Path, session: str) -> bool:
         if not classe.parent.parent.name.startswith("_") and sessions.separer(classe.parent.parent.name)[1] \
                 and isinstance(doc, dict) and doc.get("cours") != classe.parent.parent.name:
             return True
-    for f in [*(bibliotheque / "_attente").glob("*.json"), donnees / "reprendre.json"]:
+    if any(not c.exists() for _, c in _remplaces_a_renommer(bibliotheque, session)):
+        return True
+    for f in [*(bibliotheque / "_attente").glob("*.json"), *(bibliotheque / "_ecartes").glob("*.json"), donnees / "reprendre.json"]:
         doc = stockage.lire_json(f)
         if doc is not None and _corriger(doc, bibliotheque, session)[1]:
             return True

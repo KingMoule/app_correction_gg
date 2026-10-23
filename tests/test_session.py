@@ -184,6 +184,7 @@ def ancienne_bibliotheque(donnees):
     (b / "_attente" / "abc.pdf").write_bytes(pdf("En attente"))
     (b / "_ecartes").mkdir()
     (b / "_ecartes" / "e.pdf").write_bytes(pdf("Écarté"))
+    ecrire(b / "_ecartes" / "e.json", {"id": "e", "fichier": "x.pdf", "cours": "202SNURE", "lab": "lab-1"})
     ecrire(b / "_remplaces" / "202SNURE_00002_lab-1_dube-alice_20261001-101010" / "rapport.pdf.json", {})
     ecrire(donnees / "reprendre.json", {"recents": [{"cours": "202SNURE", "groupe": "00002", "lab": "lab-1", "etudiant": "dube-alice"}]})
     ecrire(donnees / "exports.json", {"202SNURE/lab-1": {"00002/dube-alice": {"date": "x", "sig": "y"}}})
@@ -212,7 +213,9 @@ def test_migration_de_l_ancien_format(tmp_path):
     assert json.loads((nouveau / "00001/classe.json").read_text(encoding="utf-8"))["cours"] == "202SNURE_A2026"
     assert json.loads((b / "_attente/abc.json").read_text(encoding="utf-8"))["cours"] == "202SNURE_A2026"
     assert (b / "_ecartes/e.pdf").is_file() and (b / "_attente/abc.pdf").is_file()
-    assert (b / "_remplaces/202SNURE_00002_lab-1_dube-alice_20261001-101010").is_dir()
+    assert not (b / "_remplaces/202SNURE_00002_lab-1_dube-alice_20261001-101010").exists()
+    assert (b / "_remplaces/202SNURE_A2026_00002_lab-1_dube-alice_20261001-101010").is_dir()  # la fiche d'étudiant le retrouve
+    assert json.loads((b / "_ecartes/e.json").read_text(encoding="utf-8"))["cours"] == "202SNURE_A2026"
     assert json.loads((donnees / "reprendre.json").read_text(encoding="utf-8"))["recents"][0]["cours"] == "202SNURE_A2026"
     assert list(json.loads((donnees / "exports.json").read_text(encoding="utf-8"))) == ["202SNURE_A2026/lab-1"]
     paires = json.loads((donnees / "plagiat/paires.json").read_text(encoding="utf-8"))["paires"][0]

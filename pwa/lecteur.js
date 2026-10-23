@@ -523,12 +523,7 @@ async function ouvrir() {
   $("avatar").textContent = $("titre").textContent.split(/\s+/).filter(Boolean).slice(0, 2).map((m) => m[0].toUpperCase()).join("");
   $("sous-titre").textContent = `${ref[2]} · gr. ${ref[1]}`;
   document.title = `${$("titre").textContent} — Correction de labs`;
-  try { // « Continuer » de l'accueil
-    const sans = new URLSearchParams(location.search);
-    sans.delete("panneau");
-    localStorage.setItem("dernier", JSON.stringify({ cours: ref[0], groupe: ref[1], lab: ref[2], nom: params.get("nom"), url: `lecteur.html?${sans}` }));
-  } catch { /* stockage indisponible */ }
-  try { // « Reprendre » et « Récents » enregistrés par le moteur (échec silencieux, le localStorage reste le repli)
+  try { // « Reprendre » et « Récents » enregistrés par le moteur (échec silencieux)
     const ipad = /iPad|iPhone/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
     fetch("/api/reprendre", { method: "PUT", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ cours: ref[0], groupe: ref[1], lab: ref[2], etudiant: ref[3], appareil: ipad ? "iPad" : "PC" }) }).catch(() => {});

@@ -211,7 +211,13 @@
   fetch("/api/etat").then((r) => r.json()).then((d) => { ordi.dataset.version = `Moteur v${d.version}`; }).catch(() => {});
   surveiller();
   // app.js fournit lui-même la bibliothèque (labs(arbre)); sans lui (suivi, plagiat), on la charge ici.
-  if (page !== "index.html") chargerLabs();
+  if (page !== "index.html") {
+    chargerLabs();
+    // Ctrl+K : la recherche est dans la page Labs (sur index.html, app.js s'en charge lui-même).
+    document.addEventListener("keydown", (ev) => {
+      if ((ev.ctrlKey || ev.metaKey) && !ev.altKey && ev.key.toLowerCase() === "k") { ev.preventDefault(); location.href = "/#recherche"; }
+    });
+  }
 
   window.Coque = { marquer: (vue) => marquer(VUE_VERS_CLE[vue] ?? "accueil"), labs, majConso, titreLab, lot: null };
 })();
