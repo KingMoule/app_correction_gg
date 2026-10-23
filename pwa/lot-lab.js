@@ -69,10 +69,11 @@
       zoneEst.hidden = !e || !e.n;
       if (zoneEst.hidden) return;
       const ligne = el("div", "lot-est-ligne");
+      const total = e.source === "total";
       const gros = el("span"); gros.append(el("b", "", `Ce lot ≈ ${Math.round(e.pct)} %`), document.createTextNode(" de la session"));
-      ligne.append(gros, el("span", "mu", e.depasse
-        ? `on atteindrait ≈ ${Math.round(e.apres)} % de la session`
-        : `il resterait ≈ ${Math.round(100 - e.apres)} % · marge de ${Math.round(e.marge_pct)} % respectée`));
+      ligne.append(gros, el("span", "mu", total
+        ? `il reste ≈ ${Math.round(e.reste)} %` + (e.depasse_reste ? "" : e.depasse ? ` · on atteindrait ≈ ${Math.round(e.apres)} %` : ` · marge de ${Math.round(e.marge_pct)} % respectée`)
+        : e.depasse ? `on atteindrait ≈ ${Math.round(e.apres)} % de la session` : `il resterait ≈ ${Math.round(100 - e.apres)} % · marge de ${Math.round(e.marge_pct)} % respectée`));
       const j = el("div", "lot-est-jauge" + (e.depasse ? " depasse" : ""));
       const deja = el("span", "deja"), lot = el("span", "lot"), repere = el("u");
       deja.style.width = `${Math.min(100, e.utilise)}%`;
@@ -80,21 +81,23 @@
       repere.style.left = `${e.plafond_pct}%`;
       j.append(deja, lot, repere);
       const lg = el("div", "lot-est-legende");
-      lg.append(el("span", "", `déjà utilisé ≈ ${Math.round(e.utilise)} %`), el("span", "", `repère à ${Math.round(e.plafond_pct)} %`));
+      lg.append(el("span", "", total ? `total estimé ≈ ${Math.round(e.utilise)} % (saisi il y a ${e.age_min} min)` : `déjà utilisé par l'app ≈ ${Math.round(e.utilise)} %`), el("span", "", `repère à ${Math.round(e.plafond_pct)} %`));
       zoneEst.append(ligne, j, lg);
       if (!e.calibre || !e.mesure) {
         zoneEst.append(el("p", "aide", e.calibre ? "Coût par défaut pour certains appels (pas encore assez de mesures)."
           : "Estimation non calibrée : saisis ta lecture de /usage dans la page Consommation."));
       }
-      if (e.depasse) {
+      if (!total) zoneEst.append(el("p", "aide", "Sans saisie récente de /usage, seule la part de l'app est comptée : tes autres usages de Claude ne le sont pas."));
+      if (e.depasse || e.depasse_reste) {
         const b = el("div", "banniere attention"); b.setAttribute("role", "status");
         const corps = el("div", "corps");
-        corps.append(el("b", "", `Dépasse la marge de ${Math.round(e.marge_pct)} %.`),
-          document.createTextNode(` ${e.max_rapports ? `Seuls ${e.max_rapports} rapport(s) tiennent.` : "Aucun rapport ne tient."} Tu peux lancer quand même`));
-        if (e.max_rapports) {
+        const tient = e.depasse_reste ? e.max_rapports_reste : e.max_rapports;
+        corps.append(el("b", "", e.depasse_reste ? `Ce lot (≈ ${Math.round(e.pct)} %) dépasse ce qui reste (≈ ${Math.round(e.reste)} %).` : `Dépasse la marge de ${Math.round(e.marge_pct)} %.`),
+          document.createTextNode(` ${tient ? `Seuls ${tient} rapport(s) tiennent${e.depasse_reste ? " dans le reste" : ""}.` : "Aucun rapport ne tient."} Tu peux lancer quand même`));
+        if (tient) {
           corps.append(document.createTextNode(", ou "));
-          const bt = el("button", "btn tertiaire", `ramener à ${e.max_rapports}`); bt.type = "button";
-          bt.onclick = () => { entree.value = e.max_rapports; ecrire("taille", entree.value); apercu(); };
+          const bt = el("button", "btn tertiaire", `ramener à ${tient}`); bt.type = "button";
+          bt.onclick = () => { entree.value = tient; ecrire("taille", entree.value); apercu(); };
           corps.append(bt);
         }
         corps.append(document.createTextNode("."));
@@ -113,7 +116,7 @@
       const pct = e?.pct > 0 ? ` · ≈ ${Math.max(1, Math.round(e.pct))} %` : "";
       const verbe = refaire.checked ? "Refaire" : "Analyser";
       const libelle = `${verbe} ${n}${pct}`;
-      const alerte = !!e?.depasse;
+      const alerte = !!(e?.depasse || e?.depasse_reste);
 
       intro.textContent = info
         ? (info.a_analyser

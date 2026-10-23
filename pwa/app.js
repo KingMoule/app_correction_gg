@@ -144,7 +144,7 @@ async function chargerSuivis() {
     const n = Math.min(taille, restants);
     const a = await fetchJson(`/api/lot/apercu/${enc(u.cours)}/${enc(u.lab)}?n=${n}`);
     if (a && tour === chargementSuivis && a.a_analyser > 0) {
-      apercus.set(cleLab(u), { n: Math.min(n, a.a_analyser), pct: a.estimation?.pct ?? 0, depasse: !!a.estimation?.depasse, a_analyser: a.a_analyser });
+      apercus.set(cleLab(u), { n: Math.min(n, a.a_analyser), pct: a.estimation?.pct ?? 0, depasse: !!(a.estimation?.depasse || a.estimation?.depasse_reste), a_analyser: a.a_analyser });
     }
   }));
   if (tour === chargementSuivis) rendreAccueil();
@@ -705,9 +705,10 @@ function rendreChiffres(enCours) {
   const c = consoEtat, lien = $("chiffre-claude");
   lien.hidden = !c;
   if (!c) return;
-  const limite = c.limite, p = c.session.pct;
+  const limite = c.limite, ts = c.total?.session, total = ts?.etat === "ok", p = total ? ts.total : c.session.pct;
   $("claude-pct").textContent = limite ? "Limite atteinte" : `≈ ${Math.round(p)} %`;
-  $("claude-sous").textContent = limite ? `Claude · reprise ${limite.reprise.slice(11, 16)}` : `Claude · lot conseillé : ${c.lot_conseille}`;
+  $("claude-sous").textContent = limite ? `Claude · reprise ${limite.reprise.slice(11, 16)}`
+    : `Claude · ${total ? `total, reste ≈ ${Math.round(ts.reste)} %` : "app seulement"} · lot conseillé : ${c.lot_conseille}`;
   const jauge = $("claude-jauge");
   jauge.className = "jauge " + (limite || p >= c.plafond_pct ? "danger" : p >= c.plafond_pct - 15 ? "attention" : "");
   jauge.querySelector("i").style.width = `${Math.min(100, limite ? 100 : p)}%`;

@@ -190,16 +190,20 @@
   async function majConso() {
     try {
       const r = await (await fetch("/api/consommation")).json();
-      const plafond = r.plafond_pct, p = r.session.pct;
+      // Total estimé (saisie récente de /usage + app depuis) s'il existe, sinon la part de l'app seulement.
+      const ts = r.total?.session, total = ts?.etat === "ok";
+      const plafond = r.plafond_pct, p = total ? ts.total : r.session.pct;
       const limite = r.limite;
       const niveau = limite || p >= plafond ? "danger" : p >= plafond - 15 ? "attention" : "";
       jauge.className = "jauge " + niveau;
       jaugeBarre.style.width = `${Math.min(100, limite ? 100 : p)}%`;
       jaugeRepere.style.left = `${plafond}%`;
-      consoTexte.textContent = limite ? "Claude · limite atteinte" : "Claude · 5 h";
+      consoTexte.textContent = limite ? "Claude · limite atteinte" : total ? "Claude · 5 h" : "Claude · 5 h · app";
+      conso.title = total ? `Total estimé du forfait (saisi il y a ${ts.age_min} min, plus l'app depuis) · reste ≈ ${Math.round(ts.reste)} %`
+        : "Part de l'app seulement : la limite est partagée avec tes autres usages. Saisis /usage pour voir le total.";
       consoValeur.textContent = limite ? `reprise ${limite.reprise.slice(11, 16)}` : pct(p);
       conso.setAttribute("aria-label", limite ? `Limite de Claude atteinte, reprise vers ${limite.reprise.slice(11, 16)}`
-        : `Consommation estimée de Claude sur 5 heures : ${Math.round(p)} pour cent, arrêt conseillé à ${Math.round(plafond)}`);
+        : `${total ? "Usage total estimé" : "Part de l'app seulement"} sur 5 heures : ${Math.round(p)} pour cent, arrêt conseillé à ${Math.round(plafond)}`);
       conso.hidden = false;
     } catch { conso.hidden = true; }
   }

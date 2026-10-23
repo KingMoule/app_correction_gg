@@ -41,6 +41,7 @@ FENETRE_SESSION = timedelta(hours=5)
 FENETRE_SEMAINE = timedelta(days=7)
 GARDE_JOURS = 14                    # au-delà, les appels sont résumés par jour
 GARDE_RESUME_JOURS = 400
+GARDE_TOTAUX = 20                   # saisies de l'usage total (`/usage`) gardées
 GARDE_CALIBRAGES = 5                # le rapport « % par dollar » est la médiane des derniers
 COUT_MIN_CALIBRAGE = 0.05           # sous ce coût dans la fenêtre, une lecture ne permet pas de caler
 MIN_MESURES = 3                     # appels d'un type nécessaires pour préférer la mesure au défaut
@@ -96,6 +97,7 @@ def _reglages() -> dict:
     doc = doc if isinstance(doc, dict) else {}
     doc.setdefault("marge_pct", MARGE_DEFAUT)
     doc.setdefault("calibrages", [])
+    doc.setdefault("totaux", [])
     return doc
 
 
@@ -251,6 +253,33 @@ def limite_active(doc: dict, maintenant: datetime) -> dict | None:
             "reprise_connue": bool(d.get("reprise"))}
 
 
+def _derniere_saisie(reg: dict, cle: str) -> dict | None:
+    for s in reversed(reg["totaux"]):
+        if s.get(cle) is not None:
+            return s
+    return None
+
+
+def _total_fenetre(reg: dict, appels: list[dict], maintenant: datetime, cle: str, fenetre: timedelta,
+                   ratio: float | None, app: float | None) -> dict:
+    """Usage **total** estimé d'une fenêtre : dernière saisie de `/usage` + consommation de l'app depuis.
+
+    Les autres usages (chat, Claude Code…) qui ont pu continuer depuis la saisie ne sont pas comptés : le total
+    est un plancher qui vieillit. Une saisie plus vieille que la fenêtre n'est plus fiable (fenêtre glissante)."""
+    s = _derniere_saisie(reg, cle)
+    if not s:
+        return {"etat": "aucune", "total": None, "reste": None}
+    age = maintenant.timestamp() - s["t"]
+    base = {"saisi": s[cle], "t": datetime.fromtimestamp(s["t"]).isoformat(timespec="minutes"), "age_min": int(age // 60)}
+    if age > fenetre.total_seconds():
+        return {**base, "etat": "perimee", "total": None, "reste": None}
+    depuis = _pct(sum(x["cout"] for x in appels if x["t"] > s["t"]), ratio) if ratio else 0.0
+    total = min(100.0, round(s[cle] + depuis, 1))
+    return {**base, "etat": "ok", "total": total, "depuis_app": depuis, "app": app,
+            "autres": max(0.0, round(total - app, 1)) if app is not None else None,
+            "reste": max(0.0, round(100 - total, 1))}
+
+
 def resume() -> dict:
     maintenant = _maintenant()
     doc, reg = _lire_journal(), _reglages()
@@ -266,7 +295,9 @@ def resume() -> dict:
     cout_rapport = moyens["francais"] + moyens["ia"] + moyens["references"]
     pct_rapport = max(cout_rapport * k, 0.1)
     utilise = _pct(c5, k)
-    restants = max(0, math.floor((plafond - utilise) / pct_rapport))
+    total_s = _total_fenetre(reg, appels, maintenant, "session", FENETRE_SESSION, k, utilise)
+    base = total_s["total"] if total_s["etat"] == "ok" else utilise   # le total saisi, sinon la part de l'app
+    restants = max(0, math.floor((plafond - base) / pct_rapport))
 
     # par jour (7 derniers jours), en % d'une session de 5 h
     jours = []
@@ -284,12 +315,15 @@ def resume() -> dict:
                          "part": round(c / total7, 3) if total7 else 0.0,
                          "pct_moyen": _pct(moyens[t], k), "mesure": mesures[t]})
     derniere = reg["calibrages"][-1] if reg["calibrages"] else None
+    total = {"session": total_s,
+             "semaine": _total_fenetre(reg, appels, maintenant, "semaine", FENETRE_SEMAINE, ks,
+                                       _pct(c7, ks) if ks else None)}
     return {
         "maintenant": maintenant.isoformat(timespec="seconds"),
         "session": {"cout": round(c5, 4), "pct": utilise, "appels": sum(1 for a in appels if a["t"] >= t5)},
         "semaine": {"cout": round(c7, 4), "pct": _pct(c7, ks) if ks else None,
                     "appels": sum(1 for a in appels if a["t"] >= t7)},
-        "marge_pct": marge, "plafond_pct": plafond,
+        "marge_pct": marge, "plafond_pct": plafond, "total": total,
         "calibrage": {"calibre": calibre, "pct_par_usd": round(k, 2),
                       "semaine_calibree": ks is not None,
                       "derniere": ({**{c: derniere[c] for c in ("session", "semaine") if derniere.get(c) is not None},
@@ -305,32 +339,47 @@ def resume() -> dict:
 
 
 def estimer(choisis: list[tuple]) -> dict:
-    """Estimation d'un lot : `choisis` = [(étudiant, français, IA, références)] comme dans lot.py."""
+    """Estimation d'un lot : `choisis` = [(étudiant, français, IA, références)] comme dans lot.py.
+
+    Le point de départ est l'usage **total** estimé (dernière saisie de `/usage` + app depuis) quand une saisie
+    récente existe, sinon la seule part de l'app (`source` = « app »)."""
     maintenant = _maintenant()
     doc, reg = _lire_journal(), _reglages()
     k, calibre = pct_par_usd(reg)
     moyens, mesures = cout_moyen_par_type(doc["appels"], maintenant)
     cle = ("francais", "ia", "references")
     cout = sum(moyens[t] for _, *flags in choisis for t, f in zip(cle, flags) if f)
-    utilise = _pct(_cout(doc["appels"], (maintenant - FENETRE_SESSION).timestamp()), k)
+    app = _pct(_cout(doc["appels"], (maintenant - FENETRE_SESSION).timestamp()), k)
+    tot = _total_fenetre(reg, doc["appels"], maintenant, "session", FENETRE_SESSION, k, app)
+    avec_total = tot["etat"] == "ok"
+    utilise = tot["total"] if avec_total else app
     plafond = 100 - float(reg["marge_pct"])
     pct = _pct(cout, k)
     n = len(choisis)
     pct_unitaire = (pct / n) if n and pct else 0.0
     max_rapports = n if not pct_unitaire else max(0, math.floor((plafond - utilise) / pct_unitaire))
+    reste = tot["reste"] if avec_total else None
+    max_reste = n if not pct_unitaire or reste is None else max(0, math.floor(reste / pct_unitaire))
     return {"n": n, "cout": round(cout, 4), "pct": pct, "utilise": utilise, "apres": round(utilise + pct, 1),
             "plafond_pct": plafond, "marge_pct": float(reg["marge_pct"]),
             "depasse": utilise + pct > plafond, "max_rapports": min(n, max_rapports),
+            "source": "total" if avec_total else "app", "utilise_app": app,
+            "reste": reste, "age_min": tot.get("age_min"),
+            "depasse_reste": reste is not None and pct > reste, "max_rapports_reste": min(n, max_reste),
             "calibre": calibre, "mesure": all(mesures[t] for t in cle)}
 
 
-def enregistrer_calibrage(session: float, semaine: float | None = None) -> dict:
-    """Mémorise une lecture de `/usage` et en déduit le rapport « % par dollar »."""
+def enregistrer_total(session: float, semaine: float | None = None, calibrer: bool = False) -> dict:
+    """Mémorise une lecture de `/usage` (usage **total** du forfait, toutes sources) avec son heure.
+
+    Distinct du calibrage : la lecture ne sert à caler le rapport « % par dollar » que si `calibrer` (l'app
+    était seule à consommer), sinon les autres usages gonfleraient le rapport."""
     maintenant = _maintenant()
     doc = _lire_journal()
     c5 = _cout(doc["appels"], (maintenant - FENETRE_SESSION).timestamp())
     c7 = _cout(doc["appels"], (maintenant - FENETRE_SEMAINE).timestamp())
     avant = _pct(c5, pct_par_usd()[0])
+    saisie = {"t": maintenant.timestamp(), "session": session, "semaine": semaine}
     entree = {"t": maintenant.timestamp(), "session": session, "semaine": semaine,
               "cout_5h": round(c5, 4), "cout_semaine": round(c7, 4), "ecart": round(session - avant, 1)}
     if c5 >= COUT_MIN_CALIBRAGE and session > 0:
@@ -341,11 +390,17 @@ def enregistrer_calibrage(session: float, semaine: float | None = None) -> dict:
         def ajouter(reg):
             reg = reg if isinstance(reg, dict) else {}
             reg.setdefault("marge_pct", MARGE_DEFAUT)
-            reg["calibrages"] = (reg.get("calibrages") or [])[-(GARDE_CALIBRAGES * 4):] + [entree]
+            reg["totaux"] = (reg.get("totaux") or [])[-(GARDE_TOTAUX - 1):] + [saisie]
+            reg["calibrages"] = (reg.get("calibrages") or [])[-(GARDE_CALIBRAGES * 4):] + ([entree] if calibrer else [])
             return reg
         _dossier().mkdir(parents=True, exist_ok=True)
         stockage.modifier_json(_dossier() / "reglages.json", ajouter)
     return resume()
+
+
+def enregistrer_calibrage(session: float, semaine: float | None = None) -> dict:
+    """Lecture de `/usage` qui sert aussi à caler (compatibilité : `enregistrer_total(..., calibrer=True)`)."""
+    return enregistrer_total(session, semaine, calibrer=True)
 
 
 # --- API -----------------------------------------------------------------------------------
@@ -353,6 +408,12 @@ def enregistrer_calibrage(session: float, semaine: float | None = None) -> dict:
 class Calibrage(BaseModel):
     session: float = Field(ge=0, le=100)
     semaine: float | None = Field(None, ge=0, le=100)
+
+
+class Total(BaseModel):
+    session: float = Field(ge=0, le=100)
+    semaine: float | None = Field(None, ge=0, le=100)
+    calibrer: bool = False
 
 
 class Reglages(BaseModel):
@@ -369,6 +430,11 @@ def calibrer(c: Calibrage) -> dict:
     return enregistrer_calibrage(c.session, c.semaine)
 
 
+@router.post("/total")
+def saisir_total(t: Total) -> dict:
+    return enregistrer_total(t.session, t.semaine, t.calibrer)
+
+
 @router.post("/reglages")
 def regler(r: Reglages) -> dict:
     with _verrou:
@@ -376,6 +442,7 @@ def regler(r: Reglages) -> dict:
             reg = reg if isinstance(reg, dict) else {}
             reg["marge_pct"] = r.marge_pct
             reg.setdefault("calibrages", [])
+            reg.setdefault("totaux", [])
             return reg
         _dossier().mkdir(parents=True, exist_ok=True)
         stockage.modifier_json(_dossier() / "reglages.json", maj)

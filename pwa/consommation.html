@@ -18,7 +18,7 @@
   <main id="conso-page">
     <header class="co-tete">
       <h1>Consommation de Claude</h1>
-      <p class="mu">Estimation d'après les appels du moteur, calée sur ta dernière lecture de <code>/usage</code> (Claude Code). Ce n'est pas le chiffre officiel : un indice. L'usage de Claude hors de cette app n'y figure pas.</p>
+      <p class="mu">La limite du forfait est partagée entre cette app, le chat et Claude Code. L'app ne compte que ses propres appels : saisis de temps en temps la lecture de <code>/usage</code> pour voir le total, le reste et la part des autres usages. Estimation, pas le chiffre officiel.</p>
     </header>
     <div id="co-limite" role="alert" hidden></div>
     <div class="co-grille2" id="co-jauges"></div>
@@ -28,14 +28,17 @@
       <section class="co-bloc"><h2>Par type d'appel <span class="mu">(7 jours)</span></h2><div class="co-repart" id="co-repart"></div><table class="co-lignes" id="co-types"></table></section>
     </div>
     <section class="co-bloc co-cal">
-      <h2>Calibrage</h2>
-      <p id="co-cal-etat"></p>
+      <h2>Usage total lu dans /usage</h2>
+      <p id="co-saisie-etat"></p>
       <form id="co-cal-form" class="co-form">
         <label class="champ"><span class="etiquette">Session (5 h) lue</span><input class="saisie" id="co-cal-session" inputmode="decimal" placeholder="ex. 22" autocomplete="off"></label>
         <label class="champ"><span class="etiquette">Semaine lue (facultatif)</span><input class="saisie" id="co-cal-semaine" inputmode="decimal" placeholder="ex. 31" autocomplete="off"></label>
         <button class="btn primaire" type="submit">Enregistrer</button>
+        <label class="interrupteur co-cal-aussi"><input type="checkbox" id="co-cal-aussi"><i></i><span>Calibrer aussi (seule l'app a consommé depuis la dernière saisie)</span></label>
       </form>
-      <p class="mu">Dans Claude Code, tape <code>/usage</code> et recopie les pourcentages de temps en temps, de préférence juste après un lot et sans autre usage de Claude entre-temps.</p>
+      <p class="mu">Dans Claude Code, tape <code>/usage</code> et recopie les pourcentages. Le total vieillit : entre deux saisies, l'app ajoute sa part, pas tes autres usages. Ne coche « Calibrer aussi » que si rien d'autre n'a consommé (sinon le rapport « % par dollar » serait faussé).</p>
+      <h2>Calibrage</h2>
+      <p id="co-cal-etat"></p>
       <form id="co-marge-form" class="co-form">
         <label class="champ"><span class="etiquette">Marge à garder sur la session (%)</span><input class="saisie" id="co-marge" inputmode="decimal" autocomplete="off"><span class="aide">Les lots visent à s'arrêter avant (100 − marge) %.</span></label>
         <button class="btn" type="submit">Régler la marge</button>
