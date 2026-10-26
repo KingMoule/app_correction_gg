@@ -119,6 +119,7 @@ def suivi(cours: str, lab: str, groupe: str | None = None) -> dict:
                 "groupe": c["groupe"], "etudiant": e["id"], "nom": e["nom"], "prenom": e["prenom"], "analyse": analyse,
                 "equipe": [f"{m['prenom']} {m['nom']}" for m in _json(dossier / "equipe.json") or []],
                 "annotation": annote, "francais": fr, "ia": ia,
+                "ia_comparaison": (_json(dossier / "comparaison_style.json") or {}).get("niveau"),
                 "references": _references(_json(dossier / "references.json")), "plagiat": p, "termine": termine,
                 "note": bibliotheque.lire_note(dossier),
                 "etat": etat_global(termine, annote, fr, ia),

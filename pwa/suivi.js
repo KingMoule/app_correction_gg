@@ -132,8 +132,15 @@
   const cellIa = (r) => {
     if (!r.ia) return td("", mu("Non analysé"));
     if (r.ia === "faible") return td("", mu("Faible"));
-    return td("", pastille(F[r.ia] || r.ia, "p-ia", "search", "· à revoir"));
+    const c = pastille(F[r.ia] || r.ia, "p-ia", "search", "· à revoir");
+    if (!r.ia_comparaison) return td("", c);
+    const cell = td("", c);
+    const m = mu(`comparé : ${COMPARE[r.ia_comparaison] || r.ia_comparaison}`);
+    m.style.display = "block";
+    cell.append(m);
+    return cell;
   };
+  const COMPARE = { coherent: "style cohérent", notable: "écart notable", marque: "écart marqué" };
 
   // Références : un indice à revérifier (jamais une note). Le détail est dans l'onglet « Références » du lecteur.
   const cellReferences = (r) => {

@@ -12,7 +12,7 @@
   const usd = (v) => `${v.toLocaleString("fr-CA", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} $`;
   const pctf = (v) => `${v.toLocaleString("fr-CA", { maximumFractionDigits: 1 })} %`;
   const age = (min) => (min < 60 ? `${min} min` : min < 1440 ? `${Math.floor(min / 60)} h ${String(min % 60).padStart(2, "0")}` : `${Math.floor(min / 1440)} j`);
-  const COULEURS = { francais: "var(--accent)", ia: "var(--ia)", references: "var(--claude)", plagiat: "var(--plagiat)" };
+  const COULEURS = { francais: "var(--accent)", ia: "var(--ia)", references: "var(--claude)", plagiat: "var(--plagiat)", "ia-comparaison": "var(--ia)" };
 
   const jauge = (valeur, repere, niveau) => {
     const j = sur("div", `jauge ${niveau || ""}`);
