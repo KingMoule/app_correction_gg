@@ -1,0 +1,18 @@
+/* Double remise (double-remise.js) : deux copies côte à côte; empilées sous 720 px. */
+dialog.double { width: min(60rem, calc(100vw - 32px)); max-height: calc(100vh - 32px); overflow: auto; }
+.double h2 { margin: 0 0 var(--e2); font-size: 18px; }
+.double h2:focus { outline: none; }
+.double-copies { display: grid; grid-template-columns: 1fr 1fr; gap: var(--e4); margin: var(--e3) 0; }
+.double-copie { border: 1px solid var(--border); border-radius: var(--r-m); padding: var(--e4); background: var(--surface); display: flex; flex-direction: column; gap: var(--e3); min-width: 0; }
+.double-copie h3 { margin: 0; font-size: 16px; display: flex; align-items: center; gap: var(--e2); flex-wrap: wrap; }
+.double-copie h4 { margin: 0; font-size: var(--t-s); color: var(--texte-2); }
+.double-faits { margin: 0; display: grid; grid-template-columns: auto 1fr; gap: var(--e1) var(--e3); font-size: var(--t-s); }
+.double-faits dt { color: var(--texte-2); }
+.double-faits dd { margin: 0; min-width: 0; overflow-wrap: anywhere; }
+.double-apercu { border: 1px solid var(--border); border-radius: var(--r-s); background: var(--surface-2); min-height: 8rem; max-height: 17rem; overflow: hidden; }
+.double-apercu canvas { display: block; width: 100%; height: auto; }
+.double-apercu .aide { margin: var(--e3); }
+.double-travail { margin: 0; padding-left: var(--e4); font-size: var(--t-s); color: var(--texte); }
+.double-copie .btn { margin-top: auto; justify-content: center; }
+.double-actions { display: flex; justify-content: flex-end; gap: var(--e2); flex-wrap: wrap; }
+@media (max-width: 720px) { .double-copies { grid-template-columns: 1fr; } }

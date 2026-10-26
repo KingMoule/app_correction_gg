@@ -18,7 +18,7 @@
   };
   const ETATS = { a_corriger: ["Reçu", "p-neutre"], en_cours: ["En cours", "p-nouv"], termine: ["Terminé", "p-fini"] };
   const RAISONS = { ambigu: "plusieurs étudiants possibles", aucune_correspondance: "aucun nom reconnu",
-    deja_importe: "déjà importé pour ce lab", da_inconnu: "DA absent des listes" };
+    deja_importe: "déjà importé pour ce lab", double_remise: "double remise de l'équipe", da_inconnu: "DA absent des listes" };
 
   // Lettre par lettre sans accents ni casse, avec la position d'origine de chaque lettre gardée.
   function simplifier(texte) {
