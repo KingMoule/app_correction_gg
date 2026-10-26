@@ -11,6 +11,7 @@
   const PERTINENCE = {
     pertinente: ["Pertinente", "p-claude"], douteuse: ["Douteuse", ""], sans_lien: ["Sans lien apparent", ""], non_conclu: ["Non conclu", "p-neutre"],
   };
+  const VRAISEMBLANCE = { plausible: "plausible", incertaine: "incertain", peu_plausible: "peu plausible" };
   const STYLES_COURT = { iso690: "ISO 690 (numérique)", apa7: "APA 7 (auteur-date)" };
   const urlSure = (u) => { try { const x = new URL(u); return x.protocol === "http:" || x.protocol === "https:" ? x.href : null; } catch { return null; } };
   const nbSignales = (r) => (r ? r.introuvables + r.divergentes + r.douteuses + r.sans_lien + r.erreurs_forme + r.liaison : 0);
@@ -81,6 +82,13 @@
       d.append(h("h4", "vue-titre", "Pertinence"), h("p", "vue-texte", p.explication));
       for (const ph of p.phrases ?? []) d.append(h("blockquote", undefined, `« ${ph} »`));
       if (p.verdict !== "non_conclu") d.append(h("p", "mu", "Jugement de Claude à partir du titre et du résumé de la source : un indice à revérifier."));
+      if (p.description) { // source illisible : ce que Claude sait de l'ouvrage, à ne pas confondre avec un jugement sur le texte réel
+        const g = h("div", "ref-desc"), ds = p.description;
+        g.append(h("b", undefined, "Description générale, non vérifiée dans la source"), h("p", undefined, ds.texte));
+        if (ds.avis) g.append(h("p", undefined, `Lien avec la phrase (${VRAISEMBLANCE[ds.vraisemblance] ?? ds.vraisemblance}) : ${ds.avis}`));
+        g.append(h("p", "mu", "Tiré des connaissances de Claude, pas de la source : à vérifier toi-même."));
+        d.append(g);
+      }
     }
     return d;
   }
@@ -97,9 +105,10 @@
     if (!e.citee) pastilles.append(pastille("Non citée", ""));
     if (e.pertinence) {
       const [tp, cp] = PERTINENCE[e.pertinence.verdict] ?? ["?", "p-neutre"];
+      const decrite = !!e.pertinence.description;
       const p = pastille("", cp, e.pertinence.explication);
-      if (cp === "p-claude") p.append(UI.icone("sparkles"));
-      p.append(`Pertinence : ${tp.toLowerCase()}`);
+      if (cp === "p-claude" || decrite) p.append(UI.icone("sparkles"));
+      p.append(decrite ? "Description générale (non vérifiée)" : `Pertinence : ${tp.toLowerCase()}`);
       pastilles.append(p);
     }
     tete.append(pastilles);

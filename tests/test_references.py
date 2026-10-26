@@ -86,7 +86,7 @@ def reseau(tmp_path, monkeypatch):
 
 
 class FileFausse:
-    """Claude simulé : « sans_lien » si la source parle de cuivre, « pertinente » sinon."""
+    """Claude simulé : « sans_lien » si la source parle de cuivre, « pertinente » sinon; décrit les sources sans contenu."""
 
     def __init__(self, erreur=None):
         self.erreur, self.appels = erreur, []
@@ -97,11 +97,16 @@ class FileFausse:
         if self.erreur:
             f.set_exception(self.erreur)
             return f
-        envoyees = json.loads(prompt.split("<donnees>")[1].split("</donnees>")[0])
+        donnees = json.loads(prompt.split("<donnees>")[1].split("</donnees>")[0])
+        if isinstance(donnees, list):  # ancien format : liste de sources
+            donnees = {"a_juger": donnees, "a_decrire": []}
         verdicts = [{"id": e["id"], "verdict": "sans_lien" if "opper" in e["source"]["titre"] else "pertinente",
                      "explication": "La source traite du cuivre, la phrase des ions sulfate."
-                     if "opper" in e["source"]["titre"] else "Même sujet."} for e in envoyees]
-        f.set_result(Resultat(texte="", structure={"verdicts": verdicts}, usage={"output_tokens": 5}, cout_usd=0.01))
+                     if "opper" in e["source"]["titre"] else "Même sujet."} for e in donnees["a_juger"]]
+        descriptions = [{"id": e["id"], "description": "Ouvrage de référence de données physiques et chimiques.",
+                         "vraisemblance": "plausible", "avis": "Plausible pour une valeur de densité."} for e in donnees["a_decrire"]]
+        f.set_result(Resultat(texte="", structure={"verdicts": verdicts, "descriptions": descriptions},
+                              usage={"output_tokens": 5}, cout_usd=0.01))
         return f
 
 
@@ -182,7 +187,8 @@ Références
 
 
 def test_iso_plage_et_liste_et_equation():
-    appels = references.appels_iso("Voir [1-3] et [5, 7]. On a E = mc2 (1). Beaucoup plus loin dans le texte, nous citons un fait connu (2).")
+    appels = references.appels_iso("Les détails de la méthode sont donnés ailleurs [1-3] et aussi [5, 7].\nE = mc2 (1)\n"
+                                   "Beaucoup plus loin dans le texte, nous citons un fait connu (2).")
     assert [a["numero"] for a in appels] == [1, 2, 3, 5, 7, 2]
 
 
@@ -362,7 +368,9 @@ Références
     assert [e["pertinence"]["verdict"] for e in doc["entrees"]] == ["non_conclu"] * 3
     assert "introuvable" in doc["entrees"][0]["pertinence"]["explication"]
     assert "résumé" in doc["entrees"][1]["pertinence"]["explication"]
-    assert claude.appels == []  # rien à juger : Claude n'est pas appelé
+    assert len(claude.appels) == 1  # rien à juger, mais deux sources à décrire (la 1re, introuvable, ne l'est pas)
+    envoye = json.loads(claude.appels[0][0].split("<donnees>")[1].split("</donnees>")[0])
+    assert envoye["a_juger"] == [] and [e["id"] for e in envoye["a_decrire"]] == ["r2", "r3"]
     assert references.resumer(doc)["texte"] == "1 introuvable"
 
 
@@ -461,3 +469,112 @@ def test_lot_relance_les_references_si_claude_avait_echoue(client, monkeypatch):
     monkeypatch.setattr(references, "obtenir_file", lambda: FileFausse())
     client.post(f"/api/references/analyser/{client.base}")
     assert lot.a_faire("202SNURE_A2026", "00002", "lab3", "dube-alice")[2] is False
+
+
+# --- Retours du premier essai réel (rapports fictifs qui reproduisent les cas) ---------------------------
+
+SECTION_ET_CONCLUSION = """Dosage des ions sulfate
+Les ions sulfate sont dosés par turbidimétrie [1]. Le cuivre ne gêne pas ce dosage [2].
+Bibliographie
+(1) DUPONT, Marie. Turbidimetric determination of sulfate ions in water. Analyst, 2015.
+(2) LEBLANC, Jean. Copper corrosion in marine alloys. Corrosion Science, 2018.
+{suite}
+Pour conclure, l'inconnu utilisé durant le laboratoire est un sulfate de sodium.
+Le résultat est cohérent avec la valeur attendue.
+"""
+
+
+@pytest.mark.parametrize("suite", ["3. Conclusion :", "Conclusion", "4. Annexes", "Discussion :",
+                                   "4. Résultats expérimentaux", "5 Analyse des données", ""])
+def test_la_section_s_arrete_au_titre_suivant(suite):
+    _, liste, titre = references.separer(SECTION_ET_CONCLUSION.format(suite=suite))
+    es = references.decouper(liste)
+    assert titre == "Bibliographie" and [e["numero"] for e in es] == [1, 2], [e["brut"] for e in es]
+    assert not any("conclure" in e["brut"] or "Conclusion" in e["brut"] for e in es)
+
+
+def test_une_entree_doit_avoir_l_allure_d_une_reference():
+    texte = ("Texte [1].\nRéférences\n[1] DUPONT, Marie. Titre un. Revue, 2015.\n"
+             "[2] LEBLANC, Jean. Un livre sans année. Éditions fictives.\n[3] Pour conclure, l'inconnu est un sulfate.")
+    es = references.decouper(references.separer(texte)[1])
+    assert [e["numero"] for e in es] == [1, 2]  # la dernière ligne n'a ni année, ni DOI, ni adresse : ce n'est pas une référence
+
+
+def test_pas_de_fausse_reference_dans_le_resultat(reseau, claude):
+    doc = calculer(SECTION_ET_CONCLUSION.format(suite="3. Conclusion :"))
+    assert [e["numero"] for e in doc["entrees"]] == [1, 2]
+    assert all("sulfate de sodium" not in e["brut"] for e in doc["entrees"])
+    assert [e["citee"] for e in doc["entrees"]] == [1, 1] and doc["liaison"] == []  # aucune « non citée » ni « non vérifiable » en trop
+
+
+TABLEAU = """Résultats
+Les ions sulfate sont dosés par turbidimétrie [1].
+Tableau 1 : Indices de réfraction mesurés
+Solution A 1,359(2) 0,000306(2) 0,791(2)
+Solution B 1,401(2) 0,000310(1) 0,802(2)
+±0,00001 (1) (1) (1)
+La valeur obtenue, 1,359(2), est cohérente avec celle attendue ; l'écart est de ±0,0002 (1) environ.
+Selon le manuel, la densité est connue (2).
+Références
+[1] DUPONT, Marie. Turbidimetric determination of sulfate ions in water. Analyst, 2015.
+[2] LEBLANC, Jean. Copper corrosion in marine alloys. Corrosion Science, 2018.
+"""
+
+
+def test_incertitudes_et_tableaux_ne_sont_pas_des_appels():
+    corps = references.separer(TABLEAU)[0]
+    appels = references.appels_iso(corps)
+    assert [(a["numero"], a["phrase"]) for a in appels] == [
+        (1, "Les ions sulfate sont dosés par turbidimétrie [1]."),
+        (2, "Selon le manuel, la densité est connue (2).")], appels
+    assert references.appels_iso("Mesure : 1,359(2) et 0,0003 (1) g/mL.") == []
+
+
+def test_une_ligne_de_prose_courte_reste_une_continuation():
+    appels = references.appels_iso("Le cuivre ne gêne pas ce\ndosage [2].")
+    assert [a["phrase"] for a in appels] == ["Le cuivre ne gêne pas ce dosage [2]."]
+
+
+def test_une_phrase_avec_des_valeurs_reste_de_la_prose():
+    appels = references.appels_iso("La densité de l'éthanol à 20 °C vaut 0,789 g/mL [1]. Le cuivre ne gêne pas ce\ndosage [2].")
+    assert [a["numero"] for a in appels] == [1, 2]
+    titre = references.appels_iso("Mesure de la masse volumique\nLa densité vaut 0,789 g/mL selon le manuel [1].")
+    assert titre[0]["phrase"] == "La densité vaut 0,789 g/mL selon le manuel [1]."  # le titre sans point n'est pas collé à la phrase
+
+
+def test_tableau_dans_un_rapport_complet(reseau, claude):
+    doc = calculer(TABLEAU)
+    assert [a["numero"] for a in doc["appels"]] == [1, 2]
+    assert all("1,359" not in a["phrase"] for a in doc["appels"])
+
+
+MANUEL = "CRC Handbook of Chemistry and Physics"
+
+
+def test_description_generale_d_une_source_inaccessible(reseau, claude):
+    texte = f"""La densité de l'éthanol à 20 °C vaut 0,789 g/mL [1]. Le cuivre ne gêne pas ce dosage [2].
+Un faux article est cité ici [3].
+Références
+[1] HAYNES, William. {MANUEL}. CRC Press, 2016. ISBN 978-2-07-036822-8.
+[2] LEBLANC, Jean. Copper corrosion in marine alloys. Corrosion Science, 2018. DOI {CUIVRE}.
+[3] DUPONT, Marie. Un article. 2020. DOI {INEXISTANT}.
+"""
+    doc = calculer(texte)
+    p1, p2, p3 = (e["pertinence"] for e in doc["entrees"])
+    assert p1["verdict"] == "non_conclu" and "non vérifiable" in p1["explication"].lower()
+    d = p1["description"]
+    assert d["verifiee"] is False and d["vraisemblance"] == "plausible" and "données physiques" in d["texte"] and "densité" in d["avis"]
+    assert p2["verdict"] == "sans_lien" and "description" not in p2  # source lue : vraie pertinence, pas de description
+    assert p3["verdict"] == "non_conclu" and "description" not in p3  # introuvable : rien à décrire
+    assert len(claude.appels) == 1  # tout dans le même appel
+    prompt = claude.appels[0][0]
+    assert MANUEL in prompt and "densité de l'éthanol" in prompt and "Un faux article" not in prompt
+    assert "non vérifiée" in claude.appels[0][2] or "connaissances" in claude.appels[0][2]
+
+
+def test_pas_de_description_hors_ligne(tmp_path, monkeypatch):
+    monkeypatch.setenv("CORRECTION_DONNEES", str(tmp_path))
+    monkeypatch.setenv("CORRECTION_HORS_LIGNE", "1")
+    monkeypatch.setattr(references, "obtenir_file", lambda: pytest.fail("Claude ne doit pas être appelé"))
+    doc = calculer(RAPPORT_ISO)
+    assert all("description" not in e["pertinence"] for e in doc["entrees"])
