@@ -1,0 +1,20 @@
+/* Page « Réglages » (direction Atelier) : sections empilées, une carte par section, enregistrement immédiat. */
+#reglages-page { max-width: 52rem; margin: 0 auto; padding: var(--e5) var(--e5) 48px; }
+@media (max-width: 899px) { #reglages-page { padding: var(--e4) var(--e4) 48px; } }
+.rg-tete h1 { margin: 0; }
+.rg-tete p { margin: 4px 0 var(--e5); color: var(--texte-2); font-size: var(--t-s); }
+.rg-section { margin-bottom: var(--e5); }
+.rg-section > h2 { margin: 0 0 var(--e1); }
+.rg-section > .sous { margin: 0 0 var(--e3); color: var(--texte-2); font-size: var(--t-s); max-width: 40rem; }
+.rg-carte { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-m); }
+.rg-ligne { display: flex; align-items: center; gap: var(--e4); padding: var(--e3) var(--e5); min-height: 68px; }
+.rg-ligne + .rg-ligne { border-top: 1px solid var(--border); }
+.rg-texte { flex: 1; min-width: 0; }
+.rg-texte b { display: block; font-weight: 600; }
+.rg-texte .mu { display: block; margin-top: 2px; }
+.rg-valeur { display: flex; align-items: center; gap: var(--e2); flex: none; }
+.rg-valeur .saisie { width: 5.5rem; text-align: right; font-variant-numeric: tabular-nums; }
+.rg-cours b small { font-weight: 400; color: var(--texte-2); }
+.rg-note { margin: var(--e3) 0 0; font-size: var(--t-min); color: var(--texte-2); }
+.rg-note a { color: var(--accent); }
+@media (max-width: 899px) { .rg-ligne { flex-wrap: wrap; padding: var(--e3) var(--e4); } .rg-valeur { width: 100%; } }
