@@ -41,7 +41,7 @@ const garderReglages = () => {
   try { localStorage.setItem("reglages-lecteur", JSON.stringify(reglages)); } catch { /* idem */ }
 };
 
-let pages = []; // { numero, w, h, pdf, el, traits, actif, R, bg, hl, ink }
+let pages = []; // { numero, w, h, pdf, el, traits, actif, plan {R, zone}, bg, net, hl, ink (canvas), hlx, inkx (contextes), cible, taches }
 const histoire = { annuler: [], retablir: [] };
 let zoom = 1;
 
@@ -136,7 +136,12 @@ function segment(ctx, s, a, b, c) { // courbe quadratique a -> c, point de contr
   ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.quadraticCurveTo(b.x, b.y, c.x, c.y); ctx.stroke();
 }
 const milieu = (a, b) => ({ x: (a.x + b.x) / 2, y: (a.y + b.y) / 2, p: (a.p + b.p) / 2 });
-const ctxDe = (pg, s) => (s.outil === "surligneur" ? pg.hlx : pg.inkx);
+function ctxDe(pg, s) { // la couche d'un outil n'existe que pour une page qui a des traits de cet outil
+  const cle = s.outil === "surligneur" ? "hl" : "ink";
+  if (!pg.actif) return null;
+  if (!pg[cle]) preparerTrait(pg, cle);
+  return pg[cle + "x"];
+}
 
 function tracer(pg, s) {
   const ctx = ctxDe(pg, s), pts = s.pts;
@@ -166,41 +171,122 @@ function tracerEnDirect(pg, d) { // ne dessine que les nouveaux segments
   d.trace = pts.length;
 }
 function redessiner(pg) {
-  if (!pg.actif || !pg.hlx) return;
-  pg.hlx.clearRect(0, 0, pg.w, pg.h); pg.inkx.clearRect(0, 0, pg.w, pg.h);
+  if (!pg.actif) return;
+  for (const cle of ["hl", "ink"]) {
+    const x = pg[cle + "x"];
+    if (x) { x.save(); x.setTransform(1, 0, 0, 1, 0, 0); x.clearRect(0, 0, pg[cle].width, pg[cle].height); x.restore(); }
+  }
   for (const s of pg.traits) tracer(pg, s);
 }
 
 // ----- pages : canvas créés seulement pour les pages proches de l'écran (mémoire de l'iPad) -----
-const qualite = () => Math.min(3, Math.max(1.5, Math.ceil(zoom * (window.devicePixelRatio || 1) * 2) / 2));
+// Résolution et zone dessinée : pwa/resolution.js. Fond : la page entière en résolution de base, plus un « net » à la
+// résolution de l'écran sur la zone visible quand la page entière coûterait trop de pixels (grand zoom). Surligneur
+// et encre : même zone et même résolution que le net, créés seulement pour une page qui a des traits de cet outil.
+// Tout rendu est repoussé pendant le pincement, le crayon et le défilement (`programmerPlans`) et annulé s'il est périmé.
+const COUCHES = { bg: "fond", net: "fond-net", hl: "surligneur", ink: "encre" };
+const densite = () => window.devicePixelRatio || 1;
 
-async function activer(pg) {
-  const R = qualite();
-  if (pg.actif && pg.R === R) return;
-  pg.actif = true; pg.R = R;
-  if (!pg.bg) {
-    for (const [cle, classe] of [["bg", "fond"], ["hl", "surligneur"], ["ink", "encre"]]) {
-      pg[cle] = document.createElement("canvas"); pg[cle].className = classe; pg.el.append(pg[cle]);
-    }
-    brancherSaisie(pg);
+function libererCanvas(c) { if (c) { c.width = c.height = 0; c.remove(); } } // vide la mémoire sans attendre le ramasse-miettes
+function nouveauCanvas(pg, cle, zone, R) { // taille CSS exacte : un pixel de canvas = 1/R point
+  const c = document.createElement("canvas");
+  c.className = COUCHES[cle];
+  c.width = Math.ceil((zone ? zone.w : pg.w) * R); c.height = Math.ceil((zone ? zone.h : pg.h) * R);
+  c.style.left = (zone ? zone.x : 0) + "px"; c.style.top = (zone ? zone.y : 0) + "px";
+  c.style.width = c.width / R + "px"; c.style.height = c.height / R + "px";
+  return c;
+}
+function preparerTrait(pg, cle) { // (re)crée la couche des traits selon le plan de la page
+  const { R, zone } = pg.plan, c = nouveauCanvas(pg, cle, zone, R);
+  libererCanvas(pg[cle]); pg[cle] = c; pg.el.append(c);
+  const x = pg[cle + "x"] = c.getContext("2d");
+  x.setTransform(R, 0, 0, R, -(zone ? zone.x : 0) * R, -(zone ? zone.y : 0) * R);
+  x.lineCap = "round"; x.lineJoin = "round";
+}
+async function rendreCouche(pg, cle, zone, R) { // fond ou net : rendu dans un nouveau canvas, échangé une fois fini
+  const avant = pg.taches[cle];
+  if (avant) avant.cancel();
+  const mien = (pg.cible[cle] = { zone, R });
+  const c = nouveauCanvas(pg, cle, zone, R), z = zone || { x: 0, y: 0 };
+  const tache = (pg.taches[cle] = pg.pdf.render({
+    canvasContext: c.getContext("2d"),
+    viewport: pg.pdf.getViewport({ scale: R, offsetX: -z.x * R, offsetY: -z.y * R }),
+  }));
+  try { await tache.promise; } catch (e) {
+    libererCanvas(c);
+    if (!e || e.name !== "RenderingCancelledException") console.error("Rendu du PDF :", e);
+    return;
   }
-  for (const c of [pg.hl, pg.ink]) { c.width = Math.ceil(pg.w * R); c.height = Math.ceil(pg.h * R); }
-  pg.hlx = pg.hl.getContext("2d"); pg.inkx = pg.ink.getContext("2d");
-  for (const x of [pg.hlx, pg.inkx]) { x.setTransform(R, 0, 0, R, 0, 0); x.lineCap = "round"; x.lineJoin = "round"; }
+  if (pg.taches[cle] === tache) pg.taches[cle] = null;
+  if (!pg.actif || pg.cible[cle] !== mien) { libererCanvas(c); return; } // périmé
+  const ancien = pg[cle];
+  if (ancien) ancien.replaceWith(c); else pg.el.append(c);
+  libererCanvas(ancien); pg[cle] = c;
+  if (cle === "bg") {
+    pg.bgR = R;
+    if (!pg.plan.zone && pg.net) { libererCanvas(pg.net); pg.net = null; pg.cible.net = null; } // retour en page entière
+  }
+  majDebug();
+}
+const memeZone = (a, b) => a === b || (!!a && !!b && a.x === b.x && a.y === b.y && a.w === b.w && a.h === b.h);
+function appliquerPlan(pg, plan) {
+  pg.plan = plan;
+  for (const cle of ["hl", "ink"]) if (pg[cle]) preparerTrait(pg, cle);
   redessiner(pg);
-  const jeton = (pg.jeton = {});
-  const tmp = document.createElement("canvas");
-  tmp.width = Math.ceil(pg.w * R); tmp.height = Math.ceil(pg.h * R);
-  await pg.pdf.render({ canvasContext: tmp.getContext("2d"), viewport: pg.pdf.getViewport({ scale: R }) }).promise;
-  if (pg.jeton !== jeton || !pg.bg) return; // page déjà désactivée ou re-rendue
-  pg.bg.width = tmp.width; pg.bg.height = tmp.height;
-  pg.bg.getContext("2d").drawImage(tmp, 0, 0);
+  const base = plan.zone ? Resolution.resolutionPlein(pg.w, pg.h) : plan.R; // le fond de base couvre toute la page
+  if (!pg.cible.bg || pg.cible.bg.R !== base) rendreCouche(pg, "bg", null, base);
+  if (plan.zone) {
+    const n = pg.cible.net;
+    if (!n || n.R !== plan.R || !memeZone(n.zone, plan.zone)) rendreCouche(pg, "net", plan.zone, plan.R);
+  } else if (pg.net && pg.bgR === base) {
+    if (pg.taches.net) pg.taches.net.cancel();
+    libererCanvas(pg.net); pg.net = null; pg.cible.net = null;
+  }
+  majDebug();
+}
+const zoneVisiblePage = (pg) => Resolution.zoneVisible(pg.el.getBoundingClientRect(), fenetre.getBoundingClientRect(), pg.w, pg.h);
+function rafraichir(pg) {
+  if (!pg.actif) return;
+  const visible = zoneVisiblePage(pg), voulu = Resolution.planifier({ w: pg.w, h: pg.h, zoom, dpr: densite(), visible });
+  if (!Resolution.suffit(pg.plan, voulu, visible)) appliquerPlan(pg, voulu);
+}
+function activer(pg) {
+  if (pg.actif) return;
+  pg.actif = true; rafraichir(pg);
 }
 function desactiver(pg) {
   if (!pg.actif) return;
-  pg.actif = false; pg.jeton = null; pg.R = 0;
-  for (const c of [pg.bg, pg.hl, pg.ink]) c.remove(); // la couche des fautes (DOM léger) reste en place
-  pg.bg = pg.hl = pg.ink = pg.hlx = pg.inkx = null;
+  pg.actif = false;
+  for (const t of Object.values(pg.taches)) if (t) t.cancel();
+  for (const cle of Object.keys(COUCHES)) { libererCanvas(pg[cle]); pg[cle] = null; pg[cle + "x"] = null; } // la couche des fautes (DOM léger) reste en place
+  pg.taches = {}; pg.cible = {}; pg.plan = null; pg.bgR = 0;
+  majDebug();
+}
+let minuteriePlans = null;
+function programmerPlans(delai) { // après le défilement, le pincement ou un changement de zoom
+  clearTimeout(minuteriePlans);
+  minuteriePlans = setTimeout(function lancer() {
+    if (pincement || enCours.size) { minuteriePlans = setTimeout(lancer, 200); return; }
+    pages.forEach(rafraichir);
+  }, delai);
+}
+
+// Compteur de pixels de canvas actifs (constat M8), désactivé par défaut : lecteur.html?debug=canvas
+function mesurerCanvas() {
+  let pixels = 0, n = 0;
+  for (const pg of pages) for (const cle of Object.keys(COUCHES)) if (pg[cle]) { pixels += pg[cle].width * pg[cle].height; n++; }
+  return { canvas: n, mpx: +(pixels / 1e6).toFixed(1), mo: Math.round((pixels * 4) / 1048576) };
+}
+let affichageDebug = null;
+function majDebug() {
+  if (params.get("debug") !== "canvas") return;
+  if (!affichageDebug) {
+    affichageDebug = document.createElement("div");
+    affichageDebug.style.cssText = "position:fixed;left:8px;bottom:8px;z-index:200;padding:2px 8px;border-radius:6px;background:#000a;color:#fff;font:11px monospace;pointer-events:none";
+    document.body.append(affichageDebug);
+  }
+  const m = mesurerCanvas();
+  affichageDebug.textContent = `canvas ${m.canvas} · ${m.mpx} Mpx · ${m.mo} Mo · zoom ${zoom.toFixed(2)}`;
 }
 
 // ----- saisie -----
@@ -209,7 +295,7 @@ let dernierP = 0.5;
 const accepte = (e) => e.pointerType === "pen" || e.pointerType === "mouse" || (e.pointerType === "touch" && reglages.doigt);
 const pression = (e) => (e.pointerType === "pen" ? e.pressure || 0.01 : 0.5);
 function position(e, pg) {
-  const r = pg.ink.getBoundingClientRect();
+  const r = pg.el.getBoundingClientRect();
   return { x: ((e.clientX - r.left) * pg.w) / r.width, y: ((e.clientY - r.top) * pg.h) / r.height };
 }
 
@@ -225,10 +311,13 @@ function armerRedressement(d, p) {
   }, DELAI_DROIT);
 }
 
+// Les événements viennent de la page (les canvas ne couvrent que la zone rendue); la couche des fautes garde les siens.
+const surLaPage = (e, pg) => e.target === pg.el || e.target instanceof HTMLCanvasElement;
 function brancherSaisie(pg) {
-  const ink = pg.ink;
+  const ink = pg.el;
   ink.addEventListener("pointerdown", (e) => {
-    if (!accepte(e)) return;
+    if (!accepte(e) || !pg.actif || !surLaPage(e, pg)) return;
+    if (pg.plan.zone) rafraichir(pg); // la zone rendue doit couvrir l'écran avant le premier point
     e.preventDefault(); ink.setPointerCapture(e.pointerId);
     const p = position(e, pg); p.p = dernierP = pression(e);
     if (reglages.outil === "gomme") {
@@ -281,14 +370,14 @@ function brancherSaisie(pg) {
 
   // Un tap du doigt (ou un double clic à la souris) sélectionne la faute de français sous le doigt.
   let appui = null;
-  ink.addEventListener("pointerdown", (e) => { appui = e.pointerType === "touch" ? { x: e.clientX, y: e.clientY, t: performance.now() } : null; });
+  ink.addEventListener("pointerdown", (e) => { if (!surLaPage(e, pg)) return; appui = e.pointerType === "touch" ? { x: e.clientX, y: e.clientY, t: performance.now() } : null; });
   ink.addEventListener("pointerup", (e) => {
     if (!appui || reglages.doigt) return;
     const tap = Math.hypot(e.clientX - appui.x, e.clientY - appui.y) < 10 && performance.now() - appui.t < 500;
     appui = null;
     if (tap && window.surToucher) window.surToucher(pg, position(e, pg));
   });
-  ink.addEventListener("dblclick", (e) => { if (window.surToucher) window.surToucher(pg, position(e, pg)); });
+  ink.addEventListener("dblclick", (e) => { if (surLaPage(e, pg) && window.surToucher) window.surToucher(pg, position(e, pg)); });
   ink.addEventListener("contextmenu", (e) => e.preventDefault());
 }
 
@@ -445,13 +534,13 @@ document.addEventListener("visibilitychange", () => { if (document.visibilitySta
 
 // ----- zoom à deux doigts (la barre d'outils reste fixe) -----
 const fenetre = $("fenetre"), taille = $("taille"), pile = $("pile");
-let largeurPile = 0, hauteurPile = 0, pincement = null, minuterieQualite = null;
+let largeurPile = 0, hauteurPile = 0, pincement = null;
 function appliquerZoom(z) {
   zoom = Math.min(5, Math.max(0.3, z));
   taille.style.width = largeurPile * zoom + "px"; taille.style.height = hauteurPile * zoom + "px";
   pile.style.transform = `scale(${zoom})`;
-  clearTimeout(minuterieQualite);
-  minuterieQualite = setTimeout(() => pages.forEach((pg) => pg.actif && activer(pg)), 350);
+  programmerPlans(350); // net seulement quand le zoom s'arrête
+  majDebug();
 }
 const LARGEUR_PAGE = 700; // largeur visée d'une page à l'ouverture, en px (la maquette Atelier)
 function ajuster(pleineLargeur) {
@@ -495,13 +584,14 @@ fenetre.addEventListener("touchmove", (e) => {
   const r2 = taille.getBoundingClientRect();
   fenetre.scrollLeft += r2.left + ux * zoom - cx; fenetre.scrollTop += r2.top + uy * zoom - cy;
 }, { passive: false });
-const finPincement = (e) => { if (e.touches.length < 2) pincement = null; };
+const finPincement = (e) => { if (e.touches.length < 2 && pincement) { pincement = null; programmerPlans(100); } };
 fenetre.addEventListener("touchend", finPincement); fenetre.addEventListener("touchcancel", finPincement);
 new ResizeObserver(adapterALargeur).observe(fenetre);
 
 // Page courante (indicateur), selon la page la plus proche du centre de la fenêtre.
 let attenteDefilement = false;
 fenetre.addEventListener("scroll", () => {
+  programmerPlans(150); // la zone nette suit l'écran quand le défilement s'arrête
   if (attenteDefilement) return;
   attenteDefilement = true;
   requestAnimationFrame(() => {
@@ -551,7 +641,8 @@ async function ouvrir() {
     el.className = "page"; el.dataset.index = i - 1;
     el.style.width = vp.width + "px"; el.style.height = vp.height + "px";
     pile.append(el);
-    pages.push({ numero: i, w: vp.width, h: vp.height, pdf: pdfPage, el, traits: [], actif: false, R: 0 });
+    pages.push({ numero: i, w: vp.width, h: vp.height, pdf: pdfPage, el, traits: [], actif: false, plan: null, bgR: 0, cible: {}, taches: {} });
+    brancherSaisie(pages[pages.length - 1]);
     largeurPile = Math.max(largeurPile, vp.width);
     hauteurPile += vp.height + ESPACE;
   }
