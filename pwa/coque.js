@@ -53,9 +53,8 @@
   const titreLabs = sur("p", "cq-titre", "Labs en cours");
   const zoneLabs = sur("div", "cq-labs"); zoneLabs.id = "cq-labs";
 
-  const reglages = sur("span", "cq-lien");
-  reglages.setAttribute("aria-disabled", "true");
-  reglages.title = "Bientôt";
+  const reglages = sur("a", "cq-lien");
+  reglages.href = "reglages.html"; reglages.dataset.cle = "reglages";
   reglages.append(UI.icone("settings"), sur("span", "", "Réglages"));
   const ordi = sur("div", "cq-ordi"); ordi.id = "cq-ordi";
   const texteOrdi = sur("span", "", "Connexion…");
@@ -112,6 +111,7 @@
   }
   if (page === "consommation.html") conso.classList.add("on");
   if (page === "plagiat.html") marquer("plagiat");
+  else if (page === "reglages.html") marquer("reglages");
   else if (page === "index.html") marquer(VUE_VERS_CLE[location.hash.slice(1)] ?? "accueil");
 
   // --- Labs en cours : au moins un rapport pas terminé et lab non archivé ---

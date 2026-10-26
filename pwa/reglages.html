@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0f6f66">
+  <script src="acces.js"></script>
+  <link rel="stylesheet" href="design.css">
+  <link rel="stylesheet" href="composants.css">
+  <link rel="stylesheet" href="coque.css">
+  <link rel="stylesheet" href="reglages.css">
+  <title>Réglages · Correction de labs</title>
+</head>
+<body class="avec-coque">
+<div class="coque">
+  <aside id="coque-lat" class="coque-lat"></aside>
+  <div class="coque-corps">
+  <main id="reglages-page">
+    <header class="rg-tete">
+      <h1>Réglages</h1>
+      <p>Chaque changement est enregistré tout de suite.</p>
+    </header>
+
+    <section class="rg-section" aria-labelledby="h-plagiat">
+      <h2 id="h-plagiat">Plagiat</h2>
+      <p class="sous">Les paires de rapports qui se ressemblent sont listées à partir de ce seuil. Un indice à revérifier, jamais un verdict.</p>
+      <div class="rg-carte">
+        <div class="rg-ligne">
+          <div class="rg-texte"><b><label for="seuil">Seuil d'affichage</label></b><span class="mu">Part d'un rapport couverte par des passages communs. Les paires plus basses restent consultables sous le seuil.</span></div>
+          <div class="rg-valeur"><input class="saisie" id="seuil" type="number" min="0" max="100" step="1" inputmode="numeric" disabled> %</div>
+        </div>
+      </div>
+      <p class="rg-note" id="note-plancher">Les paires sous 5 % ne sont pas gardées (valeur fixe). Aussi réglable dans <a href="plagiat.html">Plagiat</a>.</p>
+    </section>
+
+    <section class="rg-section" aria-labelledby="h-ref">
+      <h2 id="h-ref">Style des références</h2>
+      <p class="sous">Forme attendue de la bibliographie, vérifiée dans l'onglet Références d'un rapport. Réglé par cours; une nouvelle session reprend le style de la précédente.</p>
+      <div id="cours" class="rg-carte" aria-live="polite"></div>
+      <p class="rg-note" id="note-ref" hidden>Aussi réglable dans l'onglet Références d'un rapport.</p>
+    </section>
+  </main>
+  </div>
+</div>
+<script src="ui.js"></script>
+<script src="coque.js"></script>
+<script src="reglages.js"></script>
+</body>
+</html>
