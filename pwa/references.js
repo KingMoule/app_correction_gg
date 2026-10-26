@@ -60,6 +60,24 @@
 
   const lien = (e) => urlSure(e.existence?.url) || (e.doi ? urlSure(`https://doi.org/${e.doi}`) : null) || urlSure(e.url);
 
+  // « Pourquoi ? » : les appels à ce numéro que le moteur a écartés, avec la raison, pour repérer un faux négatif.
+  function pourquoi(e) {
+    const det = h("details", "ref-pourquoi");
+    det.append(h("summary", undefined, "Pourquoi ?"));
+    const cands = (rf.donnees?.appels_ecartes ?? []).filter((c) => e.numero != null && c.numero === e.numero);
+    if (!cands.length) {
+      det.append(h("p", "mu", "Aucun appel à ce numéro n'a été trouvé dans le texte, même parmi les candidats écartés."));
+      return det;
+    }
+    det.append(h("p", "mu", "Appels à ce numéro écartés (ce n'étaient pas des appels de référence, d'après le moteur) :"));
+    for (const c of cands) {
+      const li = h("div", "ref-ecart");
+      li.append(h("b", undefined, c.marque), h("span", "mu", ` ${c.raison}`), h("blockquote", undefined, `« ${c.phrase} »`));
+      det.append(li);
+    }
+    return det;
+  }
+
   function detail(e) {
     const d = h("div", "ref-detail");
     d.append(h("p", "ref-brut", e.brut));
@@ -77,6 +95,7 @@
     else d.append(h("p", "vue-texte", "Rien à signaler (vérification partielle de la norme)."));
     d.append(h("h4", "vue-titre", "Citations"),
       h("p", "vue-texte", e.citee ? `Citée ${e.citee} fois dans le texte.` : "Jamais citée dans le texte."));
+    if (!e.citee) d.append(pourquoi(e));
     const p = e.pertinence;
     if (p) {
       d.append(h("h4", "vue-titre", "Pertinence"), h("p", "vue-texte", p.explication));

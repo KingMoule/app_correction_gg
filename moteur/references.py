@@ -38,6 +38,7 @@ VRAISEMBLANCES = ["plausible", "incertaine", "peu_plausible", "inconnue"]
 MAX_ENTREES_CLAUDE = 40
 MAX_PHRASES = 3  # phrases citantes envoyées par référence
 MAX_PHRASE = 400
+MAX_ECARTES = 60  # appels candidats écartés gardés pour le diagnostic « Pourquoi ? »
 
 TITRES = (r"r[ée]f[ée]rences(?:\s+bibliographiques)?|bibliographie|m[ée]diagraphie|sources|"
           r"ouvrages\s+consult[ée]s|liste\s+des\s+r[ée]f[ée]rences|references|bibliography|works\s+cited")
@@ -317,7 +318,9 @@ def forme(e: dict, style: str) -> list[str]:
 # --- Appels dans le texte (c) --------------------------------------------------
 
 ABREV = ("et al.", "fig.", "Fig.", "éq.", "Éq.", "p.", "env.", "c.-à-d.", "ex.", "cf.", "no.", "n°.", "vol.")
-RE_ISO = re.compile(r"\[(\d{1,3}(?:\s*(?:[,;]|[-–—])\s*\d{1,3})*)\]|(?<![\d,.])\((\d{1,3})\)")
+RE_ISO = re.compile(r"\[(\d{1,3}(?:\s*(?:[,;]|[-–—])\s*\d{1,3})*)\]|\((\d{1,3})\)")
+# fin d'une puissance de dix : « × 10²³ », « × 10^23 », ou l'exposant tel que le PDF le donne (« × 10 23 », « × 1023 »)
+RE_PUISSANCE = re.compile("(?:[²³¹⁰⁴-⁹]|[×x·⋅*]\\s*10\\s*\\^?\\s*[-−]?\\d{1,3})\\s*$")
 RE_APA_PAREN = re.compile(r"\(([^()]*?(?:1[5-9]\d\d|20\d\d)[a-z]?[^()]*)\)")
 RE_APA_NARRATIF = re.compile(rf"([{MAJ}][\w'’\-]+)(?:\s+(?:et al\.|et\s+[{MAJ}][\w'’\-]+|&\s*[{MAJ}][\w'’\-]+))?\s+\(((?:1[5-9]\d\d|20\d\d)[a-z]?)\)")
 
@@ -326,12 +329,12 @@ def _est_mot(jeton: str) -> bool:
     return bool(re.fullmatch(r"[^\W\d_](?:[^\W\d_]|['’-]){2,}[.,;:!?)]*", jeton))
 
 
-def _prose(corps: str) -> str:
-    """Le corps sans les lignes de calcul ou de tableau (même découpage que le français).
+def _partage(corps: str) -> tuple[list[str], list[str]]:
+    """(lignes de prose, lignes écartées : calculs, tableaux, légendes), même découpage que le français.
 
     Reste de la prose : une ligne courte qui prolonge une ligne de prose non terminée (« dosage [2]. ») et une phrase
     avec au moins 4 mots, ou terminée par un point, qui contient des valeurs (« La densité vaut 0,789 g/mL [1]. »)."""
-    sortie, prec_prose, prec_fin = [], False, True
+    sortie, ecartees, prec_prose, prec_fin = [], [], False, True
     for ligne in corps.split("\n"):
         jetons = ligne.split()
         mots = sum(1 for j in jetons if _est_mot(j))
@@ -340,16 +343,23 @@ def _prose(corps: str) -> str:
         if not prose and jetons:
             prose = ((prec_prose and not prec_fin and mots / len(jetons) >= 0.5)
                      or ((mots >= 4 or (fin and mots >= 3)) and mots / len(jetons) >= 0.25))
-        if prose:
-            sortie.append(ligne)
+        (sortie if prose else ecartees).append(ligne)
         prec_prose, prec_fin = prose, fin
-    return "\n".join(sortie)
+    return sortie, ecartees
+
+
+def _prose(corps: str) -> str:
+    return "\n".join(_partage(corps)[0])
 
 
 def _plat(corps: str) -> str:
+    return _plat_de(_prose(corps))
+
+
+def _plat_de(prose: str) -> str:
     """Le texte de prose sur une seule ligne. Un titre court sans ponctuation, suivi d'une ligne qui commence par une
     majuscule, devient sa propre phrase (il ne se colle pas à la phrase suivante)."""
-    lignes = re.sub(r"-\n(?=[a-zà-ÿ])", "", _prose(corps)).split("\n")
+    lignes = re.sub(r"-\n(?=[a-zà-ÿ])", "", prose).split("\n")
     sortie = ""
     for i, l in enumerate(lignes):
         sortie += l
@@ -392,16 +402,47 @@ def _nombres(g: str) -> list[int]:
     return sortie
 
 
-def appels_iso(corps: str) -> list[dict]:
-    plat = _plat(corps)
+def _raison_ecart(plat: str, m: re.Match, bornes: list[tuple[int, int]]) -> str | None:
+    """Pourquoi un `(n)` de la prose n'est pas un appel (None : c'est un appel).
+
+    Décision d'après l'entourage du nombre et la phrase, pas le taux de chiffres de la ligne : `1,359(2)` (collé) est
+    une incertitude; `10²³ (2),` (puissance de dix, espace, virgule) est un appel; `0,0003 (1) g/mL` (décimal, espace,
+    puis un mot) est une incertitude; une phrase rédigée garde ses appels même avec un « = »."""
+    avant = plat[: m.start()]
+    if re.search(r"[\d,.]$", avant):
+        return "collé à un nombre (incertitude, comme 1,359(2))"
+    tete = avant.rstrip()
+    if re.search(r"[\d±]$", tete) and not RE_PUISSANCE.search(tete):
+        suite = plat[m.end():].lstrip()[:1]
+        if suite and suite not in ",;.:)":
+            return "suit un nombre, sans ponctuation après (incertitude, comme 0,0003 (1) g/mL)"
+    if "=" in avant[-60:]:
+        phrase = _phrase_de(m.start(), bornes, plat)
+        if sum(1 for j in phrase.split() if _est_mot(j)) < 4:
+            return "numéro d'équation (« = » dans une phrase presque sans mots)"
+    return None
+
+
+def appels_iso(corps: str, ecartes: list[dict] | None = None) -> list[dict]:
+    """Appels `[n]`, `(n)` et exposants de la prose. `ecartes`, si donné, reçoit les candidats rejetés et la raison."""
+    gardees, rejetees = _partage(corps)
+    plat = _plat_de("\n".join(gardees))
     bornes = _phrases(plat)
     appels = []
     for m in RE_ISO.finditer(plat):
-        if m.group(2) and ("=" in plat[max(0, m.start() - 60): m.start()]
-                           or re.search(r"[\d±]\s*$", plat[max(0, m.start() - 3): m.start()])):
-            continue  # numéro d'équation, ou incertitude d'un nombre : 0,791 (2) ou ±0,0001 (1)
+        raison = _raison_ecart(plat, m, bornes) if m.group(2) else None
         for n in _nombres(m.group(1) or m.group(2)):
-            appels.append({"marque": m.group(0), "numero": n, "phrase": _phrase_de(m.start(), bornes, plat)})
+            ap = {"marque": m.group(0), "numero": n, "phrase": _phrase_de(m.start(), bornes, plat)}
+            if raison is None:
+                appels.append(ap)
+            elif ecartes is not None:
+                ecartes.append({**ap, "raison": raison})
+    if ecartes is not None:
+        for ligne in rejetees:
+            for m in RE_ISO.finditer(ligne):
+                for n in _nombres(m.group(1) or m.group(2)):
+                    ecartes.append({"marque": m.group(0), "numero": n, "phrase": ligne.strip()[:MAX_PHRASE],
+                                    "raison": "ligne de tableau ou de calcul"})
     return appels
 
 
@@ -616,13 +657,21 @@ def calculer(texte: str, style: str, reseau: web.Reseau, masquer) -> dict:
     """Toute l'analyse d'un texte de rapport (sans écrire de fichier)."""
     corps, liste, titre = separer(texte)
     doc: dict = {"version": 1, "style": style, "section": {"trouvee": titre is not None, "titre": titre},
-                 "entrees": [], "appels": [], "liaison": []}
+                 "entrees": [], "appels": [], "appels_ecartes": [], "liaison": []}
     if titre is None:
         doc["liaison"] = [{"type": "section_absente", "refs": [], "detail": "Aucune section « Références » ou « Bibliographie » trouvée."}]
         doc["claude"] = {"ok": True, "appele": False}
         return doc
     entrees = [analyser_entree(e) for e in decouper(liste)]
-    appels = appels_iso(corps) if style == "iso690" else appels_apa(corps)
+    ecartes: list[dict] = []
+    appels = appels_iso(corps, ecartes) if style == "iso690" else appels_apa(corps)
+    numeros = {e["numero"] for e in entrees}
+    vus: set[tuple] = set()
+    for c in ecartes:  # seulement les candidats dont le numéro est dans la liste, une fois chacun
+        cle = (c["numero"], c["phrase"], c["raison"])
+        if c["numero"] in numeros and cle not in vus and len(vus) < MAX_ECARTES:
+            vus.add(cle)
+            doc["appels_ecartes"].append(c)
     for e in entrees:
         e["forme"] = {"problemes": forme(e, style)}
     doc["liaison"] = lier(entrees, appels, style)
