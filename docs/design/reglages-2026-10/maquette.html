@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="/pwa/design.css">
+  <link rel="stylesheet" href="/pwa/composants.css">
+  <link rel="stylesheet" href="/pwa/coque.css">
+  <link rel="stylesheet" href="/pwa/reglages.css">
+  <title>Maquette · Réglages</title>
+</head>
+<body class="avec-coque">
+<!-- Maquette statique, données fictives. ?etat=vide : aucun cours. ?toast : « Enregistré ». ?menu : tiroir ouvert (portrait). -->
+<div class="coque" id="coque">
+  <aside class="coque-lat" id="coque-lat">
+    <div class="cq-marque"><span class="cq-logo"><svg class="ic"><use href="/pwa/vendor/lucide-sprite.svg#graduation-cap"/></svg></span><span>Correction<small>Rapports de lab</small></span></div>
+    <nav class="cq-nav" aria-label="Navigation">
+      <a class="cq-lien" href="#"><svg class="ic"><use href="/pwa/vendor/lucide-sprite.svg#house"/></svg><span>Accueil</span></a>
+      <a class="cq-lien" href="#"><svg class="ic"><use href="/pwa/vendor/lucide-sprite.svg#flask-conical"/></svg><span>Labs</span></a>
+      <a class="cq-lien" href="#"><svg class="ic"><use href="/pwa/vendor/lucide-sprite.svg#upload"/></svg><span>Importer</span></a>
+      <a class="cq-lien" href="#"><svg class="ic"><use href="/pwa/vendor/lucide-sprite.svg#scan-search"/></svg><span>Plagiat</span></a>
+    </nav>
+    <p class="cq-titre">Labs en cours</p>
+    <div class="cq-labs">
+      <a class="cq-lien" href="#"><span>Lab 2 · 202SNURE · A2026</span><span class="cq-n">3 / 14</span></a>
+      <a class="cq-lien" href="#"><span>Lab 1 · 203NYB · A2026</span><span class="cq-n">9 / 12</span></a>
+    </div>
+    <div class="cq-pied">
+      <a class="cq-lien on" href="#" aria-current="page"><svg class="ic"><use href="/pwa/vendor/lucide-sprite.svg#settings"/></svg><span>Réglages</span></a>
+      <div class="cq-ordi ok"><i class="cq-point"></i><span>Ordi connecté</span></div>
+    </div>
+  </aside>
+  <div class="coque-corps">
+    <header class="coque-haut"><button class="btn" type="button" id="menu"><svg class="ic"><use href="/pwa/vendor/lucide-sprite.svg#panel-right"/></svg>Menu</button><b>Correction</b></header>
+    <main id="reglages-page">
+      <header class="rg-tete">
+        <h1>Réglages</h1>
+        <p>Chaque changement est enregistré tout de suite.</p>
+      </header>
+
+      <section class="rg-section" aria-labelledby="h-plagiat">
+        <h2 id="h-plagiat">Plagiat</h2>
+        <p class="sous">Les paires de rapports qui se ressemblent sont listées à partir de ce seuil. Un indice à revérifier, jamais un verdict.</p>
+        <div class="rg-carte">
+          <div class="rg-ligne">
+            <div class="rg-texte"><b><label for="seuil">Seuil d'affichage</label></b><span class="mu">Part d'un rapport couverte par des passages communs. Les paires plus basses restent consultables sous le seuil.</span></div>
+            <div class="rg-valeur"><input class="saisie" id="seuil" type="number" min="0" max="100" step="1" value="20" inputmode="numeric"> %</div>
+          </div>
+        </div>
+        <p class="rg-note">Les paires sous 5 % ne sont pas gardées (valeur fixe). Aussi réglable dans <a href="#">Plagiat</a>.</p>
+      </section>
+
+      <section class="rg-section" aria-labelledby="h-ref">
+        <h2 id="h-ref">Style des références · Automne 2026</h2>
+        <p class="sous">Forme attendue de la bibliographie, vérifiée dans l'onglet Références d'un rapport. Réglé par cours; une nouvelle session reprend le style de la précédente.</p>
+        <div class="rg-carte" id="cours">
+          <div class="rg-ligne rg-cours">
+            <div class="rg-texte"><b>202SNURE <small>· A2026</small></b><span class="mu">14 étudiants · 2 labs</span></div>
+            <div class="rg-valeur"><div class="seg" role="group" aria-label="Style de 202SNURE"><button type="button" class="on" aria-pressed="true">ISO 690 numérique</button><button type="button" aria-pressed="false">APA 7</button></div></div>
+          </div>
+          <div class="rg-ligne rg-cours">
+            <div class="rg-texte"><b>203NYB <small>· A2026</small></b><span class="mu">12 étudiants · 1 lab</span></div>
+            <div class="rg-valeur"><div class="seg" role="group" aria-label="Style de 203NYB"><button type="button" aria-pressed="false">ISO 690 numérique</button><button type="button" class="on" aria-pressed="true">APA 7</button></div></div>
+          </div>
+        </div>
+        <p class="rg-note">Aussi réglable dans l'onglet Références d'un rapport.</p>
+      </section>
+    </main>
+  </div>
+</div>
+<div class="toasts" id="toasts"></div>
+<script>
+  const q = new URLSearchParams(location.search);
+  const ic = (n) => `<svg class="ic"><use href="/pwa/vendor/lucide-sprite.svg#${n}"/></svg>`;
+  if (q.get("etat") === "vide") {
+    document.getElementById("cours").outerHTML = `<div class="vide rg-carte">${ic("graduation-cap")}<p>Aucun cours pour l'instant : importe d'abord une liste de classe.</p><a class="btn primaire" href="#">Importer une liste</a></div>`;
+    document.querySelector(".cq-labs").innerHTML = '<p class="cq-vide">Aucune classe importée.</p>';
+    document.querySelector("#h-ref + .sous + .rg-note, #h-ref ~ .rg-note").remove();
+  }
+  if (q.has("toast")) document.getElementById("toasts").innerHTML = `<div class="toast">${ic("check")}<span>Enregistré</span></div>`;
+  if (q.has("menu")) document.getElementById("coque").classList.add("ouverte");
+  document.getElementById("menu").onclick = () => document.getElementById("coque").classList.toggle("ouverte");
+</script>
+</body>
+</html>
