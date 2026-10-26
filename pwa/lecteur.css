@@ -231,3 +231,5 @@ a.btn-ico { text-decoration: none; }
 .ref-style { border-top: 1px solid var(--border); padding-top: var(--e2); }
 .ref-style summary { min-height: var(--cible); display: flex; align-items: center; gap: var(--e2); cursor: pointer; }
 #onglets > [role=tab] .ic { display: none; } /* 4 onglets dans 320 px : libellés seuls */
+.ref-desc { margin-top: var(--e1); padding: var(--e2) var(--e3); border: 1px dashed var(--border-fort); border-radius: var(--r-s); background: var(--surface-2); font-size: var(--t-s); display: flex; flex-direction: column; gap: var(--e1); }
+.ref-desc p { margin: 0; }

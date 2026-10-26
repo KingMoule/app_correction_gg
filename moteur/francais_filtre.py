@@ -67,6 +67,11 @@ def _ligne_est_prose(jetons: list[str]) -> bool:
     return True
 
 
+def ligne_est_prose(ligne: str) -> bool:
+    """Une ligne de texte rédigé (et non un calcul, un tableau ou une légende courte)."""
+    return _ligne_est_prose(ligne.split())
+
+
 def _jeton_technique(coeur: str) -> bool:
     return any(c.isdigit() or c in _SYMBOLES for c in coeur)
 
