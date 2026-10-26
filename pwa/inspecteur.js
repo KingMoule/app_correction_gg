@@ -127,6 +127,7 @@
       ia.demande = false; ia.message = "Moteur injoignable.";
     }
     majBadgeIA(); rendreIA();
+    chargerComparaison();
   }
   function majBadgeIA() {
     const f = ia.donnees?.force;
@@ -143,7 +144,86 @@
       else { ia.donnees = await r.json(); ia.message = ""; majBadgeIA(); }
     } catch { ia.message = "Moteur injoignable."; }
     ia.occupe = false; rendreIA();
+    chargerComparaison(); // la force de l'indice a pu changer : le bouton apparaît ou disparaît
   }
+
+  // ----- Comparaison avec les rapports antérieurs du même étudiant (à la demande, indice modéré ou marqué) -----
+  const NIVEAUX_CMP = { coherent: "Style cohérent", notable: "Écart notable", marque: "Écart marqué" };
+  const ECARTS = { habituel: "Habituel", ecart: "Écart", fort: "Écart marqué", inconnu: "Non comparable" };
+  const cmp = { etat: undefined, occupe: false, message: "" };
+  async function chargerComparaison() {
+    if (ref.some((v) => !v)) return;
+    try {
+      const r = await fetch(`/api/indices-ia/comparaison/${base}`);
+      cmp.etat = r.ok ? await r.json() : null;
+    } catch { cmp.etat = null; }
+    rendreIA();
+  }
+  async function comparerIA() {
+    cmp.occupe = true; cmp.message = "Comparaison en cours (peut prendre une minute)…"; rendreIA();
+    try {
+      const r = await fetch(`/api/indices-ia/comparer/${base}`, { method: "POST" });
+      if (!r.ok) cmp.message = await erreurApi(r);
+      else { cmp.etat = { ...cmp.etat, resultat: await r.json() }; cmp.message = ""; }
+    } catch { cmp.message = "Moteur injoignable."; }
+    cmp.occupe = false; rendreIA();
+  }
+  const nb = (v, unite) => (v === null || v === undefined ? "n/d" : String(v).replace(".", ",") + (unite ? " " + unite : ""));
+  function rendreComparaison(racine) {
+    const e = cmp.etat;
+    if (!e || !e.visible) return;
+    const d = e.resultat;
+    racine.append(h("h3", "vue-titre", "Comparaison avec ses rapports antérieurs"));
+    if (!d) racine.append(h("p", "vue-texte", "Compare le style de ce rapport à celui des autres rapports du même étudiant (même DA). Un seul appel de Claude; cela compte dans ta limite d'usage."));
+    if (e.raison) racine.append(banniere(e.raison, "attention"));
+    if (d) {
+      const p = h("span", "pastille " + (d.niveau === "coherent" ? "p-neutre" : "p-ia"));
+      if (d.niveau !== "coherent") p.append(UI.icone("scan-search"));
+      p.append(NIVEAUX_CMP[d.niveau] ?? d.niveau);
+      racine.append(p, h("p", "vue-texte", d.explication));
+      const t = h("table", "cmp-tableau"), tete = h("tr");
+      for (const c of ["Mesure et écart", "Ce rapport", "Son habitude"]) tete.append(h("th", c.startsWith("Mesure") ? "" : "nombre", c));
+      t.append(h("thead")); t.firstChild.append(tete);
+      const corps = h("tbody");
+      for (const m of d.mesures) {
+        const l = h("tr", "cmp-" + m.niveau), nom = h("td");
+        nom.append(h("div", undefined, m.libelle),
+          h("div", m.niveau === "habituel" || m.niveau === "inconnu" ? "mu" : "cmp-ecart", `${FLECHE_ECART(m)}${ECARTS[m.niveau]}`));
+        l.append(nom, h("td", "nombre num", nb(m.valeur)), h("td", "nombre num", nb(m.habitude)));
+        corps.append(l);
+      }
+      t.append(corps);
+      const defil = h("div", "cmp-defil"); defil.append(t); racine.append(defil);
+      d.comparaisons.forEach((c) => {
+        const b = h("div", "signal");
+        b.append(h("div", undefined, c.observation));
+        for (const x of c.passages) {
+          b.append(h("div", "cmp-source mu", x.source), h("blockquote", undefined, `« ${x.texte} »`));
+        }
+        racine.append(b);
+      });
+      racine.append(h("h3", "vue-titre", "Rapports utilisés"));
+      const ul = h("ul");
+      for (const r of d.rapports) {
+        ul.append(h("li", undefined, `${r.lab} · ${UI.titreCours(r.cours)}${r.equipe ? " · en équipe (poids réduit)" : ""}`));
+      }
+      racine.append(ul);
+      if (d.limites.length) {
+        racine.append(h("h3", "vue-titre", "Limites"));
+        const lim = h("ul"); for (const x of d.limites) lim.append(h("li", undefined, x));
+        racine.append(lim);
+      }
+      if (d.avertissement) racine.append(h("p", "mu", d.avertissement));
+    }
+    if (cmp.message) racine.append(h("p", "vue-texte", cmp.message));
+    const bas = h("div", "vue-actions");
+    const b = bouton(d ? "Refaire la comparaison" : "Comparer avec ses rapports antérieurs", d ? "" : "primaire", d ? "refresh-cw" : "users", comparerIA);
+    b.disabled = cmp.occupe || !e.possible;
+    if (!e.possible && e.raison) b.title = e.raison;
+    bas.append(b);
+    racine.append(bas);
+  }
+  const FLECHE_ECART = (m) => (m.sens === "haut" ? "↑ " : m.sens === "bas" ? "↓ " : "");
   async function copier(texte) {
     try { await navigator.clipboard.writeText(texte); return true; } catch {
       const zone = document.createElement("textarea");
@@ -186,6 +266,7 @@
     analyser.disabled = ia.occupe;
     actions.append(analyser, bouton("Copier pour Pangram", "", "copy", pangram));
     racine.append(actions);
+    rendreComparaison(racine);
   }
 
   // ----- Plagiat : les paires de ce rapport, avec leurs passages communs -----

@@ -33,7 +33,8 @@ from . import config, stockage
 
 router = APIRouter(prefix="/api/consommation")
 
-LIBELLES = {"francais": "Français", "ia": "Indices d'IA", "references": "Références", "plagiat": "Plagiat"}
+LIBELLES = {"francais": "Français", "ia": "Indices d'IA", "references": "Références", "plagiat": "Plagiat",
+            "ia-comparaison": "Comparaison de style"}
 TYPES = tuple(LIBELLES)
 
 MARGE_DEFAUT = 20.0                 # % de la session gardés en réserve
@@ -47,7 +48,8 @@ COUT_MIN_CALIBRAGE = 0.05           # sous ce coût dans la fenêtre, une lectur
 MIN_MESURES = 3                     # appels d'un type nécessaires pour préférer la mesure au défaut
 
 # Mesures de docs/PLAN.md (Sonnet) : ~0,107 $ par rapport pour ~3 % de la session de 5 h.
-COUT_DEFAUT_USD = {"francais": 0.035, "ia": 0.032, "references": 0.040, "plagiat": 0.040}
+COUT_DEFAUT_USD = {"francais": 0.035, "ia": 0.032, "references": 0.040, "plagiat": 0.040,
+                   "ia-comparaison": 0.040}
 PCT_PAR_USD_DEFAUT = 27.0
 
 _verrou = threading.Lock()
@@ -60,7 +62,7 @@ _ctx: contextvars.ContextVar = contextvars.ContextVar("consommation_contexte", d
 
 @contextlib.contextmanager
 def contexte(type_: str, *rapport: str):
-    """Type d'appel (`francais`, `ia`, `references`, `plagiat`) et rapport concerné (cours, lab, étudiant…)."""
+    """Type d'appel (`francais`, `ia`, `ia-comparaison`, `references`, `plagiat`) et rapport concerné (cours, lab, étudiant…)."""
     jeton = _ctx.set({"type": type_, "rapport": tuple(rapport)})
     try:
         yield
