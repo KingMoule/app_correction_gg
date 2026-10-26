@@ -578,3 +578,53 @@ def test_pas_de_description_hors_ligne(tmp_path, monkeypatch):
     monkeypatch.setattr(references, "obtenir_file", lambda: pytest.fail("Claude ne doit pas être appelé"))
     doc = calculer(RAPPORT_ISO)
     assert all("description" not in e["pertinence"] for e in doc["entrees"])
+
+
+# --- Faux « jamais citée » : appels après une valeur, dans une phrase riche en nombres -----------------------
+
+PARAGRAPHE = ("La valeur théorique de N_A est 6,02214076 × {exp} (2), le cuivre étant pesé avec soin. Nous avons obtenu "
+              "(6,5·10²³ ±0,3·10²³) mol⁻¹ = 1,08 × 10⁻²⁴ mol, soit un écart de 3,7 %. Le précipité est du sulfate de "
+              "cuivre (II) (1), qui a pu être formé en excès.")
+
+
+@pytest.mark.parametrize("exp", ["10²³", "10^23", "1023", "10 23", "10⁻²³"])
+def test_appel_apres_une_puissance_de_dix_avec_espace(exp):
+    appels = references.appels_iso(PARAGRAPHE.format(exp=exp))
+    assert [(a["numero"], a["marque"]) for a in appels] == [(2, "(2)"), (1, "(1)")], appels
+    assert appels[0]["phrase"].startswith("La valeur théorique de N_A")
+
+
+def test_appel_apres_un_chiffre_romain_d_oxydation():
+    appels = references.appels_iso("Le précipité est du sulfate de cuivre (II) (1), qui a pu se former en excès.")
+    assert [a["numero"] for a in appels] == [1]
+
+
+def test_phrase_riche_en_valeurs_avec_egal_garde_ses_appels():
+    texte = "Avec n = 0,0125 mol et V = 25,0 mL, on obtient une concentration de 0,500 mol/L, valeur connue (3)."
+    assert [a["numero"] for a in references.appels_iso(texte)] == [3]
+
+
+def test_cas_de_la_pr_76_restent_exclus():
+    corps = references.separer(TABLEAU)[0]
+    assert [a["numero"] for a in references.appels_iso(corps)] == [1, 2]
+    assert references.appels_iso("Mesure : 1,359(2) et 0,0003 (1) g/mL.") == []
+    assert references.appels_iso("E = m c2 (1)") == []
+
+
+def test_la_reference_n_est_plus_marquee_non_citee():
+    liste = "[1] DUPONT, Marie. Chimie du cuivre. Paris : Hermann, 2015.\n[2] CODATA. Fundamental physical constants. 2018."
+    corps = PARAGRAPHE.format(exp="10²³")
+    entrees = [references.analyser_entree(e) for e in references.decouper(liste)]
+    pb = references.lier(entrees, references.appels_iso(corps), "iso690")
+    assert [e["citee"] for e in entrees] == [1, 1]
+    assert not [p for p in pb if p["type"] == "entree_non_citee"]
+
+
+def test_diagnostic_des_appels_ecartes():
+    ecartes: list[dict] = []
+    corps = references.separer(TABLEAU)[0] + "\nMesure : 1,359(2) et 0,0003 (1) g/mL."
+    references.appels_iso(corps, ecartes)
+    raisons = {(e["numero"], e["raison"].split(" (")[0]) for e in ecartes}
+    assert (2, "collé à un nombre") in raisons
+    assert (1, "suit un nombre, sans ponctuation après") in raisons
+    assert any(e["raison"] == "ligne de tableau ou de calcul" and e["numero"] == 1 for e in ecartes), ecartes
