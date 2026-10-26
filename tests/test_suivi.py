@@ -22,7 +22,7 @@ def test_suivi_un_seul_appel_pour_tout_le_lab(lab):
     assert [(r["groupe"], r["nom"]) for r in d["rapports"]] == [("00001", "Martin"), ("00002", "Dubé"), ("00002", "Martin")]
     r = par_id(d)
     alice, zoe, luc = r["dube-alice"], r["martin-zoe"], r["martin-luc"]
-    assert alice["equipe"] == ["Anna Bele-Gombos"]
+    assert alice["equipe"] == ["Anna Ouellet-Pichard"]
     assert alice["etat"] == "termine" and alice["note"] == "17,5"
     assert alice["francais"] == {"etat": "tranche", "a_trancher": 0, "acceptees": 2, "penalite": 1.5, "claude_manquant": False}
     assert alice["plagiat"]["etat"] == "confirmee" and alice["plagiat"]["avec"] == ["Luc Martin"]

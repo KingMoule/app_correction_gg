@@ -337,7 +337,7 @@ def candidats_par_nom(nom_fichier: str, etudiants: list[dict]) -> list[dict]:
 
     Si plusieurs noms correspondent, on garde les plus longs (« Tremblay-Roy »
     l'emporte sur « Roy »). Le prénom départage seulement les homonymes.
-    Sans résultat, on compare sans séparateurs (« Bele-Gombos » ~ « BeleGombos »).
+    Sans résultat, on compare sans séparateurs (« Ouellet-Pichard » ~ « OuelletPichard »).
     """
     texte = normaliser(Path(nom_fichier).stem)
     cible = f" {texte} "
