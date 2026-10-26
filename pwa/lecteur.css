@@ -39,7 +39,10 @@ a.btn-ico { text-decoration: none; }
 #pile { position: absolute; left: 0; top: 0; transform-origin: 0 0; touch-action: pan-x pan-y; }
 .page { position: relative; background: #fff; margin: 0 auto 12px; box-shadow: 0 1px 3px rgba(0, 0, 0, .12), 0 8px 24px rgba(0, 0, 0, .10); }
 .page canvas { position: absolute; left: 0; top: 0; width: 100%; height: 100%; touch-action: pan-x pan-y; }
-.page canvas.surligneur { opacity: .4; mix-blend-mode: multiply; pointer-events: none; }
+.page canvas.fond { z-index: 1; }
+.page canvas.fond-net { z-index: 2; }
+.page canvas.surligneur { z-index: 3; opacity: .4; mix-blend-mode: multiply; pointer-events: none; }
+.page canvas.encre { z-index: 4; }
 #page-info { position: absolute; left: 12px; bottom: 12px; pointer-events: none; padding: 3px 10px; border-radius: var(--r-pilule); background: var(--surface); border: 1px solid var(--border);
   box-shadow: var(--ombre); font-size: var(--t-min); color: var(--texte-2); }
 #message { position: fixed; inset: 40% 1rem auto; text-align: center; color: #fff; background: #000a; padding: 1rem; border-radius: 8px; z-index: 50; }
@@ -71,8 +74,8 @@ a.btn-ico { text-decoration: none; }
 
 /* ----- Fautes de français sur le PDF ----- */
 @font-face { font-family: "Caveat"; font-weight: 700; src: url("vendor/caveat-latin-700-normal.woff2") format("woff2"); }
-/* z-index : les canvas d'une page sont créés à son activation (après la couche); sans lui ils la recouvriraient. */
-.fautes { position: absolute; inset: 0; z-index: 1; pointer-events: none; }
+/* z-index : les canvas d'une page (fond 1, net 2, surligneur 3, encre 4) sont créés et remplacés à tout moment; la couche des fautes reste au-dessus. */
+.fautes { position: absolute; inset: 0; z-index: 10; pointer-events: none; }
 .zone { position: absolute; background: rgba(229, 57, 53, .22); mix-blend-mode: multiply; border-radius: 2px; }
 .zone.acceptee { background: rgba(229, 57, 53, .45); }
 .zone.choisie { outline: 2px solid var(--accent); outline-offset: 1px; }
