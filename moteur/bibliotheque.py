@@ -445,6 +445,30 @@ def chemin_rapport(cours: str, groupe: str, lab: str, etudiant: str) -> Path:
     return dossier_groupe(cours, groupe) / segment_sur(lab, "lab") / etudiant / "rapport.pdf"
 
 
+def membres_equipe(dossier: Path) -> list[dict]:
+    """Coéquipiers enregistrés (`equipe.json`) à côté d'un rapport; liste vide si absent ou abîmé."""
+    membres = stockage.lire_json(dossier / "equipe.json", [])
+    return [m for m in membres if isinstance(m, dict) and m.get("id") and m.get("groupe")] if isinstance(membres, list) else []
+
+
+def trouver_double(cours: str, lab: str, depose: dict, equipe: list[dict]) -> tuple[dict, str] | None:
+    """Double remise : le coéquipier de `depose` a déjà un rapport rangé pour ce lab. (étudiant, nommage) ou None.
+
+    Nommage : `nouveau_nomme` (la nouvelle copie nomme l'autre), `existant_nomme` (l'autre copie nomme le
+    déposant) ou `mutuel`. Deux équipes différentes, ou un même étudiant dans deux labs, ne donnent rien."""
+    moi = (depose["groupe"], depose["id"])
+    nomme = {(m["groupe"], m["id"]) for m in equipe}
+    for e in etudiants_du_cours(cours):
+        cle = (e["groupe"], e["id"])
+        dossier = chemin_rapport(cours, e["groupe"], lab, e["id"]).parent
+        if cle == moi or not (dossier / "rapport.pdf").is_file():
+            continue
+        par_moi, par_lui = cle in nomme, moi in {(m["groupe"], m["id"]) for m in membres_equipe(dossier)}
+        if par_moi or par_lui:
+            return e, "mutuel" if par_moi and par_lui else "nouveau_nomme" if par_moi else "existant_nomme"
+    return None
+
+
 def ranger(contenu: bytes, cours: str, groupe: str, lab: str, etudiant: str, equipe: list[dict] | None = None,
            origine: str | None = None) -> str:
     cible = chemin_rapport(cours, groupe, lab, etudiant)
@@ -486,14 +510,19 @@ async def importer_lot(
             continue
         trouves, da = associer(nom, etudiants)
         deja = len(trouves) == 1 and chemin_rapport(cours, trouves[0]["groupe"], lab, trouves[0]["id"]).exists()
+        double = None
         if len(trouves) == 1 and not deja:
             e = trouves[0]
             equipe = coequipiers(contenu, etudiants, e)
-            ranger(contenu, cours, e["groupe"], lab, e["id"], equipe, nom)
-            resultat["ranges"].append({"fichier": nom, "etudiant": e, "groupe": e["groupe"], "equipe": equipe})
-            resultat["par_groupe"][e["groupe"]] = resultat["par_groupe"].get(e["groupe"], 0) + 1
-            continue
-        if deja:
+            double = trouver_double(cours, lab, e, equipe)
+            if not double:
+                ranger(contenu, cours, e["groupe"], lab, e["id"], equipe, nom)
+                resultat["ranges"].append({"fichier": nom, "etudiant": e, "groupe": e["groupe"], "equipe": equipe})
+                resultat["par_groupe"][e["groupe"]] = resultat["par_groupe"].get(e["groupe"], 0) + 1
+                continue
+        if double:  # la seconde copie ne se range pas : Guillaume choisit celle à garder
+            raison = "double_remise"
+        elif deja:
             raison = "deja_importe"
         elif trouves:
             raison = "ambigu"
@@ -505,9 +534,17 @@ async def importer_lot(
         (dossier / f"{ident}.pdf").write_bytes(contenu)
         meta = {"id": ident, "fichier": nom, "cours": cours, "groupe": groupe, "lab": lab,
                 "raison": raison, "da": da, "candidats": trouves}
+        if double:
+            meta["double"] = infos_double(double)
         stockage.ecrire_json(dossier / f"{ident}.json", meta)
         resultat["en_attente"].append(meta)
     return resultat
+
+
+def infos_double(double: tuple[dict, str]) -> dict:
+    """Ce qu'une fiche « À trancher » garde d'une double remise : la copie déjà rangée et qui a nommé qui."""
+    e, nommage = double
+    return {"existant": {k: e[k] for k in ("groupe", "id", "nom", "prenom")}, "nommage": nommage}
 
 
 @router.get("/attente")
@@ -562,11 +599,16 @@ def trancher(ident: str, choix: Choix) -> dict:
         if not e:
             raise HTTPException(400, "Étudiant absent de la liste de classe.")
         existant = chemin_rapport(meta["cours"], e["groupe"], meta["lab"], e["id"]).parent
+        equipe = coequipiers(contenu, tous, e)
+        double = None if existant.exists() else trouver_double(meta["cours"], meta["lab"], e, equipe)
+        if double:  # le coéquipier a déjà remis : pas de rangement silencieux, le choix se fait à l'écran de la double remise
+            stockage.ecrire_json(meta_f, {**meta, "raison": "double_remise", "candidats": [e], "double": infos_double(double)})
+            return {"ok": True, "double": True}
         if existant.exists():
             if not choix.remplacer:
                 raise HTTPException(409, "Cet étudiant a déjà un rapport pour ce lab : confirmer le remplacement.")
             mettre_de_cote(existant, f"{meta['cours']}_{e['groupe']}_{meta['lab']}_{e['id']}")
-        ranger(contenu, meta["cours"], e["groupe"], meta["lab"], e["id"], coequipiers(contenu, tous, e), meta.get("fichier"))
+        ranger(contenu, meta["cours"], e["groupe"], meta["lab"], e["id"], equipe, meta.get("fichier"))
         pdf_f.unlink()
     else:
         ecartes = racine() / "_ecartes"

@@ -7,7 +7,7 @@ d'IA et de plagiat sont des indices à revérifier, jamais un verdict.
 
 from fastapi import APIRouter, HTTPException
 
-from . import bibliotheque, lot, plagiat
+from . import bibliotheque, double_remise, lot, plagiat
 from . import session as sessions
 from .annotations import lire as lire_annotations
 from .bareme import penalite
@@ -139,5 +139,6 @@ def suivi(cours: str, lab: str, groupe: str | None = None) -> dict:
     archive = all(bibliotheque._lire_drapeau(bibliotheque.dossier_groupe(cours, c["groupe"]) / lab / "archive.json", "archive")
                   for c in classes if (bibliotheque.dossier_groupe(cours, c["groupe"]) / lab).is_dir())
     return {"cours": cours, "session": sessions.separer(cours)[1], "lab": lab, "groupes": [c["groupe"] for c in classes], "archive": archive,
+            "doubles": [p for p in double_remise.doubles_du_lab(cours, lab) if not groupe or groupe in (p["a"]["groupe"], p["b"]["groupe"])],
             "total": len(rapports), "compte": compte, "rapports": rapports, "non_remis": non_remis,
             "export": etat_export(cours, lab, dossiers)}

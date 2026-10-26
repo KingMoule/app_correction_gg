@@ -186,6 +186,7 @@ const RAISONS_LONGUES = {
   aucune_correspondance: "Aucun nom reconnu",
   deja_importe: "Rapport déjà importé pour ce lab (le remplacer ?)",
   da_inconnu: "N° de DA absent des listes de classe, aucun nom reconnu",
+  double_remise: "Double remise de l'équipe",
 };
 
 async function chargerAttente() {
@@ -202,6 +203,19 @@ async function chargerAttente() {
     const tete = texte("div", "", "attente-tete");
     tete.append(icone("file-text"), texte("b", item.fichier, "nom"), pastille(RAISONS_LONGUES[item.raison] ?? item.raison));
     const contexte = texte("p", `${nomCours(item.cours)} · ${item.lab}${item.da ? ` · DA ${item.da}` : ""}`, "aide");
+    if (item.raison === "double_remise" && item.double && item.candidats.length) {
+      // Les deux coéquipiers ont remis : pas de choix d'étudiant ici, la comparaison des deux copies mène au choix.
+      const nouveau = item.candidats[0], existant = item.double.existant;
+      tete.lastChild.textContent = `Double remise de l'équipe ${nouveau.prenom} ${nouveau.nom} et ${existant.prenom} ${existant.nom}`;
+      const comparer = bouton("Comparer et choisir", { icone: "users", classe: "primaire",
+        surClic: () => DoubleRemise.ouvrir({ attente: item.id, apres: charger }) });
+      const actions = texte("div", "", "attente-actions");
+      actions.append(comparer);
+      ligne.append(tete, contexte, texte("p", `${nouveau.prenom} ${nouveau.nom} et ${existant.prenom} ${existant.nom} ont chacun remis le rapport. `
+        + "Cette seconde copie n'est pas rangée tant que tu n'as pas choisi laquelle garder.", "aide"), actions);
+      zone.append(ligne);
+      continue;
+    }
     const choix = document.createElement("select");
     choix.className = "saisie";
     choix.setAttribute("aria-label", `Étudiant pour ${item.fichier}`);
@@ -242,7 +256,8 @@ async function trancher(id, choix, remplacer = false) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ etudiant, groupe, remplacer }),
   });
-  if (r.ok) UI.toast(choix ? "Rapport rangé" : "Fichier écarté (dossier _ecartes)");
+  if (r.ok && (await r.clone().json().catch(() => ({}))).double) UI.toast("Double remise : l'équipe a déjà un rapport. Compare les deux copies.");
+  else if (r.ok) UI.toast(choix ? "Rapport rangé" : "Fichier écarté (dossier _ecartes)");
   else alert(await erreurApi(r));
   await charger();
 }
@@ -372,6 +387,7 @@ const RAISONS = {
   aucune_correspondance: "aucun nom reconnu",
   da_inconnu: "DA absent des listes",
   deja_importe: "déjà importé pour ce lab",
+  double_remise: "double remise de l'équipe",
 };
 
 // Résultat de l'import, une ligne par fichier : rangé (avec équipe modifiable), à trancher (avec la raison), refusé.

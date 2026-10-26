@@ -390,6 +390,20 @@
     ban.replaceChildren(b);
   }
 
+  // Bannière « double remise » : les deux coéquipiers ont chacun remis ce rapport; mène au choix de la copie à garder.
+  function rendreDoubles() {
+    const nom = (p) => `${p.prenom} ${p.nom}`;
+    $("doubles").replaceChildren(...(donnees.doubles || []).map((d) => {
+      const b = el("div", "", "banniere attention"); b.setAttribute("role", "alert");
+      const corps = el("div", "", "corps");
+      corps.append(el("b", `Double remise : ${nom(d.a)} et ${nom(d.b)}. `), document.createTextNode("Les deux ont remis ce rapport; choisis la copie à garder."));
+      const choisir = el("button", "Choisir la copie à garder", "btn primaire"); choisir.type = "button";
+      choisir.onclick = () => DoubleRemise.ouvrir({ rangees: { cours, lab, a: d.a, b: d.b }, apres: charger });
+      b.append(UI.icone("triangle-alert"), corps, choisir);
+      return b;
+    }));
+  }
+
   function rendreTete() {
     const c = donnees.compte;
     const nomLab = libelleLab(lab);
@@ -432,6 +446,7 @@
     refermer();
     rendreTete();
     rendreMenuLab();
+    rendreDoubles();
     rendreBanniereExport();
     if (onglet === "export") monterExport();
     rendreTableau();
