@@ -316,7 +316,7 @@ const surLaPage = (e, pg) => e.target === pg.el || e.target instanceof HTMLCanva
 function brancherSaisie(pg) {
   const ink = pg.el;
   ink.addEventListener("pointerdown", (e) => {
-    if (!accepte(e) || !pg.actif || !surLaPage(e, pg)) return;
+    if (!accepte(e) || !pg.actif || !surLaPage(e, pg) || pincement) return; // pas de trait parasite pendant un pincement
     if (pg.plan.zone) rafraichir(pg); // la zone rendue doit couvrir l'écran avant le premier point
     e.preventDefault(); ink.setPointerCapture(e.pointerId);
     const p = position(e, pg); p.p = dernierP = pression(e);
@@ -535,8 +535,9 @@ document.addEventListener("visibilitychange", () => { if (document.visibilitySta
 // ----- zoom à deux doigts (la barre d'outils reste fixe) -----
 const fenetre = $("fenetre"), taille = $("taille"), pile = $("pile");
 let largeurPile = 0, hauteurPile = 0, pincement = null;
+const ZOOM_MIN = 0.3, ZOOM_MAX = 5;
 function appliquerZoom(z) {
-  zoom = Math.min(5, Math.max(0.3, z));
+  zoom = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, z));
   taille.style.width = largeurPile * zoom + "px"; taille.style.height = hauteurPile * zoom + "px";
   pile.style.transform = `scale(${zoom})`;
   programmerPlans(350); // net seulement quand le zoom s'arrête
@@ -558,7 +559,7 @@ function adapterALargeur() {
   const l = fenetre.clientWidth;
   if (!largeurPile || !l) return;
   if (!largeurFenetre) { largeurFenetre = l; return; }
-  if (l === largeurFenetre) return;
+  if (l === largeurFenetre || pincement) return; // pendant un pincement, c'est le geste qui règle le zoom
   const hautU = (fenetre.scrollTop - 12) / zoom, gaucheU = fenetre.scrollLeft / zoom;
   appliquerZoom((zoom * l) / largeurFenetre);
   largeurFenetre = l;
@@ -571,20 +572,31 @@ UI.menu($("plus"), [
   { separateur: true },
   { libelle: "Bibliothèque", icone: "library", surClic: () => { location.href = "/#biblio"; } },
 ]);
-const ecart = (t) => Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY);
-fenetre.addEventListener("touchstart", (e) => {
-  if (e.touches.length === 2 && !reglages.doigt && [...e.touches].every((t) => t.touchType !== "stylus")) pincement = { d: ecart(e.touches), z: zoom };
-}, { passive: false });
+// Pincement : l'ancre est le point du document sous le milieu des doigts au départ; à chaque mouvement elle est
+// remise sous le milieu courant des doigts par une position de défilement absolue (pwa/pincement.js).
+function debutPincement(e) {
+  const d = Pincement.doigts(e.touches);
+  if (d.length === 2 && !reglages.doigt) {
+    pincement = { ecart: Pincement.ecartDe(d), zoom, ancre: Pincement.ancre(Pincement.milieuDe(d), taille.getBoundingClientRect(), zoom) };
+  }
+}
+fenetre.addEventListener("touchstart", debutPincement, { passive: false });
 fenetre.addEventListener("touchmove", (e) => {
-  if (!pincement || e.touches.length !== 2) return;
-  e.preventDefault();
-  const cx = (e.touches[0].clientX + e.touches[1].clientX) / 2, cy = (e.touches[0].clientY + e.touches[1].clientY) / 2;
-  const r = taille.getBoundingClientRect(), ux = (cx - r.left) / zoom, uy = (cy - r.top) / zoom;
-  appliquerZoom((pincement.z * ecart(e.touches)) / pincement.d);
-  const r2 = taille.getBoundingClientRect();
-  fenetre.scrollLeft += r2.left + ux * zoom - cx; fenetre.scrollTop += r2.top + uy * zoom - cy;
+  const d = Pincement.doigts(e.touches);
+  if (!pincement || d.length < 2) return;
+  if (e.cancelable) e.preventDefault();
+  const milieu = Pincement.milieuDe(d);
+  appliquerZoom(Pincement.zoomCible(pincement.zoom, pincement.ecart, Pincement.ecartDe(d), ZOOM_MIN, ZOOM_MAX));
+  const f = fenetre.getBoundingClientRect(), t = taille.getBoundingClientRect();
+  const defile = Pincement.defilement(pincement.ancre, zoom, milieu,
+    { x: t.left - f.left + fenetre.scrollLeft, y: t.top - f.top + fenetre.scrollTop }, f,
+    { x: fenetre.scrollWidth - fenetre.clientWidth, y: fenetre.scrollHeight - fenetre.clientHeight });
+  fenetre.scrollLeft = defile.left; fenetre.scrollTop = defile.top;
 }, { passive: false });
-const finPincement = (e) => { if (e.touches.length < 2 && pincement) { pincement = null; programmerPlans(100); } };
+const finPincement = (e) => {
+  if (!pincement || Pincement.doigts(e.touches).length >= 2) return;
+  pincement = null; largeurFenetre = fenetre.clientWidth; programmerPlans(100);
+};
 fenetre.addEventListener("touchend", finPincement); fenetre.addEventListener("touchcancel", finPincement);
 new ResizeObserver(adapterALargeur).observe(fenetre);
 
