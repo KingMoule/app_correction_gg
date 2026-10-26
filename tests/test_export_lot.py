@@ -14,7 +14,7 @@ from moteur import export_lot, plagiat
 from tests.test_bibliotheque import client, deux_groupes, importer_cours, pdf  # noqa: F401
 
 COURS = "202SNURE_A2026"
-PAGE_ALICE = "Rapport de lab\nPar Alice Dubé et Anna Bele-Gombos"  # Anna est coéquipière d'Alice (autre groupe)
+PAGE_ALICE = "Rapport de lab\nPar Alice Dubé et Anna Ouellet-Pichard"  # Anna est coéquipière d'Alice (autre groupe)
 
 
 def faute(n: int) -> dict:
@@ -130,7 +130,7 @@ def test_tableau_lignes_penalites_equipe_etats(lab):
     client, _ = lab
     lignes = {(l["Nom"], l["Prénom"]): l for l in lire_csv(client.get(f"/api/export-lot/tableau/{COURS}/lab-1?inacheves=true").content)}
     assert len(lignes) == 4  # Alice, Anna (coéquipière), Luc, Zoé : une ligne chacun
-    alice, anna = lignes[("Dubé", "Alice")], lignes[("Bele-Gombos", "Anna")]
+    alice, anna = lignes[("Dubé", "Alice")], lignes[("Ouellet-Pichard", "Anna")]
     assert alice["DA"] == "2000001" and alice["Groupe"] == "00002"
     assert (alice["Fautes acceptées"], alice["Pénalité français"], alice["Note"], alice["État"]) == ("2", "1,5", "17,5", "Corrigé")
     assert alice["Terminé"] == "oui" and alice["Équipe"].startswith("déposant")
@@ -157,7 +157,7 @@ def test_plafond_du_bareme(lab):
 def test_tableau_sans_inacheves_et_groupe(lab):
     client, _ = lab
     corriges = lire_csv(client.get(f"/api/export-lot/tableau/{COURS}/lab-1?inacheves=false").content)
-    assert {l["Nom"] for l in corriges} == {"Dubé", "Bele-Gombos"}  # Alice et sa coéquipière seulement
+    assert {l["Nom"] for l in corriges} == {"Dubé", "Ouellet-Pichard"}  # Alice et sa coéquipière seulement
     g1 = lire_csv(client.get(f"/api/export-lot/tableau/{COURS}/lab-1?groupe=00001&inacheves=true").content)
     assert {l["Prénom"] for l in g1} == {"Anna", "Luc"}
 

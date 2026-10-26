@@ -173,7 +173,7 @@ def liste_csv(lignes, groupe):
 
 def deux_groupes(client):
     for groupe, lignes in [
-        ("00001", [("1000001", "Bele-Gombos", "Anna"), ("1000002", "Martin", "Luc")]),
+        ("00001", [("1000001", "Ouellet-Pichard", "Anna"), ("1000002", "Martin", "Luc")]),
         ("00002", [("2000001", "Dubé", "Alice"), ("2000002", "Martin", "Zoé")]),
     ]:
         nom, contenu = liste_csv(lignes, groupe)
@@ -190,9 +190,9 @@ def importer_cours(client, noms_pdf, groupe=""):
 
 def test_candidats_nom_compose_sans_separateurs():
     from moteur.bibliotheque import candidats
-    el = [{"id": "a", "nom": "Bele-Gombos", "prenom": "Anna"}, {"id": "b", "nom": "Roy", "prenom": "X"}]
-    assert [e["id"] for e in candidats("BeleGombos_2576245_Rapport.pdf", el)] == ["a"]
-    assert [e["id"] for e in candidats("Bele-Gombos_Rapport.pdf", el)] == ["a"]
+    el = [{"id": "a", "nom": "Ouellet-Pichard", "prenom": "Anna"}, {"id": "b", "nom": "Roy", "prenom": "X"}]
+    assert [e["id"] for e in candidats("OuelletPichard_1000009_Rapport.pdf", el)] == ["a"]
+    assert [e["id"] for e in candidats("Ouellet-Pichard_Rapport.pdf", el)] == ["a"]
     assert candidats("Royer_Rapport.pdf", el) == []  # « roy » ne se colle pas dans « royer »
 
 
@@ -210,7 +210,7 @@ def test_da_prioritaire_sur_le_nom():
 def test_import_multigroupes_et_recap(client, tmp_path):
     deux_groupes(client)
     res = importer_cours(client, [
-        ("BeleGombos_1000001_Rapport.pdf", pdf()),
+        ("OuelletPichard_1000001_Rapport.pdf", pdf()),
         ("Dube_2000001_Rapport.pdf", pdf()),
         ("Martin_2000002_Rapport.pdf", pdf()),
         ("Martin_Rapport.pdf", pdf()),          # homonymes, sans DA : ambigu
@@ -220,7 +220,7 @@ def test_import_multigroupes_et_recap(client, tmp_path):
     assert res["par_groupe"] == {"00001": 1, "00002": 2}
     assert {a["raison"] for a in res["en_attente"]} == {"ambigu", "da_inconnu"}
     assert len(res["refuses"]) == 1
-    assert (tmp_path / "bibliotheque/202SNURE_A2026/00001/lab-1/bele-gombos-anna/rapport.pdf").is_file()
+    assert (tmp_path / "bibliotheque/202SNURE_A2026/00001/lab-1/ouellet-pichard-anna/rapport.pdf").is_file()
     assert (tmp_path / "bibliotheque/202SNURE_A2026/00002/lab-1/martin-zoe/rapport.pdf").is_file()
     ambigu = next(a for a in res["en_attente"] if a["raison"] == "ambigu")
     r = client.post(f"/api/bibliotheque/attente/{ambigu['id']}", json={"etudiant": "martin-luc", "groupe": "00001"})
@@ -236,14 +236,14 @@ def test_groupe_restreint_limite_la_recherche(client):
 
 def test_coequipiers_reperes_et_plagiat_ignore(client):
     deux_groupes(client)
-    page = "Rapport de lab\nPar Alice Dubé et Anna Bele-Gombos"
+    page = "Rapport de lab\nPar Alice Dubé et Anna Ouellet-Pichard"
     res = importer_cours(client, [("Dube_2000001_Rapport.pdf", pdf(page))])
     equipe = res["ranges"][0]["equipe"]
-    assert [(c["groupe"], c["id"]) for c in equipe] == [("00001", "bele-gombos-anna")]
-    assert client.get("/api/bibliotheque").json()[1]["etudiants"][0]["equipes"]["lab-1"][0]["id"] == "bele-gombos-anna"
+    assert [(c["groupe"], c["id"]) for c in equipe] == [("00001", "ouellet-pichard-anna")]
+    assert client.get("/api/bibliotheque").json()[1]["etudiants"][0]["equipes"]["lab-1"][0]["id"] == "ouellet-pichard-anna"
     from moteur.plagiat import _meme_etudiant
-    x = {"cours": "C", "groupe": "00002", "etudiant": "dube-alice", "lab": "l", "equipe": ["00001/bele-gombos-anna"]}
-    y = {"cours": "C", "groupe": "00001", "etudiant": "bele-gombos-anna", "lab": "l"}
+    x = {"cours": "C", "groupe": "00002", "etudiant": "dube-alice", "lab": "l", "equipe": ["00001/ouellet-pichard-anna"]}
+    y = {"cours": "C", "groupe": "00001", "etudiant": "ouellet-pichard-anna", "lab": "l"}
     assert _meme_etudiant(x, y) and _meme_etudiant(y, x)
 
 

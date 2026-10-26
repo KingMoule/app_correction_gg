@@ -12,13 +12,13 @@ def test_fiche_rapports_etat_note_et_equipe(lab):
     assert (f["nom"], f["prenom"], f["da"], f["cours"], f["groupe"], f["retire"]) == ("Dubé", "Alice", "2000001", COURS, "00002", False)
     (r,) = f["rapports"]
     assert (r["lab"], r["etat"], r["note"], r["par_equipe"]) == ("lab-1", "termine", "17,5", False)
-    assert [(m["id"], m["groupe"]) for m in r["equipe"]] == [("bele-gombos-anna", "00001")]
+    assert [(m["id"], m["groupe"]) for m in r["equipe"]] == [("ouellet-pichard-anna", "00001")]
     assert f["historique"] == {"remplaces": [], "ecartes": []}
 
 
 def test_fiche_d_un_coequipier_couvert_par_le_rapport_d_un_autre(lab):
     client, _ = lab
-    f = client.get(f"/api/etudiant/{COURS}/00001/bele-gombos-anna").json()
+    f = client.get(f"/api/etudiant/{COURS}/00001/ouellet-pichard-anna").json()
     (r,) = f["rapports"]
     assert (r["lab"], r["par_equipe"], r["etudiant"], r["groupe"]) == ("lab-1", True, "dube-alice", "00002")
     assert r["note"] == "17,5" and r["etat"] == "termine"
@@ -27,7 +27,7 @@ def test_fiche_d_un_coequipier_couvert_par_le_rapport_d_un_autre(lab):
 
 def test_fiche_sans_rapport_et_etudiant_inconnu(lab):
     client, _ = lab
-    assert client.get(f"/api/etudiant/{COURS}/00001/bele-gombos-anna").status_code == 200
+    assert client.get(f"/api/etudiant/{COURS}/00001/ouellet-pichard-anna").status_code == 200
     assert client.get(f"/api/etudiant/{COURS}/00001/personne").status_code == 404
     assert client.get(f"/api/etudiant/{COURS}/00009/dube-alice").status_code == 404
     assert client.get(f"/api/etudiant/{COURS}/00002/..%2Fx").status_code in (400, 404)
